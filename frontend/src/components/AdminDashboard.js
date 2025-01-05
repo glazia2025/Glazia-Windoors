@@ -1,11 +1,16 @@
 import React from 'react';
+import { Link, Outlet } from 'react-router-dom';
 
 const AdminDashboard = () => {
   return (
     <div>
-      <h2>Admin Dashboard</h2>
-      <p>Welcome to the Admin Dashboard!</p>
-      {/* Add more admin-specific functionality here */}
+      <h1>Admin Dashboard</h1>
+      <nav>
+        <Link to="add-product">Add Product</Link> {/* Relative path */}
+      </nav>
+
+      {/* Child routes will render here */}
+      <Outlet />
     </div>
   );
 };

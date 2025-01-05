@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const AdminLoginForm = ({ setUserRole }) => {
+const AdminLoginForm = ({ setUserRole, setIsLoggedIn }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -18,7 +18,7 @@ const AdminLoginForm = ({ setUserRole }) => {
       // Decode JWT token to get the role (admin or user)
       const decoded = JSON.parse(atob(response.data.token.split('.')[1])); // Decode JWT
       setUserRole(decoded.role); // Set user role based on decoded JWT
-
+      setIsLoggedIn(true)
       // Redirect to the appropriate page based on role
       if (decoded.role === 'admin') {
         navigate('/admin/dashboard');

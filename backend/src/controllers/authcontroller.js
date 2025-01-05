@@ -19,10 +19,10 @@ bcrypt.hash(password, 10, (err, hashedPassword) => {
 
     staticAdmin.password = hashedPassword;
     // Log the hashed password for confirmation
-    console.log('Hashed password:', hashedPassword);
+    // console.log('Hashed password:', hashedPassword);
 
     // You can now use staticAdmin as expected
-    console.log(staticAdmin);
+    // console.log(staticAdmin);
   }
 });
 
