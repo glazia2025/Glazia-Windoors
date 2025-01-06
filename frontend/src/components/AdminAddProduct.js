@@ -12,7 +12,7 @@ const AdminAddProduct = () => {
     e.preventDefault();
 
     try {
-      const token = localStorage.getItem('userToken'); // Fetch token from localStorage
+      const token = localStorage.getItem('authToken'); // Fetch token from localStorage
       const response = await axios.post(
         'http://localhost:5000/api/admin/add-product',
         { name, description, price, category },

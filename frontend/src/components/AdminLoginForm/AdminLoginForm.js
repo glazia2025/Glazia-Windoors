@@ -13,7 +13,7 @@ const AdminLoginForm = ({ setUserRole, setIsLoggedIn }) => {
       const response = await axios.post('http://localhost:5000/api/auth/admin/login', { username, password });
 
       // Save the JWT token in localStorage
-      localStorage.setItem('userToken', response.data.token);
+      localStorage.setItem('authToken', response.data.token);
 
       // Decode JWT token to get the role (admin or user)
       const decoded = JSON.parse(atob(response.data.token.split('.')[1])); // Decode JWT
