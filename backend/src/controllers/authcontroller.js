@@ -1,6 +1,7 @@
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
 const otpStore = {};
 const staticAdmin = {
@@ -44,17 +45,46 @@ const sendWhatsAppOTP = async (req, res) => {
   }
 };
 
-const verifyOTP = (req, res) => {
+const verifyOTP = async (req, res) => {
   const { phoneNumber, otp } = req.body;
 
-  if (otpStore[phoneNumber] === otp) {
-    delete otpStore[phoneNumber]; // Clear OTP after verification
-    const token = jwt.sign({ phoneNumber, role: 'user' }, process.env.JWT_SECRET || 'secret', { expiresIn: '1h' });
-    res.status(200).json({ message: 'OTP verified successfully', token });
-  } else {
-    res.status(400).json({ message: 'Invalid OTP' });
+  try {
+    if (otpStore[phoneNumber] === otp) {
+      delete otpStore[phoneNumber]; // Clear OTP after verification
+
+      // Check if the user exists in the database
+      const existingUser = await User.findOne({ phoneNumber });
+
+      if (existingUser) {
+        const token = jwt.sign(
+          { phoneNumber, role: 'user' },
+          process.env.JWT_SECRET || 'secret',
+          { expiresIn: '1h' }
+        );
+
+        return res.status(200).json({
+          message: 'OTP verified successfully',
+          token,
+          userExists: true, // User already exists
+        });
+      }
+
+      // If user doesn't exist, return only the userExists flag
+      return res.status(200).json({
+        message: 'OTP verified successfully',
+        userExists: false, // User does not exist
+      });
+    } else {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+  } catch (error) {
+    console.error('Error in verifying OTP:', error);
+    return res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 };
+
+module.exports = { verifyOTP };
+
 
 const adminLogin = async (req, res) => {
   const { username, password } = req.body;
