@@ -9,6 +9,8 @@ import {
   MDBIcon,
   MDBRipple,
   MDBBtn,
+  MDBInputGroup,
+  MDBInput,
 } from "mdb-react-ui-kit";
 import "./UserProducts.css";
 import axios from 'axios';
@@ -44,6 +46,12 @@ const UserProducts = () => {
   return (
     <div>
       <MDBContainer fluid>
+        <MDBInputGroup className='search-group col-xl-10'>
+          <MDBInput label='Search' size='lg'/>
+          <MDBBtn rippleColor='dark'>
+            <MDBIcon icon='search' />
+          </MDBBtn>
+        </MDBInputGroup>
         {products.map((product) => 
           <MDBRow key={product._id} className="justify-content-center mb-0">
             <MDBCol md="12" xl="10">

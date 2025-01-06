@@ -5,6 +5,8 @@ import { MDBBtn, MDBContainer, MDBRow, MDBCol, MDBCard, MDBCardBody, MDBInput } 
 import './UserLoginForm.css';
 import OTPInput from '../OTPInput/OTPInput';
 import UserDetailsForm from '../UserDetailsForm/UserDetailsForm';
+import { useDispatch } from 'react-redux'; // Import useDispatch
+import { setUser } from '../../redux/userSlice'; // Import setUser action
 
 const MobileLoginForm = ({ setUserRole }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -15,6 +17,7 @@ const MobileLoginForm = ({ setUserRole }) => {
   const [showUserDetailsForm, setShowUserDetailsForm] = useState(false);
   
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const sendOtp = async () => {
     const phoneRegex = /^[0-9]{10}$/;
@@ -43,7 +46,7 @@ const MobileLoginForm = ({ setUserRole }) => {
 
     try {
       const response = await axios.post('http://localhost:5000/api/auth/verify-otp', { phoneNumber, otp });
-      const { userExists } = response.data;
+      const { userExists, token, existingUser } = response.data;
       setMessage(response.data.message);
 
       if (!userExists) {
@@ -53,6 +56,7 @@ const MobileLoginForm = ({ setUserRole }) => {
 
         const decoded = JSON.parse(atob(response.data?.token.split('.')[1]));
         setUserRole(decoded.role);
+        dispatch(setUser(existingUser));
         // Navigate to orders if user exists
         localStorage.setItem('authToken', response.data?.token);
         navigate('/user/orders');

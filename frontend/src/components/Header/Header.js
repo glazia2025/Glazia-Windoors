@@ -51,7 +51,7 @@ const Header = ({ userRole, isLoggedIn, onLogout }) => {
                   {userRole === 'admin' ? (
                     <MDBNavbarLink href='/admin/dashboard'>Admin Dashboard</MDBNavbarLink>
                   ) : userRole === 'user' ? (
-                    <MDBNavbarLink onClick={() => navigate('/user/orders')}>User Orders</MDBNavbarLink>
+                    <MDBNavbarLink onClick={() => navigate('/user/orders')}>Products</MDBNavbarLink>
                   ) : null}
                 </MDBNavbarItem>
               </>
@@ -60,7 +60,7 @@ const Header = ({ userRole, isLoggedIn, onLogout }) => {
 
           {isLoggedIn && (
             <div className="d-flex align-items-center">
-              <form className='d-flex input-group w-auto me-3'>
+              {/* <form className='d-flex input-group w-auto me-3'>
                 <input
                   type='search'
                   className='form-control'
@@ -68,7 +68,7 @@ const Header = ({ userRole, isLoggedIn, onLogout }) => {
                   aria-label='Search'
                 />
                 <MDBBtn color='primary'>Search</MDBBtn>
-              </form>
+              </form> */}
 
               {/* User Profile Dropdown */}
               <MDBDropdown>

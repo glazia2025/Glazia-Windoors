@@ -57,7 +57,7 @@ const verifyOTP = async (req, res) => {
 
       if (existingUser) {
         const token = jwt.sign(
-          { phoneNumber, role: 'user' },
+          { phoneNumber, userId: existingUser._id, role: 'user' },
           process.env.JWT_SECRET || 'secret',
           { expiresIn: '1h' }
         );
@@ -65,6 +65,7 @@ const verifyOTP = async (req, res) => {
         return res.status(200).json({
           message: 'OTP verified successfully',
           token,
+          existingUser,
           userExists: true, // User already exists
         });
       }
