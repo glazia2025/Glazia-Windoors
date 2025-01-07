@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import api from '../utils/api';
 
 const AdminAddProduct = () => {
   const [name, setName] = useState('');
@@ -13,8 +14,8 @@ const AdminAddProduct = () => {
 
     try {
       const token = localStorage.getItem('authToken'); // Fetch token from localStorage
-      const response = await axios.post(
-        'http://localhost:5000/api/admin/add-product',
+      const response = await api.post(
+        '/api/admin/add-product',
         { name, description, price, category },
         {
           headers: {

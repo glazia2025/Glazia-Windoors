@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom'; 
 import { MDBBtn, MDBContainer, MDBRow, MDBCol, MDBCard, MDBCardBody, MDBInput, MDBTextArea } from 'mdb-react-ui-kit';
 import './UserDetailsForm.css';
+import api from '../../utils/api';
 
 const UserDetailsForm = ({ receivedPhoneNumber }) => {
   const [userName, setUserName] = useState('');
@@ -36,7 +37,7 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
 
     try {
       // Make API call to save user details
-      const response = await axios.post('http://localhost:5000/api/admin/register', {
+      const response = await api.post('/admin/register', {
         name: userName,
         email,
         gstNumber,
@@ -48,6 +49,7 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
       });
       localStorage.setItem('authToken', response.data.token);
       setMessage('User details saved successfully!');
+      console.log("from form");
       navigate('/user/orders');  // Redirect to the user's orders page or another page
     } catch (error) {
       setMessage('');

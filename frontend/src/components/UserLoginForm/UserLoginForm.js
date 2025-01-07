@@ -7,6 +7,8 @@ import OTPInput from '../OTPInput/OTPInput';
 import UserDetailsForm from '../UserDetailsForm/UserDetailsForm';
 import { useDispatch } from 'react-redux'; // Import useDispatch
 import { setUser } from '../../redux/userSlice'; // Import setUser action
+import api from '../../utils/api';
+import loginImage from '../../login_theme.svg';
 
 const MobileLoginForm = ({ setUserRole }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -27,7 +29,7 @@ const MobileLoginForm = ({ setUserRole }) => {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/send-otp', { phoneNumber });
+      const response = await api.post('/auth/send-otp', { phoneNumber });
       setMessage(response.data.message);
       setIsOtpSent(true);
       setErrorMessage('');
@@ -45,7 +47,7 @@ const MobileLoginForm = ({ setUserRole }) => {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/verify-otp', { phoneNumber, otp });
+      const response = await api.post('/auth/verify-otp', { phoneNumber, otp });
       const { userExists, token, existingUser } = response.data;
       setMessage(response.data.message);
 
@@ -69,9 +71,14 @@ const MobileLoginForm = ({ setUserRole }) => {
 
   return (
     <MDBContainer fluid className="mdb-container">
-      <MDBRow>
+      <MDBRow className='align-items-center'>
         <MDBCol md='7' className='text-center text-md-start d-flex flex-column justify-content-center'>
-
+            <img 
+              src={loginImage} 
+              alt="Login Theme" 
+              className="img-fluid mb-4 login-image align-items-center" 
+              style={{ maxWidth: '100%', height: 'auto' }} 
+            />
             <h1 className="my-5 display-3 fw-bold ls-tight px-3">
             The best offer <br />
             <span className="text-primary">for your business</span>

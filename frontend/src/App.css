@@ -2,6 +2,12 @@
   text-align: center;
 }
 
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 80vh; /* Ensure the app takes full height */
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;

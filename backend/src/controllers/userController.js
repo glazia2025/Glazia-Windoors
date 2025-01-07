@@ -75,7 +75,9 @@ const getUser = async (req, res) => {
     }
 
     // Send the user data in the response
-    res.status(200).json({ user });
+    setTimeout(() => {
+      res.status(200).json({ user });
+    }, 5000)
   } catch (error) {
     console.error('Error verifying token or fetching user:', error);
     if (error.name === 'TokenExpiredError') {
@@ -85,4 +87,48 @@ const getUser = async (req, res) => {
   }
 };
 
-module.exports = { createUser, getUser };
+const updateUser = async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1]; // Extract token from Authorization header
+
+  if (!token) {
+    return res.status(401).json({ message: 'Authorization token is required' });
+  }
+
+  try {
+    // Verify and decode the JWT
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    // Find the user by ID from the token
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update the user's profile fields
+    const { name, email, gstNumber, pincode, city, state, address, phoneNumber } = req.body;
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (gstNumber) user.gstNumber = gstNumber;
+    if (pincode) user.pincode = pincode;
+    if (city) user.city = city;
+    if (state) user.state = state;
+    if (address) user.address = address;
+    if (phoneNumber) user.phoneNumber = phoneNumber;
+
+    // Save the updated user data
+    await user.save();
+
+    res.status(200).json({
+      message: 'User profile updated successfully',
+      user,
+    });
+  } catch (err) {
+    console.error(err);
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+module.exports = { createUser, getUser, updateUser };

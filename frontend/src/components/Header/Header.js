@@ -26,7 +26,7 @@ const Header = ({ userRole, isLoggedIn, onLogout }) => {
   return (
     <MDBNavbar fixed='top' expand='lg' light bgColor='light'>
       <MDBContainer fluid>
-        <MDBNavbarBrand href='/'><img className='logo' src={logo}/></MDBNavbarBrand>
+        <MDBNavbarBrand><img className='logo' src={logo}/></MDBNavbarBrand>
 
         <MDBNavbarToggler
           aria-controls='navbarSupportedContent'

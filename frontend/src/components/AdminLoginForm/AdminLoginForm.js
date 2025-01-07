@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import api from '../../utils/api';
 
 const AdminLoginForm = ({ setUserRole, setIsLoggedIn }) => {
   const [username, setUsername] = useState('');
@@ -10,7 +11,7 @@ const AdminLoginForm = ({ setUserRole, setIsLoggedIn }) => {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/admin/login', { username, password });
+      const response = await api.post('/auth/admin/login', { username, password });
 
       // Save the JWT token in localStorage
       localStorage.setItem('authToken', response.data.token);

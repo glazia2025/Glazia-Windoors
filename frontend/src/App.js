@@ -8,44 +8,63 @@ import { jwtDecode } from "jwt-decode";
 import AdminAddProduct from './components/AdminAddProduct';
 import Header from './components/Header/Header';
 import UserProfile from './components/UserProfile/UserProfile';
+import { useSelector } from 'react-redux';
+import SyncLoader from 'react-spinners/SyncLoader';
+import Footer from './components/Footer';
+import './App.css';
+import ProfileSelector from './components/UserDashboard/ProfileOptions';
+import SelectionContainer from './components/UserDashboard/SelectionContainer';
 
 function App() {
   const [userRole, setUserRole] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate(); 
+  const isLoading = useSelector((state) => state.loader.isLoading);
 
   const [isInitialLoad, setIsInitialLoad] = useState(true); // Track initial load
 
-useEffect(() => {
-  const decoded = checkTokenExpiration();
-
-  if (decoded) {
-    setUserRole(decoded.role);
-    setIsLoggedIn(true);
-    console.log("after", userRole, isLoggedIn)
-    console.log("isInitialLoad", isInitialLoad)
-
-    // Navigate only during the initial load
-    if (isInitialLoad) {
-      if (decoded.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/user/orders');
+  useEffect(() => {
+    const decoded = checkTokenExpiration();
+  
+    if (decoded) {
+      setUserRole(decoded.role);
+      setIsLoggedIn(true);
+  
+      // Only navigate during the initial load
+      console.log("isInitialLoad", isInitialLoad);
+      if (isInitialLoad) {
+        if (decoded.role === 'admin') {
+          navigate('/admin/dashboard');
+        } else {
+          console.log("got it once");
+          navigate('/user/orders');
+        }
+        setIsInitialLoad(false);
       }
-      setIsInitialLoad(false);
+    } else {
+      // Redirect unauthenticated users to login
+      if (!isInitialLoad) {
+        navigate(userRole === 'admin' ? '/' : '/user/login');
+      }
+      setIsLoggedIn(false);
+      setUserRole(null);
     }
-  } else {
-    setIsLoggedIn(false);
-    setUserRole(null);
-  }
-}, [navigate]);
-
+  }, [navigate]);
 
   const onLogout = () => {
-    setIsLoggedIn(false);
+    // Navigate to the correct login page
+    if (userRole === 'admin') {
+      navigate('/'); // Admin login page
+    } else {
+      navigate('/user/login'); // User login page
+    }
+    // Clear state and localStorage
     setUserRole(null);
+    setIsLoggedIn(false);
+    setIsInitialLoad(true);
     localStorage.removeItem('authToken');
-  }
+  
+  };
 
   const checkTokenExpiration = () => {
     const token = localStorage.getItem('authToken');
@@ -69,25 +88,46 @@ useEffect(() => {
   };
 
   return (
-      <div>
-        <Header userRole={userRole} isLoggedIn={isLoggedIn} onLogout={onLogout}/>
+      <div style={{overflowX: 'hidden'}}>
+        <>
+          {isLoading && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 9999,
+            }}>
+              <SyncLoader color="#123abc" />
+            </div>
+          )}
+          {/* Your app content */}
+        </>
+        {isLoggedIn && <Header userRole={userRole} isLoggedIn={isLoggedIn} onLogout={onLogout}/>}
+          <div className='app-container'>
+            <Routes>
+              {/* Admin Login Route */}
+              <Route path="/" element={<AdminLoginForm setUserRole={setUserRole} setIsLoggedIn={setIsLoggedIn}/>} />
+              
+              {/* User Login Route */}
+              <Route path="/user/login" element={<UserLoginForm setUserRole={setUserRole} />} />
 
-        <Routes>
-          {/* Admin Login Route */}
-          <Route path="/" element={<AdminLoginForm setUserRole={setUserRole} setIsLoggedIn={setIsLoggedIn}/>} />
-          
-          {/* User Login Route */}
-          <Route path="/user/login" element={<UserLoginForm setUserRole={setUserRole} />} />
+              {/* Admin Dashboard (protected by role check) */}
+              <Route path="/admin/dashboard" element={userRole === 'admin' && isLoggedIn ? <AdminDashboard /> : <Navigate to="/" />} >
+                <Route path="add-product" element={<AdminAddProduct />} />
+              </Route>
 
-          {/* Admin Dashboard (protected by role check) */}
-          <Route path="/admin/dashboard" element={userRole === 'admin' && isLoggedIn ? <AdminDashboard /> : <Navigate to="/" />} >
-            <Route path="add-product" element={<AdminAddProduct />} />
-          </Route>
-
-          {/* User Orders page (accessible by regular user only) */}
-          <Route path="/user/orders" element={userRole === 'user' && isLoggedIn ? <UserOrders /> : <Navigate to="/" />} />
-          <Route path='/profile' element={<UserProfile />} />
-        </Routes>
+              {/* User Orders page (accessible by regular user only) */}
+              <Route path="/user/orders" element={userRole === 'user' && isLoggedIn ? <SelectionContainer /> : <Navigate to="/" />} />
+              <Route path='/profile' element={<UserProfile />} />
+            </Routes>
+          </div>
+        <Footer/>
       </div>
   );
 }
