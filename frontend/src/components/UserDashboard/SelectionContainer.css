@@ -1,3 +1,14 @@
 .pdf-row-wrapper {
     flex-wrap: nowrap !important;
 }
+
+canvas {
+  width: 100%; /* Ensures the canvas width adapts to its container */
+  height: auto; /* Maintains aspect ratio */
+  display: block; /* Avoids extra spacing below the canvas */
+}
+
+.pdf-container {
+  max-width: 100%;
+  overflow: hidden;
+}

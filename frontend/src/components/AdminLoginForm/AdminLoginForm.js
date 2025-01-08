@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
+import {
+  MDBContainer,
+  MDBCol,
+  MDBRow,
+  MDBBtn,
+  MDBIcon,
+  MDBInput,
+  MDBCheckbox
+}
+from 'mdb-react-ui-kit';
 import axios from 'axios';
+import './AdminLoginForm.css';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 
@@ -32,23 +43,23 @@ const AdminLoginForm = ({ setUserRole, setIsLoggedIn }) => {
   };
 
   return (
-    <div>
-      <h2>Admin Login</h2>
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button onClick={handleLogin}>Login</button>
-      {message && <p>{message}</p>}
-    </div>
+    <MDBContainer fluid className="p-3 my-5 mdb-container">
+      <MDBRow>
+        <MDBCol col='10' md='6'>
+          <img src="/Assets/Images/admin.svg" class="img-fluid admin-img" alt="Phone image" />
+        </MDBCol>
+        <MDBCol col='4' md='6'>
+          <h1 className='mb-4'>Admin Login</h1>
+          <MDBInput value={username} wrapperClass='mb-4' label='Username' id='formControlLg' type='text' size="lg" onChange={(e) => setUsername(e.target.value)}/>
+          <MDBInput value={password} wrapperClass='mb-4' label='Password' id='formControlLg' type='password' size="lg" onChange={(e) => setPassword(e.target.value)}/>
+
+          <MDBBtn className="mb-4 w-100" size="lg" onClick={handleLogin}>Sign in</MDBBtn>
+
+          {message && <p>{message}</p>}
+
+        </MDBCol>
+      </MDBRow>
+    </MDBContainer>
   );
 };
 

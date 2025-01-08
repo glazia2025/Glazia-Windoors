@@ -14,6 +14,7 @@ import Footer from './components/Footer';
 import './App.css';
 import ProfileSelector from './components/UserDashboard/ProfileOptions';
 import SelectionContainer from './components/UserDashboard/SelectionContainer';
+import AdminForm from './components/AdminDashboard/AdminForm';
 
 function App() {
   const [userRole, setUserRole] = useState(null);
@@ -52,18 +53,11 @@ function App() {
   }, [navigate]);
 
   const onLogout = () => {
-    // Navigate to the correct login page
-    if (userRole === 'admin') {
-      navigate('/'); // Admin login page
-    } else {
-      navigate('/user/login'); // User login page
-    }
     // Clear state and localStorage
     setUserRole(null);
     setIsLoggedIn(false);
     setIsInitialLoad(true);
     localStorage.removeItem('authToken');
-  
   };
 
   const checkTokenExpiration = () => {
@@ -118,13 +112,17 @@ function App() {
               <Route path="/user/login" element={<UserLoginForm setUserRole={setUserRole} />} />
 
               {/* Admin Dashboard (protected by role check) */}
-              <Route path="/admin/dashboard" element={userRole === 'admin' && isLoggedIn ? <AdminDashboard /> : <Navigate to="/" />} >
+              <Route path="/admin/dashboard" element={userRole === 'admin' && isLoggedIn ? <AdminForm /> : <Navigate to="/" />} >
                 <Route path="add-product" element={<AdminAddProduct />} />
               </Route>
 
+              {/* <Route path="/admin/dashboard" element={userRole === 'admin' && isLoggedIn ? <AdminForm /> : <Navigate to="/" />} >
+                <Route path="add-product" element={<AdminAddProduct />} />
+              </Route> */}
+
               {/* User Orders page (accessible by regular user only) */}
-              <Route path="/user/orders" element={userRole === 'user' && isLoggedIn ? <SelectionContainer /> : <Navigate to="/" />} />
-              <Route path='/profile' element={<UserProfile />} />
+              <Route path="/user/orders" element={userRole === 'user' && isLoggedIn ? <SelectionContainer /> : <Navigate to="/user/login" />} />
+              <Route path='/profile' element={userRole === 'user' && isLoggedIn ? <UserProfile /> : <Navigate to="/user/login" />} />
             </Routes>
           </div>
         <Footer/>

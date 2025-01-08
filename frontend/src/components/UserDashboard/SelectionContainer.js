@@ -1,102 +1,145 @@
 import React, { useState, useEffect, useRef } from "react";
-import './SelectionContainer.css';
-import { MDBContainer, MDBRow, MDBCol, MDBBtn } from "mdb-react-ui-kit";
-import ProfileOptions from "./ProfileOptions"; // Adjust import path if needed
-import HardwareOptions from "./HardwareOptions"; // Adjust import path if needed
-import AcessoriesOptions from "./AcessoriesOptions"; // Adjust import path if needed
+import "./SelectionContainer.css";
+import { MDBRow, MDBCol, MDBBtn, MDBIcon } from "mdb-react-ui-kit";
+import { useDispatch, useSelector } from "react-redux";
+import ProfileOptions from "./ProfileOptions";
+import HardwareOptions from "./HardwareOptions";
+import AccessoriesOptions from "./AcessoriesOptions";
 import jsPDF from "jspdf";
-import logo from "./glazia_logo.png";
 import "jspdf-autotable";
 import * as pdfjs from "pdfjs-dist";
+import logo from "./glazia_logo.png";
+import { addSelectedProducts } from "../../redux/selectionSlice";
+import axios from "axios";
 
 // Initialize pdf.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
 ).toString();
 
 const SelectionContainer = () => {
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [selectedProducts, setSelectedProducts] = useState([]);
-  const [pdfPreview, setPdfPreview] = useState(null); // State to hold the PDF preview
-  const canvasRef = useRef(null); // Create a reference for the canvas
+  const dispatch = useDispatch();
+  const { selectedOption, productsByOption } = useSelector((state) => state.selection);
+  const [profileOptions, setProfileOptions] = useState({});
 
-  // Initialize the default PDF preview when the component mounts
+  // Aggregate products from all options
+  const selectedProducts = Object.values(productsByOption).flat();
+
+  const canvasRef = useRef(null);
+  const prevSelectedProducts = useRef([]);
+
   useEffect(() => {
-    if (!selectedProducts.length) {
+    if (!selectedProducts?.length) {
       generatePDFPreview();
     }
   }, []);
 
   useEffect(() => {
-    if (selectedProducts.length > 0) {
+    if (selectedProducts.length > 0 && (selectedProducts.length !== prevSelectedProducts.current.length)) {
+      console.log("is it", selectedProducts, prevSelectedProducts.current)
       generatePDFPreview();
     }
-  }, [selectedProducts]);
+    prevSelectedProducts.current = selectedProducts;
+   }, [selectedProducts]);
 
-  // Function to render the selected component based on the user's choice
+   useEffect(() => {
+    const fetchProducts = async () => {
+        const token = localStorage.getItem('authToken'); 
+        try {
+            const response = await axios.get('http://localhost:5000/api/admin/getProducts', {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }); // Backend route
+              setProfileOptions(response.data.categories);
+        } catch (err) {
+            // setError('Failed to fetch products');
+            // setLoading(false);
+        }
+    };
+    fetchProducts();
+  }, []);
+
   const renderSelectedComponent = () => {
     switch (selectedOption) {
       case "profile":
-        return <ProfileOptions onProductSelect={onProductSelect} />;
+        return <ProfileOptions onProductSelect={onProductSelect} profileData={profileOptions} selectedProfiles={productsByOption.profile}/>;
       case "hardware":
-        return <HardwareOptions onProductSelect={onProductSelect} />;
+        return <HardwareOptions onProductSelect={onProductSelect} selectedHardwares={productsByOption.hardware}/>;
       case "accessories":
-        return <AcessoriesOptions onProductSelect={onProductSelect} />;
+        return <AccessoriesOptions onProductSelect={onProductSelect} selectedAccessories={productsByOption.accessories}/>;
       default:
         return <p>Please select an option.</p>;
     }
   };
 
-  // Function for handling product selection/deselection
-  const onProductSelect = (product) => {
-    setSelectedProducts((prev) =>
-      prev.some((p) => p.id === product.id)
-        ? prev.filter((p) => p.id !== product.id) // Unselect
-        : [...prev, product] // Select
+  const onProductSelect = (products) => {
+    dispatch(
+      addSelectedProducts({
+        option: selectedOption,
+        products,
+      })
     );
+
+    // setTimeout(() => {
+      if(products.length === 0){
+        generatePDFPreview()
+      }
+    // }, 500)
   };
 
-  // Generate and display the PDF preview
   const generatePDFPreview = () => {
     const doc = createProformaInvoice();
-    const pdfOutput = doc.output("datauristring"); // Get PDF as data URI
-    renderPDF(pdfOutput); // Render the PDF preview
+    const pdfOutput = doc.output("datauristring");
+    renderPDF(pdfOutput);
   };
 
-  // Function to render PDF into a canvas
-  const renderPDF = (pdfData) => {
-    const loadingTask = pdfjs.getDocument(pdfData);
-    loadingTask.promise
-      .then((pdf) => {
-        pdf.getPage(1).then((page) => {
-          const canvas = canvasRef.current;
-          const context = canvas?.getContext("2d");
+const currentRenderTask = useRef(null);
 
-          const viewport = page.getViewport({ scale: 1.5 });
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
+const renderPDF = async (pdfData) => {
+  const loadingTask = pdfjs.getDocument(pdfData);
 
-          page.render({
-            canvasContext: context,
-            viewport: viewport,
-          });
+  try {
+    const pdf = await loadingTask.promise;
+    const page = await pdf.getPage(1);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-          setPdfPreview(canvas); // Set the canvas as the PDF preview
-        });
-      })
-      .catch((error) => {
-        console.error("Error rendering PDF", error);
-      });
-  };
+    const context = canvas.getContext("2d");
+    const containerWidth = canvas.parentNode.clientWidth;
+    const viewport = page.getViewport({ scale: containerWidth / page.getViewport({ scale: 1 }).width });
 
-  // Generate PDF for download
+    // Set canvas dimensions
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+
+    // Clear previous content
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Cancel any ongoing render task
+    if (currentRenderTask.current) {
+      currentRenderTask.current.cancel();
+    }
+
+    // Start new render task
+    currentRenderTask.current = page.render({ canvasContext: context, viewport: viewport });
+    console.log("currentRenderTask", currentRenderTask.current);
+
+    // Wait for the render to finish
+    await currentRenderTask.current.promise;
+  } catch (error) {
+    console.error("Error rendering PDF:", error);
+  }
+};
+
+  
+
   const generatePDF = () => {
     const doc = createProformaInvoice();
-    doc.save("proforma_invoice.pdf"); // Download the PDF
+    doc.save("proforma_invoice.pdf");
   };
 
-  // Function to create the proforma invoice
   const createProformaInvoice = () => {
     const doc = new jsPDF();
 
@@ -131,33 +174,30 @@ const SelectionContainer = () => {
           "Amount",
         ],
       ],
-      body: selectedProducts.map((product, index) => [
+      body: selectedProducts?.map((product, index) => [
         index + 1,
-        product.name,
-        "PHXXX", // Replace with actual SAP Code
+        product.description,
+        product.sapCode,
         product.quantity,
-        product.price.toFixed(2),
-        "Each",
-        (product.quantity * product.price).toFixed(2),
+        product.rate?.toFixed(2),
+        product.per,
+        (product.quantity * product.rate)?.toFixed(2),
       ]),
     });
 
     // Totals calculation
-    const subtotal = selectedProducts.reduce(
-      (total, product) => {
-        console.log(total, product.quantity, product.price)
-        return Number(total) + Number(product.quantity) * Number(product.price);
-      },
+    const subtotal = selectedProducts?.reduce(
+      (total, product) => total + product.quantity * product.rate,
       0
     );
-    console.log("subtotal", subtotal)
     const gst = subtotal * 0.18; // 18% GST
     const netAmount = subtotal + gst;
 
     // Add totals and footer details
-    doc.text(`Subtotal: ₹${subtotal.toFixed(2)}`, 15, doc.lastAutoTable.finalY + 10);
-    doc.text(`GST @ 18%: ₹${gst.toFixed(2)}`, 15, doc.lastAutoTable.finalY + 20);
-    doc.text(`Net Amount: ₹${netAmount.toFixed(2)}`, 15, doc.lastAutoTable.finalY + 30);
+    doc.text(`Subtotal: ₹${subtotal?.toFixed(2)}`, 15, doc.lastAutoTable.finalY + 10);
+    doc.text(`GST @ 18%: ₹${gst?.toFixed(2)}`, 15, doc.lastAutoTable.finalY + 20);
+    doc.text(`Net Amount: ₹${netAmount?.toFixed(2)}`, 15, doc.lastAutoTable.finalY + 30);
+
     doc.text("OUR BANK DETAILS:", 15, doc.lastAutoTable.finalY + 50);
     doc.text(
       "Glazia Windoors Pvt Ltd, Axis Bank, IFSC: 00202030GJSS, AC No: 82837539293740",
@@ -170,77 +210,64 @@ const SelectionContainer = () => {
 
   return (
     <MDBRow className="pdf-row-wrapper">
-      <MDBCol style={{ flex: "1 1 auto", marginTop: '40px', marginLeft: '40px', overflow: 'scroll', maxHeight: '100vh' }}>
-        <MDBRow className="d-flex" style={{ marginTop: "10%" }}>
-          {/* Option Buttons */}
-          <MDBCol md="auto" className="mb-3">
+      <MDBCol style={{ flex: "1 1 auto", marginTop: "5%", marginLeft: "40px" }}>
+      <MDBRow className="d-flex justify-content-between align-items-center">
+        <h4 style={{width: 'max-content'}}>Please select the categories</h4>
+        <MDBBtn onClick={generatePDF} style={{width: 'max-content'}}>
+          <MDBIcon fas icon="cloud-download-alt" />&nbsp;
+          Download pdf
+        </MDBBtn>
+      </MDBRow>
+
+        <MDBRow className="d-flex" style={{ marginTop: "20px" }}>
+          <MDBCol md="auto" className="mb-3" style={{flex: '1 1 auto'}}>
             <MDBBtn
+              style={{ width: "100%" }}
+              size="lg"
               color={selectedOption === "profile" ? "primary" : "light"}
-              onClick={() => setSelectedOption("profile")}
+              onClick={() => dispatch({ type: "selection/setSelectedOption", payload: "profile" })}
             >
               Profile
             </MDBBtn>
           </MDBCol>
-          <MDBCol md="auto" className="mb-3">
+          <MDBCol md="auto" className="mb-3" style={{flex: '1 1 auto'}}>
             <MDBBtn
+              style={{ width: "100%" }}
+              size="lg"
               color={selectedOption === "hardware" ? "primary" : "light"}
-              onClick={() => setSelectedOption("hardware")}
+              onClick={() => dispatch({ type: "selection/setSelectedOption", payload: "hardware" })}
             >
               Hardware
             </MDBBtn>
           </MDBCol>
-          <MDBCol md="auto" className="mb-3">
+          <MDBCol md="auto" className="mb-3" style={{flex: '1 1 auto'}}>
             <MDBBtn
+              style={{ width: "100%" }}
+              size="lg"
               color={selectedOption === "accessories" ? "primary" : "light"}
-              onClick={() => setSelectedOption("accessories")}
+              onClick={() => dispatch({ type: "selection/setSelectedOption", payload: "accessories" })}
             >
               Accessories
             </MDBBtn>
           </MDBCol>
         </MDBRow>
 
-        {/* Selected Component */}
         <MDBRow>
           <MDBCol md="12" className="mt-4">
             <div>{renderSelectedComponent()}</div>
           </MDBCol>
         </MDBRow>
-
-        {/* Selected Products and Preview */}
-        <MDBRow className="d-flex justify-content-between">
-          <MDBCol md="12" style={{ padding: "20px", border: "1px solid #ddd" }}>
-            <h5>Selected Products</h5>
-            {selectedProducts.length > 0 ? (
-              selectedProducts.map((product) => (
-                <div key={product.id}>{product.name}</div>
-              ))
-            ) : (
-              <p>No products selected.</p>
-            )}
-            {selectedProducts.length > 0 && (
-              <>
-                <MDBBtn onClick={generatePDFPreview}>Preview PDF</MDBBtn>
-                <MDBBtn onClick={generatePDF} className="mt-2">
-                  Download Proforma Invoice
-                </MDBBtn>
-              </>
-            )}
-          </MDBCol>
-        </MDBRow>
       </MDBCol>
 
-      <MDBCol className="mt-3" style={{ flex: "1 1 auto", maxHeight: '100vh' }}>
+      <MDBCol className="mt-3" style={{ flex: "1 1 auto", maxWidth: "50%" }}>
         <div
           style={{
             border: "1px solid #ddd",
             padding: "10px",
             height: "100%",
-            overflowY: "scroll",
           }}
         >
-          <div style={{ textAlign: "center", marginTop: "20px" }}>
-            <canvas ref={canvasRef} style={{ background: "#fff" }} width="100%" height="100%" />
-          </div>
+          <canvas key={selectedProducts.length} ref={canvasRef} style={{ background: "#fff" }} />
         </div>
       </MDBCol>
     </MDBRow>
