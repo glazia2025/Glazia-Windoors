@@ -6,6 +6,6 @@ const router = express.Router();
 router.post('/register', createUser);
 router.get('/getUser', getUser);
 router.put('/updateUser', updateUser);
-router.get('/getProducts', getProducts);
+// router.get('/getProducts', getProducts);
 
 module.exports = router;

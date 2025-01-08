@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Define the product schema
-const singleProductSchema = new mongoose.Schema({
+const productSchema = new mongoose.Schema({
   id: { type: Number, required: true },
   sapCode: { type: String, required: true },
   description: { type: String, required: true },
@@ -13,7 +13,7 @@ const singleProductSchema = new mongoose.Schema({
 });
 
 // Define the profile options schema with dynamic categories
-const productSchema = new mongoose.Schema(
+const profileOptionsSchema = new mongoose.Schema(
   {
     // Dynamic fields for categories (e.g., Casement, Sliding, etc.)
     categories: {
@@ -22,7 +22,7 @@ const productSchema = new mongoose.Schema(
         options: { type: [String], required: true },
         products: {
           type: Map,
-          of: [singleProductSchema],
+          of: [productSchema],
           required: true,
         },
       }),
@@ -32,6 +32,6 @@ const productSchema = new mongoose.Schema(
   { strict: false } // Allow flexibility in adding new categories
 );
 
-const finalProductSchema = mongoose.model('productSchema', productSchema);
+const ProfileOptions = mongoose.model('ProfileOptions', profileOptionsSchema);
 
-module.exports = finalProductSchema;
+module.exports = ProfileOptions;
