@@ -1,12 +1,13 @@
+const { default: mongoose } = require('mongoose');
 const ProfileOptions = require('../models/ProfileOptions');
 
 const addProduct = async (req, res) => {
-  const { category, option, product } = req.body;
+  const { category, option, product, rate } = req.body;
 
   console.log("Received request to add product with data:", req.body);  // Log the received request payload
 
   // Check if category, option, and product are provided
-  if (!category || !option || !product) {
+  if (!category || !option) {
     console.log("Missing required fields: category, option, or product");  // Log if any required field is missing
     return res.status(400).json({ message: 'Category, option, and product details are required' });
   }
@@ -14,7 +15,6 @@ const addProduct = async (req, res) => {
   try {
     // Step 1: Find the existing profile options document or create a new one if it doesn't exist
     let profileOptions = await ProfileOptions.findOne({});
-    console.log("Found profile options:", profileOptions);  // Log the profile options found
 
     // If profileOptions doesn't exist, create one
     if (!profileOptions) {
@@ -25,6 +25,7 @@ const addProduct = async (req, res) => {
       await profileOptions.save();
       console.log("New profile options document created.");
     }
+    console.log("profileOptions----------------------------------", profileOptions)
 
     // Step 2: Check if the category exists, if not, create it
     console.log("Checking if category exists:", category);
@@ -47,8 +48,28 @@ const addProduct = async (req, res) => {
       categoryData.options.push(option);
     }
 
+    // categoryData.rate[option] = rate;
+    if (!profileOptions.categories.get(category).rate) {
+      const updatedRate = new Map(); // Create an empty Map instead of a plain object
+      
+      profileOptions.categories.get(category).set('rate', updatedRate); // Set the new Map as rate
+    }
+    
+    profileOptions.categories.get(category).rate.set(option, rate); // Use set() to add key-value pairs in Map
+    
     // Step 5: Add the product under the specified option
     console.log("Checking if option has products:", option);
+
+    if(!product) {
+      await profileOptions.save();
+      res.status(200).json({ message: 'Product added successfully', profileOptions });
+      return;
+    }
+
+    if (!categoryData.products) {
+      categoryData.products = new Map();
+    }
+
     if (!categoryData.products.has(option)) {
       console.log(`Option '${option}' does not have products, initializing the products array.`);
       categoryData.products.set(option, []);
@@ -86,4 +107,289 @@ const getProducts = async (req, res) => {
   }
 };
 
-module.exports = { addProduct, getProducts };
+const editProduct = async (req, res) => {
+  const { category, productType, productId } = req.params;
+  const updatedData = req.body;
+
+  // Define mandatory fields
+  const mandatoryFields = ["sapCode", "part", "description", "degree", "per", "kgm", "length"];
+
+  // Check if any mandatory field is missing
+  const missingFields = mandatoryFields.filter(field => !(field in updatedData));
+
+  if (missingFields.length > 0) {
+    return res.status(400).json({
+      message: `Missing mandatory fields: ${missingFields.join(", ")}`
+    });
+  }
+
+  try {
+    // Find the product and update it
+    const result = await ProfileOptions.updateOne(
+      { [`categories.${category}.products.${productType}._id`]: productId },
+      { $set: { [`categories.${category}.products.${productType}.$`]: updatedData } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: 'Product not found or no changes made.' });
+    }
+
+    res.status(200).json({ message: 'Product updated successfully.' });
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+const deleteProduct = async (req, res) => {
+  const { category, productType, productId } = req.params;
+
+  try {
+    const profileOptions = await ProfileOptions.findOne({});
+    if (!profileOptions) {
+      return res.status(404).json({ message: 'Profile options not found' });
+    }
+
+    // Find the category and option
+    const categoryData = profileOptions.categories.get(category);
+    if (!categoryData) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    console.log("option", productId);
+    const productsArray = categoryData.products.get(productType);
+    if (!productsArray) {
+      return res.status(404).json({ message: 'Option not found' });
+    }
+
+    // Find the product by ID and delete it
+    console.log("productsArray", productsArray)
+    const productIndex = productsArray.findIndex(product => {
+      console.log("ajhghj", product._id);
+      return product._id.toString() === productId;
+    });
+    if (productIndex === -1) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    productsArray.splice(productIndex, 1); // Remove the product from the array
+    console.log("productsArray", productsArray);
+    if (productsArray.length === 0) {
+      // If no products are left, delete the option from the map
+      categoryData.products.delete(productType);
+    } else {
+      // Otherwise, update the map with the modified array
+      categoryData.products.set(productType, productsArray);
+    }
+
+    // Mark the specific field as modified
+    profileOptions.markModified(`categories.${category}.products`);
+
+    await profileOptions.save(); // Save changes to the database
+
+    res.status(200).json({ message: 'Product deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(500).json({ message: 'Error deleting product' });
+  }
+};
+
+const searchProduct = async (req, res) => {
+  console.log("Cioehjkhjdhf", req.query)
+  const { sapCode, description, profile, option } = req.query;
+
+  if (!sapCode && !description && !profile && !option) {
+    return res.status(400).json({ message: 'Provide sapCode, description, profile, or option to search' });
+  }
+
+  console.log("xah")
+
+  try {
+    const profileOptions = await ProfileOptions.findOne({});
+    if (!profileOptions) {
+      return res.status(404).json({ message: 'No products found' });
+    }
+    const matchedProducts = [];
+    profileOptions.categories.get(profile).products.get(option).forEach(product => {
+      if((sapCode && product.sapCode === sapCode) || description && product.description.match(new RegExp(description, 'i'))) {
+        matchedProducts.push(product);
+      }
+    });
+
+    res.status(200).json({ products: matchedProducts });
+  } catch (error) {
+    res.status(500).json({ message: 'Error searching products' });
+  }
+};
+
+
+// async function updateDocument() {
+//   try {
+//     const newProducts =  [
+//       {
+//         id: 1,
+//         sapCode: "K19099",
+//         part: "",
+//         degree: "90",
+//         description: "",
+//         per: "Kg",
+//         kgm: 1.908,
+//         length: "4880",
+//         image: "",
+//       },
+//       {
+//         id: 2,
+//         sapCode: "K19131",
+//         part: "",
+//         degree: "90",
+//         description: "",
+//         per: "Kg",
+//         kgm: 1.927,
+//         length: "4880",
+//         image: "",
+//       },
+//       {
+//         id: 3,
+//         sapCode: "K19100",
+//         part: "",
+//         degree: "90",
+//         description: "",
+//         per: "Kg",
+//         kgm: 1.457,
+//         length: "4880",
+//         image: "",
+//       },
+//       {
+//         id: 4,
+//         sapCode: "K19101",
+//         part: "",
+//         degree: "90",
+//         description: "",
+//         per: "Kg",
+//         kgm: 1.977,
+//         length: "4880",
+//         image: "",
+//       },
+//       {
+//         id: 5,
+//         sapCode: "K19129",
+//         part: "",
+//         degree: "90",
+//         description: "",
+//         per: "Kg",
+//         kgm: 0.95,
+//         length: "4880",
+//         image: "",
+//       },
+//       {
+//         id: 6,
+//         sapCode: "K19102",
+//         part: "",
+//         degree: "90",
+//         description: "",
+//         per: "Kg",
+//         kgm: 0.932,
+//         length: "4880",
+//         image: "",
+//       },
+//       {
+//         id: 7,
+//         sapCode: "K19103",
+//         part: "",
+//         degree: "90",
+//         description: "",
+//         per: "Kg",
+//         kgm: 1.005,
+//         length: "4880",
+//         image: "",
+//       },
+//       {
+//         id: 8,
+//         sapCode: "K19104",
+//         part: "",
+//         degree: "90",
+//         description: "",
+//         per: "Kg",
+//         kgm: 0.756,
+//         length: "4880",
+//         image: "",
+//       },
+//       {
+//         id: 9,
+//         sapCode: "K18749",
+//         part: "",
+//         degree: "90",
+//         description: "",
+//         per: "Kg",
+//         kgm: 0.33,
+//         length: "4880",
+//         image: "",
+//       },
+//       {
+//         id: 10,
+//         sapCode: "K18746",
+//         part: "",
+//         degree: "90",
+//         description: "",
+//         per: "Kg",
+//         kgm: 0.325,
+//         length: "4880",
+//         image: "",
+//       },
+//       {
+//         id: 11,
+//         sapCode: "K18750",
+//         part: "",
+//         degree: "90",
+//         description: "",
+//         per: "Kg",
+//         kgm: 0.272,
+//         length: "4880",
+//         image: "",
+//       },
+//       {
+//         id: 12,
+//         sapCode: "K18747",
+//         part: "",
+//         degree: "90",
+//         description: "",
+//         per: "Kg",
+//         kgm: 0.238,
+//         length: "4880",
+//         image: "",
+//       },
+//       {
+//         id: 13,
+//         sapCode: "K18748",
+//         part: "",
+//         degree: "90",
+//         description: "",
+//         per: "Kg",
+//         kgm: 0.191,
+//         length: "4880",
+//         image: "",
+//       }
+//     ]
+//     // Update the document with the specified _id
+//     const result = await ProfileOptions.updateOne(
+//       { _id: new mongoose.Types.ObjectId("6783f753ba72953976026092") },
+//       { 
+//         $push: { 
+//           "categories.Casement.products.55mm": { 
+//             $each: newProducts
+//           }
+//         }
+//       }
+//     );
+
+//     console.log('Document updated:', result.modifiedCount);
+//   } catch (err) {
+//     console.error('Error updating document:', err);
+//   } finally {
+//     // Close the Mongoose connection
+//     mongoose.connection.close();
+//   }
+// }
+
+// updateDocument();
+
+module.exports = { addProduct, getProducts, editProduct, deleteProduct, searchProduct };

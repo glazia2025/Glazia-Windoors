@@ -46,7 +46,7 @@ const AdminLoginForm = ({ setUserRole, setIsLoggedIn }) => {
     <MDBContainer fluid className="p-3 my-5 mdb-container">
       <MDBRow>
         <MDBCol col='10' md='6'>
-          <img src="/Assets/Images/admin.svg" class="img-fluid admin-img" alt="Phone image" />
+          <img src="/Assets/Images/admin.svg" className="img-fluid admin-img" alt="Phone image" />
         </MDBCol>
         <MDBCol col='4' md='6'>
           <h1 className='mb-4'>Admin Login</h1>

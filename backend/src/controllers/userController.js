@@ -77,7 +77,7 @@ const getUser = async (req, res) => {
     // Send the user data in the response
     setTimeout(() => {
       res.status(200).json({ user });
-    }, 5000)
+    }, 1000)
   } catch (error) {
     console.error('Error verifying token or fetching user:', error);
     if (error.name === 'TokenExpiredError') {

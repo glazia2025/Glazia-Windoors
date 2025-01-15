@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   MDBContainer,
   MDBNavbar,
@@ -8,7 +8,6 @@ import {
   MDBNavbarNav,
   MDBNavbarItem,
   MDBNavbarLink,
-  MDBBtn,
   MDBDropdown,
   MDBDropdownToggle,
   MDBDropdownMenu,
@@ -16,12 +15,18 @@ import {
   MDBCollapse,
 } from 'mdb-react-ui-kit';
 import './Header.css';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import logo from '../../glazia_logo.png';
 
-const Header = ({ userRole, isLoggedIn, onLogout }) => {
+const Header = ({ isLoggedIn, onLogout }) => {
   const [openBasic, setOpenBasic] = useState(false);
+  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate(); 
+
+  useEffect(() => {
+    const role = localStorage.getItem('userRole');
+    setUserRole(role);
+  }, []);
 
   return (
     <MDBNavbar fixed='top' expand='lg' light bgColor='light'>
@@ -49,10 +54,14 @@ const Header = ({ userRole, isLoggedIn, onLogout }) => {
 
                 <MDBNavbarItem>
                   {userRole === 'admin' ? (
-                    <MDBNavbarLink href='/admin/dashboard'>Admin Dashboard</MDBNavbarLink>
+                    <MDBNavbarLink onClick={() => navigate('/admin/dashboard')}>Admin Dashboard</MDBNavbarLink>
                   ) : userRole === 'user' ? (
                     <MDBNavbarLink onClick={() => navigate('/user/orders')}>Products</MDBNavbarLink>
-                  ) : null}
+                  ) : null}                
+                </MDBNavbarItem>
+
+                <MDBNavbarItem>
+                  {userRole === 'admin' && <MDBNavbarLink onClick={() => navigate('/admin/dashboard/add-product')}>Add products</MDBNavbarLink>}
                 </MDBNavbarItem>
               </>
             )}
@@ -60,15 +69,34 @@ const Header = ({ userRole, isLoggedIn, onLogout }) => {
 
           {isLoggedIn && (
             <div className="d-flex align-items-center">
-              {/* <form className='d-flex input-group w-auto me-3'>
-                <input
-                  type='search'
-                  className='form-control'
-                  placeholder='Type query'
-                  aria-label='Search'
-                />
-                <MDBBtn color='primary'>Search</MDBBtn>
-              </form> */}
+              {/* Connect with Us Dropdown */}
+              {userRole !== 'admin' && <MDBDropdown className="me-3">
+                <MDBDropdownToggle tag='a' className='nav-link' style={{ cursor: 'pointer' }}>
+                  <MDBIcon fas icon="headphones-alt" style={{color: '#386bc0', fontWeight: 'bold'}}/> Connect with Us
+                </MDBDropdownToggle>
+                <MDBDropdownMenu className='dropdown-menu-end'>
+                  <MDBDropdownItem link href="tel:+1234567890">
+                    <div className='d-flex align-items-center fs-6'>
+                      {/* <MDBIcon fas icon="phone" />  */}
+                      <img src='/Assets/Icons/contact.png'/>
+                      <div className='d-flex flex-column call' style={{marginLeft: '10px'}}>
+                        <span style={{fontWeight: 'bold'}}>Call Us</span>
+                        <span className='company-number'>+91 9958053708</span>
+                      </div>
+                    </div>
+                  </MDBDropdownItem>
+                  <MDBDropdownItem link href="mailto:support@example.com">
+                    <div className='d-flex align-items-center fs-6'>
+                        {/* <MDBIcon fas icon="phone" />  */}
+                        <img src='/Assets/Icons/mail.png'/>
+                        <div className='d-flex flex-column call' style={{marginLeft: '10px'}}>
+                          <span style={{fontWeight: 'bold'}}>Email Us</span>
+                          <span className='company-email'>contact@glazia.com</span>
+                        </div>
+                    </div>
+                  </MDBDropdownItem>
+                </MDBDropdownMenu>
+              </MDBDropdown>}
 
               {/* User Profile Dropdown */}
               <MDBDropdown>
@@ -83,9 +111,11 @@ const Header = ({ userRole, isLoggedIn, onLogout }) => {
                 </MDBDropdownToggle>
                 <MDBDropdownMenu>
                   <MDBDropdownItem link onClick={() => navigate('/profile')}>
+                    <MDBIcon fas icon="user-alt" />&nbsp;
                     My Profile
                   </MDBDropdownItem>
                   <MDBDropdownItem link onClick={onLogout}>
+                    <MDBIcon fas icon="sign-out-alt" />&nbsp;
                     Logout
                   </MDBDropdownItem>
                 </MDBDropdownMenu>

@@ -22,6 +22,7 @@ const SelectionContainer = () => {
   const dispatch = useDispatch();
   const { selectedOption, productsByOption } = useSelector((state) => state.selection);
   const [profileOptions, setProfileOptions] = useState({});
+  const [isSliderOpen, setIsSliderOpen] = useState(false); // State for slider visibility
 
   // Aggregate products from all options
   const selectedProducts = Object.values(productsByOption).flat();
@@ -33,17 +34,16 @@ const SelectionContainer = () => {
     if (!selectedProducts?.length) {
       generatePDFPreview();
     }
-  }, []);
+  }, [selectedProducts]);
 
   useEffect(() => {
     if (selectedProducts.length > 0 && (selectedProducts.length !== prevSelectedProducts.current.length)) {
-      console.log("is it", selectedProducts, prevSelectedProducts.current)
       generatePDFPreview();
     }
     prevSelectedProducts.current = selectedProducts;
-   }, [selectedProducts]);
+  }, [selectedProducts]);
 
-   useEffect(() => {
+  useEffect(() => {
     const fetchProducts = async () => {
         const token = localStorage.getItem('authToken'); 
         try {
@@ -83,9 +83,9 @@ const SelectionContainer = () => {
     );
 
     // setTimeout(() => {
-      if(products.length === 0){
-        generatePDFPreview()
-      }
+      // if(products.length === 0 && !isSliderOpen){
+      //   generatePDFPreview()
+      // }
     // }, 500)
   };
 
@@ -95,62 +95,61 @@ const SelectionContainer = () => {
     renderPDF(pdfOutput);
   };
 
-const currentRenderTask = useRef(null);
+  const currentRenderTask = useRef(null);
 
-const renderPDF = async (pdfData) => {
-  const loadingTask = pdfjs.getDocument(pdfData);
+  const renderPDF = async (pdfData) => {
+    const loadingTask = pdfjs.getDocument(pdfData);
 
-  try {
-    const pdf = await loadingTask.promise;
-    const page = await pdf.getPage(1);
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    try {
+      const pdf = await loadingTask.promise;
+      const page = await pdf.getPage(1);
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const context = canvas.getContext("2d");
-    const containerWidth = canvas.parentNode.clientWidth;
-    const viewport = page.getViewport({ scale: containerWidth / page.getViewport({ scale: 1 }).width });
+      const context = canvas.getContext("2d");
+      const containerWidth = canvas.parentNode.clientWidth;
+      const viewport = page.getViewport({ scale: containerWidth / page.getViewport({ scale: 1 }).width });
 
-    // Set canvas dimensions
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
+      // Set canvas dimensions
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
 
-    // Clear previous content
-    context.clearRect(0, 0, canvas.width, canvas.height);
+      // Clear previous content
+      context.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Cancel any ongoing render task
-    if (currentRenderTask.current) {
-      currentRenderTask.current.cancel();
+      // Cancel any ongoing render task
+      if (currentRenderTask.current) {
+        currentRenderTask.current.cancel();
+      }
+
+      // Start new render task
+      currentRenderTask.current = page.render({ canvasContext: context, viewport: viewport });
+
+      // Wait for the render to finish
+      await currentRenderTask.current.promise;
+    } catch (error) {
+      console.error("Error rendering PDF:", error);
     }
-
-    // Start new render task
-    currentRenderTask.current = page.render({ canvasContext: context, viewport: viewport });
-    console.log("currentRenderTask", currentRenderTask.current);
-
-    // Wait for the render to finish
-    await currentRenderTask.current.promise;
-  } catch (error) {
-    console.error("Error rendering PDF:", error);
-  }
-};
-
-  
+  };
 
   const generatePDF = () => {
     const doc = createProformaInvoice();
-    doc.save("proforma_invoice.pdf");
+    doc.save("Galzia Performa Invoice.pdf");
   };
 
   const createProformaInvoice = () => {
     const doc = new jsPDF();
 
     // Add logo and company details
-    doc.addImage(logo, "PNG", 15, 20, 50, 20);
+    doc.setFontSize(16); // Increase font size for "PROFORMA INVOICE"
+    doc.text("PROFORMA INVOICE", 105, 15, { align: "center" }); // Center the title
+    doc.addImage(logo, "PNG", 15, 30, 50, 20);
     doc.setFontSize(12);
-    doc.text("Glazia Windoors Pvt Ltd.", 70, 20);
-    doc.text("Shop in H. No. 275 G/F, Near Talab, Ghitorni, M G Road,", 70, 25);
-    doc.text("New Delhi - 110030 (India)", 70, 30);
-    doc.text("Phone: 6388406765, 9958053708", 70, 35);
-    doc.text("Email: sales@glazia.com", 70, 40);
+    doc.text("Glazia Windoors Pvt Ltd.", 70, 30);
+    doc.text("Shop in H. No. 275 G/F, Near Talab, Ghitorni, M G Road,", 70, 35);
+    doc.text("New Delhi - 110030 (India)", 70, 40);
+    doc.text("Phone: 6388406765, 9958053708", 70, 45);
+    doc.text("Email: sales@glazia.com", 70, 50);
 
     // Invoice details
     doc.text("Order No: 001", 15, 60);
@@ -179,15 +178,15 @@ const renderPDF = async (pdfData) => {
         product.description,
         product.sapCode,
         product.quantity,
-        product.rate?.toFixed(2),
+        product.rate,
         product.per,
-        (product.quantity * product.rate)?.toFixed(2),
+        (product.quantity * profileOptions[product.profile].rate[product.option])?.toFixed(2),
       ]),
     });
 
     // Totals calculation
     const subtotal = selectedProducts?.reduce(
-      (total, product) => total + product.quantity * product.rate,
+      (total, product) => total + product.quantity * profileOptions[product.profile].rate[product.option],
       0
     );
     const gst = subtotal * 0.18; // 18% GST
@@ -208,15 +207,37 @@ const renderPDF = async (pdfData) => {
     return doc;
   };
 
+  const setSlider = () => {
+    if(currentRenderTask.current && selectedProducts.length > 0) {
+      currentRenderTask.current.cancel();
+      generatePDFPreview();
+    }
+    setIsSliderOpen(true);
+  }
+
+  const clearCurrentPdfView = () => {
+    if(currentRenderTask.current) {
+      currentRenderTask.current.cancel();
+    }
+    setIsSliderOpen(false)
+  }
+
   return (
     <MDBRow className="pdf-row-wrapper">
-      <MDBCol style={{ flex: "1 1 auto", marginTop: "5%", marginLeft: "40px" }}>
+      <MDBCol style={{ flex: "1 1 auto", margin: "5%" }}>
       <MDBRow className="d-flex justify-content-between align-items-center">
         <h4 style={{width: 'max-content'}}>Please select the categories</h4>
-        <MDBBtn onClick={generatePDF} style={{width: 'max-content'}}>
+        <div style={{width: 'max-content'}}>
+        <MDBBtn onClick={generatePDF} >
           <MDBIcon fas icon="cloud-download-alt" />&nbsp;
-          Download pdf
+            Download pdf
         </MDBBtn>
+        <MDBBtn style={{width: 'max-content', marginLeft: '10px'}} onClick={setSlider}
+        >
+          <MDBIcon fas icon="expand" />&nbsp;
+          Expand PDF
+        </MDBBtn>
+        </div>
       </MDBRow>
 
         <MDBRow className="d-flex" style={{ marginTop: "20px" }}>
@@ -259,17 +280,48 @@ const renderPDF = async (pdfData) => {
         </MDBRow>
       </MDBCol>
 
-      <MDBCol className="mt-3" style={{ flex: "1 1 auto", maxWidth: "50%" }}>
-        <div
-          style={{
-            border: "1px solid #ddd",
-            padding: "10px",
-            height: "100%",
-          }}
-        >
-          <canvas key={selectedProducts.length} ref={canvasRef} style={{ background: "#fff" }} />
+      {selectedProducts.length > 0 && (
+        <MDBCol className="mt-3" style={{ flex: "1 1 auto", maxWidth: "50%" }}>
+          <div
+            style={{
+              border: "1px solid #ddd",
+              padding: "10px",
+              height: "100%",
+            }}
+          >
+            <canvas key={selectedProducts.length} ref={canvasRef} style={{ background: "#fff", marginTop: '10%' }} />
+          </div>
+        </MDBCol>
+      )}
+      {isSliderOpen && <div className="overlay" onClick={() => clearCurrentPdfView()}></div>}
+      {/* Slider component */}
+      {isSliderOpen && (
+        <div className="slider" style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          height: '100%',
+          width: '40%',
+          backgroundColor: 'white',
+          boxShadow: '-2px 0px 5px rgba(0,0,0,0.5)',
+          transition: 'transform 0.3s ease-in-out',
+          transform: isSliderOpen ? 'translateX(0)' : 'translateX(100%)',
+          zIndex: 2,
+          transition: 'width 0.5s ease'
+        }}>
+          <button onClick={() => setIsSliderOpen(false)} style={{
+            position: 'absolute',
+            top: '10px',
+            right: '10px',
+            background: 'transparent',
+            border: 'none',
+            fontSize: '20px',
+          }}>×</button>
+          <div style={{ padding: '20px' }}>
+            <canvas ref={canvasRef} style={{ width: '100%', backgroundColor: 'white' }} />
+          </div>
         </div>
-      </MDBCol>
+      )}
     </MDBRow>
   );
 };

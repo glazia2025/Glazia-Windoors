@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link, Navigate, useNavigate } from 'react-router-dom';
 import AdminLoginForm from './components/AdminLoginForm/AdminLoginForm';
 import UserLoginForm from './components/UserLoginForm/UserLoginForm';
-import AdminDashboard from './components/AdminDashboard';
+import AdminDashboard from './components/AdminDashboard/AdminDashboard';
 import UserOrders from './components/UserOrders';
 import { jwtDecode } from "jwt-decode";
 import AdminAddProduct from './components/AdminAddProduct';
@@ -17,7 +17,6 @@ import SelectionContainer from './components/UserDashboard/SelectionContainer';
 import AdminForm from './components/AdminDashboard/AdminForm';
 
 function App() {
-  const [userRole, setUserRole] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate(); 
   const isLoading = useSelector((state) => state.loader.isLoading);
@@ -31,30 +30,31 @@ function App() {
       setUserRole(decoded.role);
       setIsLoggedIn(true);
   
-      // Only navigate during the initial load
-      console.log("isInitialLoad", isInitialLoad);
       if (isInitialLoad) {
         if (decoded.role === 'admin') {
           navigate('/admin/dashboard');
         } else {
-          console.log("got it once");
           navigate('/user/orders');
         }
         setIsInitialLoad(false);
       }
     } else {
       // Redirect unauthenticated users to login
-      if (!isInitialLoad) {
-        navigate(userRole === 'admin' ? '/' : '/user/login');
+      console.log("dfdrgerg",localStorage.getItem('userRole'))
+      if (!isInitialLoad && !isLoggedIn) {
+        navigate(localStorage.getItem('userRole') === 'admin' ? '/' : '/user/login');
+        setUserRole(null) 
       }
       setIsLoggedIn(false);
       setUserRole(null);
     }
   }, [navigate]);
 
+  const setUserRole = (role) => {
+    localStorage.setItem('userRole', role);
+  }
+
   const onLogout = () => {
-    // Clear state and localStorage
-    setUserRole(null);
     setIsLoggedIn(false);
     setIsInitialLoad(true);
     localStorage.removeItem('authToken');
@@ -102,7 +102,7 @@ function App() {
           )}
           {/* Your app content */}
         </>
-        {isLoggedIn && <Header userRole={userRole} isLoggedIn={isLoggedIn} onLogout={onLogout}/>}
+        {isLoggedIn && <Header isLoggedIn={isLoggedIn} onLogout={onLogout}/>}
           <div className='app-container'>
             <Routes>
               {/* Admin Login Route */}
@@ -112,17 +112,17 @@ function App() {
               <Route path="/user/login" element={<UserLoginForm setUserRole={setUserRole} />} />
 
               {/* Admin Dashboard (protected by role check) */}
-              <Route path="/admin/dashboard" element={userRole === 'admin' && isLoggedIn ? <AdminForm /> : <Navigate to="/" />} >
-                <Route path="add-product" element={<AdminAddProduct />} />
+              <Route path="/admin/dashboard" element={localStorage.getItem('userRole') === 'admin' && isLoggedIn ? <AdminDashboard /> : <Navigate to="/" />} >
               </Route>
+              <Route path="/admin/dashboard/add-product" element={<AdminForm />} />
 
               {/* <Route path="/admin/dashboard" element={userRole === 'admin' && isLoggedIn ? <AdminForm /> : <Navigate to="/" />} >
                 <Route path="add-product" element={<AdminAddProduct />} />
               </Route> */}
 
               {/* User Orders page (accessible by regular user only) */}
-              <Route path="/user/orders" element={userRole === 'user' && isLoggedIn ? <SelectionContainer /> : <Navigate to="/user/login" />} />
-              <Route path='/profile' element={userRole === 'user' && isLoggedIn ? <UserProfile /> : <Navigate to="/user/login" />} />
+              <Route path="/user/orders" element={localStorage.getItem('userRole') === 'user' && isLoggedIn ? <SelectionContainer /> : <Navigate to="/user/login" />} />
+              <Route path='/profile' element={localStorage.getItem('userRole') === 'user' && isLoggedIn ? <UserProfile /> : <Navigate to="/user/login" />} />
             </Routes>
           </div>
         <Footer/>

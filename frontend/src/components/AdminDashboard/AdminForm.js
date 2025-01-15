@@ -4,49 +4,35 @@ import {
 } from 'mdb-react-ui-kit';
 import './AdminForm.css';
 import axios from 'axios';
+import api from '../../utils/api';
 
 const AdminForm = () => {
-  const [profileOptions, setProfileOptions] = useState({
-    Casement: {
-      options: ["40mm", "50mm", "55mm", "27mm"],
-      products: {
-        "40mm": [
-          {
-            id: 1,
-            sapCode: "SAP001",
-            description: "Inward Door Sash",
-            rate: 300,
-            per: "Unit",
-            kgm: 2.5,
-            length: "3m",
-            image: "/Assets/Images/product_image.jpeg",
-          },
-        ],
-      },
-    },
-  });
+  const [profileOptions, setProfileOptions] = useState({});
 
-  const [mainOption, setMainOption] = useState("");
+  const [mainOption, setMainOption] = useState("profile");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSubCategory, setSelectedSubCategory] = useState("");
-  const [productDetails, setProductDetails] = useState(null);
+  const [proceedWithProductAdd, setProceedWithProductAdd] = useState(false);
   const [newCategory, setNewCategory] = useState("");
   const [newSubCategory, setNewSubCategory] = useState("");
+  const [subCategoryRate, setSubCategoryRate] = useState("");
   const [newProduct, setNewProduct] = useState({
     sapCode: "",
+    part: "",
     description: "",
-    rate: "",
+    degree: "",
     per: "",
     kgm: "",
     length: "",
-    image: null,  // Change to null initially for image file
+    image: null,
   });
-
+  
+ 
   useEffect(() => {
     const fetchProducts = async () => {
         const token = localStorage.getItem('authToken'); 
         try {
-            const response = await axios.get('http://localhost:5000/api/admin/getProducts', {
+            const response = await api.get('http://localhost:5000/api/admin/getProducts', {
                 headers: {
                   Authorization: `Bearer ${token}`,
                 },
@@ -66,19 +52,24 @@ const AdminForm = () => {
     setMainOption(option);
     setSelectedCategory("");
     setSelectedSubCategory("");
-    setProductDetails(null);
   };
 
   const handleCategoryChange = (e) => {
     setSelectedCategory(e.target.value);
     setSelectedSubCategory("");
-    setProductDetails(null);
   };
 
   const handleSubCategoryChange = (e) => {
     setSelectedSubCategory(e.target.value);
-    const products = profileOptions[selectedCategory]?.products[e.target.value];
-    setProductDetails(products);
+    console.log("rofileOptions[selectedCategory].rate", profileOptions[selectedCategory].rate)
+    if(profileOptions && profileOptions[selectedCategory].rate) {
+      const rate = profileOptions[selectedCategory]?.rate[e.target.value] || ''
+      setSubCategoryRate(rate);
+      setNewProduct({ ...newProduct, rate });
+    } else {
+      setSubCategoryRate('');
+    }
+
   };
 
   const addCategory = () => {
@@ -96,6 +87,7 @@ const AdminForm = () => {
       const updatedCategory = { ...profileOptions[selectedCategory] };
       updatedCategory.options.push(newSubCategory);
       updatedCategory.products[newSubCategory] = [];
+      updatedCategory[newSubCategory] = { rate: "" };  // Add rate at the subcategory level
       setProfileOptions({
         ...profileOptions,
         [selectedCategory]: updatedCategory,
@@ -103,6 +95,7 @@ const AdminForm = () => {
       setNewSubCategory("");
     }
   };
+  
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -115,40 +108,67 @@ const AdminForm = () => {
       reader.readAsDataURL(file);  // Convert file to base64 string
     }
   };
+
+  const handleRateChange = (value) => {
+    setSubCategoryRate(value)
+    setProfileOptions({
+      ...profileOptions,
+      [selectedCategory]: {
+        ...profileOptions[selectedCategory],
+        [selectedSubCategory]: {
+          rate: value,
+        },
+      },
+    })
+  }
   
+  const isFormValid = () => {
+    return (
+      subCategoryRate
+    );
+  };
   
   const addProduct = async () => {
     if (selectedCategory && selectedSubCategory) {
-      const productData = {
+      let productData = {
         category: selectedCategory,
         option: selectedSubCategory,
-        product: {
-          id: Date.now(),
-          sapCode: newProduct.sapCode,
-          description: newProduct.description,
-          rate: newProduct.rate,
-          per: newProduct.per,
-          kgm: newProduct.kgm,
-          length: newProduct.length,
-          image: newProduct.image,  // This will contain the base64 string
-        },
+        rate: subCategoryRate || '',
       };
-  
+
+      if(proceedWithProductAdd) {
+        productData = {
+          ...productData,
+          product: {
+            id: Date.now(),
+            sapCode: newProduct.sapCode,
+            part: newProduct.part,
+            description: newProduct.description,
+            degree: newProduct.degree,
+            per: newProduct.per,
+            kgm: newProduct.kgm,
+            length: newProduct.length,
+            image: newProduct.image,
+          },
+        }
+      }
+      console.log("productData", productData)
       try {
         const token = localStorage.getItem('authToken');
-        const response = await fetch("http://localhost:5000/api/admin/add-product", {
-          method: "POST",
-          body: JSON.stringify(productData),
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-  
-        const data = await response.json();
-  
-        if (response.ok) {
-          alert('Product added successfully');
+        
+        const response = await api.post(
+          "http://localhost:5000/api/admin/add-product",
+          productData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        
+        if (response.status === 200) {
+          setProceedWithProductAdd(false);
           // Optionally update the UI with the new product
         } else {
           // alert('Failed to add product');
@@ -158,11 +178,12 @@ const AdminForm = () => {
         // alert('An error occurred while adding the product');
       }
     }
-  };  
+  };
+  
 
   return (
     <MDBContainer>
-      <MDBRow className='justify-content-center'>
+      <MDBRow className='justify-content-center' style={{marginTop: '5%'}}>
         <MDBCol md="8">
           <h2 className="text-center my-4">Product Management Form</h2>
 
@@ -204,7 +225,7 @@ const AdminForm = () => {
                   size='lg'
                 >
                   <option value="">Select Category</option>
-                  {Object.keys(profileOptions).map((key) => (
+                  {profileOptions && Object.keys(profileOptions).map((key) => (
                     <option key={key} value={key}>
                       {key}
                     </option>
@@ -236,7 +257,7 @@ const AdminForm = () => {
                       onChange={handleSubCategoryChange}
                     >
                       <option value="">Select Subcategory</option>
-                      {profileOptions[selectedCategory]?.options.map((sub) => (
+                      {profileOptions[selectedCategory]?.options?.map((sub) => (
                         <option key={sub} value={sub}>
                           {sub}
                         </option>
@@ -255,84 +276,113 @@ const AdminForm = () => {
                       </MDBBtn>
                     </div>
                   </div>
-
                   {selectedSubCategory && (
                     <>
+                    <div className='d-flex'>
+                      <MDBInput
+                        label="Rate for Subcategory"
+                        value={subCategoryRate}
+                        onChange={(e) =>
+                          handleRateChange(e.target.value)
+                        }
+                        size='lg'
+                      />
+                      <MDBBtn size="m-3" onClick={addProduct} style={{marginLeft: '10px'}}>
+                        Save
+                      </MDBBtn>
+                    </div>
+                    <MDBBtn size="lg" onClick={() => setProceedWithProductAdd(true)} className="w-100 mt-4 mb-4">
+                      Add Product
+                    </MDBBtn>
+
                       {/* Add Product */}
-                      <MDBCard className="mt-4">
-                        <MDBCardHeader className="text-center">
-                          Add Product
-                        </MDBCardHeader>
-                        <MDBCardBody>
-                          <MDBRow>
-                            <MDBCol md="6">
-                              <MDBInput className="admin-form-input"
-                                label="SAP Code"
-                                value={newProduct.sapCode}
-                                onChange={(e) =>
-                                  setNewProduct({ ...newProduct, sapCode: e.target.value })
-                                }
-                                size="lg"
-                              />
-                              <MDBInput className="admin-form-input"
-                                label="Description"
-                                value={newProduct.description}
-                                onChange={(e) =>
-                                  setNewProduct({ ...newProduct, description: e.target.value })
-                                }
-                                size="lg"
-                              />
-                              <MDBInput className="admin-form-input"
-                                label="Rate"
-                                value={newProduct.rate}
-                                onChange={(e) =>
-                                  setNewProduct({ ...newProduct, rate: e.target.value })
-                                }
-                                size="lg"
-                              />
-                              <MDBInput className="admin-form-input"
-                                label="Per"
-                                value={newProduct.per}
-                                onChange={(e) =>
-                                  setNewProduct({ ...newProduct, per: e.target.value })
-                                }
-                                size="lg"
-                              />
-                            </MDBCol>
-                            <MDBCol md="6">
-                              <MDBInput className="admin-form-input"
-                                label="KGM"
-                                value={newProduct.kgm}
-                                onChange={(e) =>
-                                  setNewProduct({ ...newProduct, kgm: e.target.value })
-                                }
-                                size="lg"
-                              />
-                              <MDBInput className="admin-form-input"
-                                label="Length"
-                                value={newProduct.length}
-                                onChange={(e) =>
-                                  setNewProduct({ ...newProduct, length: e.target.value })
-                                }
-                                size="lg"
-                              />
-                              {/* Image Upload */}
-                              <MDBFile
-                                label="Select Image"
-                                onChange={handleImageChange}
-                                size="lg"
-                              />
-                            </MDBCol>
-                          </MDBRow>
-                          <div className="d-flex justify-content-center mt-3">
-                            <MDBBtn color="primary" onClick={addProduct}>
-                              Add Product
-                            </MDBBtn>
-                          </div>
-                        </MDBCardBody>
-                      </MDBCard>
                     </>
                   )}
+                  { proceedWithProductAdd &&
+                      <MDBCard className="mt-4 mb-4">
+                      <MDBCardHeader className="text-center">
+                        Add Product
+                      </MDBCardHeader>
+                      <MDBCardBody>
+                        <MDBRow>
+                          <MDBCol md="6">
+                            <MDBInput className="admin-form-input"
+                              label="SAP Code"
+                              value={newProduct.sapCode}
+                              onChange={(e) =>
+                                setNewProduct({ ...newProduct, sapCode: e.target.value })
+                              }
+                              size="lg"
+                            />
+                            <MDBInput className="admin-form-input"
+                              label="Part"
+                              value={newProduct.part}
+                              onChange={(e) =>
+                                setNewProduct({ ...newProduct, part: e.target.value })
+                              }
+                              size="lg"
+                            />                             
+                            <MDBInput className="admin-form-input"
+                              label="Description"
+                              value={newProduct.description}
+                              onChange={(e) =>
+                                setNewProduct({ ...newProduct, description: e.target.value })
+                              }
+                              size="lg"
+                            />
+                            <MDBInput className="admin-form-input"
+                              label="Degree"
+                              value={newProduct.degree}
+                              onChange={(e) =>
+                                setNewProduct({ ...newProduct, degree: e.target.value })
+                              }
+                              size="lg"
+                            />                             
+                            <MDBInput className="admin-form-input"
+                              label="Per"
+                              value={newProduct.per}
+                              onChange={(e) =>
+                                setNewProduct({ ...newProduct, per: e.target.value })
+                              }
+                              size="lg"
+                            />
+                          </MDBCol>
+                          <MDBCol md="6">
+                            <MDBInput className="admin-form-input"
+                              label="KGM"
+                              value={newProduct.kgm}
+                              onChange={(e) =>
+                                setNewProduct({ ...newProduct, kgm: e.target.value })
+                              }
+                              size="lg"
+                            />
+                            <MDBInput className="admin-form-input"
+                              label="Length"
+                              value={newProduct.length}
+                              onChange={(e) =>
+                                setNewProduct({ ...newProduct, length: e.target.value })
+                              }
+                              size="lg"
+                            />
+                            {/* Image Upload */}
+                            <MDBFile
+                              onChange={handleImageChange}
+                              size="lg"
+                            />
+                          </MDBCol>
+                        </MDBRow>
+                        <div className="d-flex justify-content-center mt-3">
+                        <MDBBtn 
+                          color="primary" 
+                          onClick={addProduct} 
+                          disabled={!isFormValid()}  // Disable button if form is not valid
+                        >
+                          Add Product
+                        </MDBBtn>
+                        </div>
+                      </MDBCardBody>
+                    </MDBCard>
+                  }
                 </>
               )}
             </>

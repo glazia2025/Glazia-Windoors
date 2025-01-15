@@ -9,7 +9,7 @@ const singleProductSchema = new mongoose.Schema({
   per: { type: String, required: true }, // Unit, Meter, etc.
   kgm: { type: Number, required: true },
   length: { type: String, required: true },
-  image: { type: String, required: true },
+  image: { type: String, required: false },
 });
 
 // Define the profile options schema with dynamic categories

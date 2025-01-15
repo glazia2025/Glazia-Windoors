@@ -1,9 +1,13 @@
+const twilio = require('twilio');
+const Otp = require('../models/Otp');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+require('dotenv').config();
 
 const otpStore = {};
+
 const staticAdmin = {
   username: 'admin',
   password: ''
@@ -27,21 +31,29 @@ bcrypt.hash(password, 10, (err, hashedPassword) => {
   }
 });
 
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 const sendWhatsAppOTP = async (req, res) => {
   const { phoneNumber } = req.body;
-  const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
+  const otp = generateOtp();
 
   try {
-    // Store OTP in memory (temporary for demonstration)
-    otpStore[phoneNumber] = otp;
+    const message = await client.messages.create({
+      body: `Welcome to Glazia, Your OTP is ${otp}`,  // Simple SMS body
+      from: process.env.TWILIO_SMS_NUMBER,  // Your Twilio SMS number
+      to: `+91${phoneNumber}`
+    });
 
-    // Replace this with the actual WhatsApp API endpoint and configuration
-    console.log(`OTP for ${phoneNumber}: ${otp}`); // Simulate sending OTP via WhatsApp
+    await Otp.findOneAndUpdate(
+      { phone: phoneNumber },
+      { otp, createdAt: new Date() },
+      { upsert: true }
+    );
 
-    res.status(200).json({ message: 'OTP sent successfully' });
+    return res.status(200).json({ message: 'OTP sent successfully' });
   } catch (error) {
     console.error('Error sending OTP:', error);
-    res.status(500).json({ message: 'Failed to send OTP' });
+    return res.status(500).json({ message: 'Failed to send OTP' });
   }
 };
 
@@ -49,10 +61,10 @@ const verifyOTP = async (req, res) => {
   const { phoneNumber, otp } = req.body;
 
   try {
-    if (otpStore[phoneNumber] === otp) {
-      delete otpStore[phoneNumber]; // Clear OTP after verification
+    const record = await Otp.findOne({ phone: phoneNumber, otp });
 
-      // Check if the user exists in the database
+    if (record) {
+      await Otp.deleteOne({ phone: phoneNumber });
       const existingUser = await User.findOne({ phoneNumber });
 
       if (existingUser) {
@@ -66,25 +78,22 @@ const verifyOTP = async (req, res) => {
           message: 'OTP verified successfully',
           token,
           existingUser,
-          userExists: true, // User already exists
+          userExists: true
         });
       }
 
-      // If user doesn't exist, return only the userExists flag
       return res.status(200).json({
         message: 'OTP verified successfully',
-        userExists: false, // User does not exist
+        userExists: false
       });
     } else {
-      return res.status(400).json({ message: 'Invalid OTP' });
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
   } catch (error) {
     console.error('Error in verifying OTP:', error);
     return res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 };
-
-module.exports = { verifyOTP };
 
 
 const adminLogin = async (req, res) => {

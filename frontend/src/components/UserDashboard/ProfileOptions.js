@@ -8,217 +8,56 @@ import {
   MDBTypography,
   MDBInput,
   MDBBtn,
+  MDBDropdown,
+  MDBDropdownToggle,
+  MDBDropdownMenu,
+  MDBDropdownItem,
 } from "mdb-react-ui-kit";
 import { clearSelectedProducts } from "../../redux/selectionSlice";
 import { useDispatch } from "react-redux";
 import ImageZoom from "./ImageZoom";
-// import prImage from '../../Assets/Images/product_image.jpeg';
+import itemImg from './product_image.jpeg';
+import api from '../../utils/api';
+import Search from '../Search';
 
-// const profileOptions = {
-//   Casement: {
-//     options: ["40mm", "50mm", "55mm", "27mm"],
-//     products: {
-//       "40mm": [
-//         {
-//           id: 1,
-//           sapCode: "SAP001",
-//           description: "Inward Door Sash",
-//           rate: 300,
-//           per: "Unit",
-//           kgm: 2.5,
-//           length: "3m",
-//           image: "/Assets/Images/product_image.jpeg",
-//         },
-//         {
-//           id: 3,
-//           sapCode: "SAP002",
-//           description: "Outward Door Sash",
-//           rate: 280,
-//           per: "Unit",
-//           kgm: 2.2,
-//           length: "2.5m",
-//           image: "/Assets/Images/product_image.jpeg", 
-//         },
-//         {
-//           id: 4,
-//           sapCode: "SAP002",
-//           description: "Outward Door Sash",
-//           rate: 280,
-//           per: "Unit",
-//           kgm: 2.2,
-//           length: "2.5m",
-//           image: "/Assets/Images/product_image.jpeg", 
-//         },
-//         {
-//           id: 5,
-//           sapCode: "SAP002",
-//           description: "Outward Door Sash",
-//           rate: 280,
-//           per: "Unit",
-//           kgm: 2.2,
-//           length: "2.5m",
-//           image: "/Assets/Images/product_image.jpeg", 
-//         },
-//         {
-//           id: 6,
-//           sapCode: "SAP002",
-//           description: "Outward Door Sash",
-//           rate: 280,
-//           per: "Unit",
-//           kgm: 2.2,
-//           length: "2.5m",
-//           image: "/Assets/Images/product_image.jpeg", 
-//         },
-//       ],
-//       "50mm": [
-//         {
-//           id: 3,
-//           sapCode: "SAP003",
-//           description: "Sliding Door Sash",
-//           rate: 320,
-//           per: "Unit",
-//           kgm: 3.0,
-//           length: "3.5m",
-//           image: "/Assets/Images/product_image.jpeg", 
-//         },
-//       ],
-//     },
-//   },
-//   Sliding: {
-//     options: ["27mm", "29mm"],
-//     products: {
-//       "27mm": [
-//         {
-//           id: 4,
-//           sapCode: "SAP004",
-//           description: "Fixed Window Frame",
-//           rate: 150,
-//           per: "Meter",
-//           kgm: 1.8,
-//           length: "2m",
-//           image: "/Assets/Images/product_image.jpeg", 
-//         },
-//       ],
-//       "29mm": [
-//         {
-//           id: 5,
-//           sapCode: "SAP005",
-//           description: "Sliding Window Frame",
-//           rate: 180,
-//           per: "Meter",
-//           kgm: 2.0,
-//           length: "2.5m",
-//           image: "/Assets/Images/product_image.jpeg", 
-//         },
-//       ],
-//     },
-//   },
-//   'Slide and Fold': {
-//     options: ["3 m", "4 m"],
-//     products: {
-//       "3 m": [
-//         {
-//           id: 5,
-//           sapCode: "SAP006",
-//           description: "Fixed Window Frame",
-//           rate: 150,
-//           per: "Meter",
-//           kgm: 1.8,
-//           length: "2m",
-//           image: "/Assets/Images/product_image.jpeg", 
-//         }
-//       ],
-//     }
-//   },
-//   'Lift n Slide': {
-//     options: ["1 option"],
-//     products: {
-//       "1 option": [{
-//           id: 5,
-//           sapCode: "SAP007",
-//           description: "Fixed Window Frame",
-//           rate: 150,
-//           per: "Meter",
-//           kgm: 1.8,
-//           length: "2m",
-//           image: "/Assets/Images/product_image.jpeg", 
-//         }
-//       ],
-//     }
-//   },
-//   'Internal Partition': {
-//     options: ["16*45", "25*45"],
-//     products: {
-//       "16*45": [{
-//         id: 5,
-//         sapCode: "SAP008",
-//         description: "Fixed Window Frame",
-//         rate: 150,
-//         per: "Meter",
-//         kgm: 1.8,
-//         length: "2m",
-//         image: "/Assets/Images/product_image.jpeg", 
-//       }],
-//       "25*45": [{
-//         id: 5,
-//         sapCode: "SAP009",
-//         description: "Fixed Window Frame",
-//         rate: 150,
-//         per: "Meter",
-//         kgm: 1.8,
-//         length: "2m",
-//         image: "/Assets/Images/product_image.jpeg", 
-//       }]
-//     }
-//   },
-//   'Louvers': {
-//     options: ["1 option"],
-//     products: {
-//       "1 option":[{
-//         id: 5,
-//         sapCode: "SAP0010",
-//         description: "Fixed Window Frame",
-//         rate: 150,
-//         per: "Meter",
-//         kgm: 1.8,
-//         length: "2m",
-//         image: "/Assets/Images/product_image.jpeg", 
-//       }],
-//     }
-//   },
-//   'Railing': {
-//     options: ["7 option"],
-//     products: {
-//       "7 option": [{
-//         id: 5,
-//         sapCode: "SAP0011",
-//         description: "Fixed Window Frame",
-//         rate: 150,
-//         per: "Meter",
-//         kgm: 1.8,
-//         length: "2m",
-//         image: "/Assets/Images/product_image.jpeg", 
-//       }],
-//     }
-//   },
-// };
-const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData }) => {
+const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData, onProfileChange }) => {
   const [quantities, setQuantities] = useState({});
+  const [powderCoating, setPowderCoating] = useState({});
   const [profileOptions, setProfileOptions] = useState({});
-  const [activeProfile, setActiveProfile] = useState(Object.keys(profileOptions)[0]);
-  const [activeOption, setActiveOption] = useState(profileOptions[Object.keys(profileOptions)[0]]?.options[0]);
+  const [activeProfile, setActiveProfile] = useState();
+  const [activeOption, setActiveOption] = useState();
+  const [isProfileChanged, setIsProfileChanged] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
 
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
+
+  const productsToDisplay = searchResults.length > 0
+  ? searchResults
+  : profileOptions[activeProfile]?.products[activeOption] || [];
+
+  const powderColors = [
+    { name: "#FF0000", hex: "#FF0000" },
+    { name: "#0000FF", hex: "#0000FF" },
+    { name: "#008000", hex: "#008000" },
+    { name: "#000000", hex: "#000000" }
+  ];
+
   useEffect(() => {
     setProfileOptions(profileData);
+    if (Object.keys(profileData).length > 0) {
+      const firstProfile = Object.keys(profileData)[0];
+      setActiveProfile(firstProfile);
+      setActiveOption(profileData[firstProfile]?.options[0]);
+    }
   }, [profileData]);
+  
   useEffect(() => {
     if (!selectedProfiles || selectedProfiles.length === 0) {
       setQuantities((prev) => {
-        if (Object.keys(prev).length > 0) {
-          console.log("Resa")
-          onProductSelect([]); // Emit empty array only when necessary
-        }
+        // if (Object.keys(prev).length > 0) {
+        //   onProductSelect([]); // Emit empty array only when necessary
+        // }
         return {}; // Clear quantities
       });
     } else {
@@ -235,9 +74,20 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData }) =>
     }
   }, [selectedProfiles, onProductSelect]);
   
-  
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await api.get('http://localhost:5000/api/admin/search-product', {
+        params: { sapCode: searchQuery, description: searchQuery, profile: activeProfile, option: activeOption },
+      });
+      setSearchResults(response.data.products);
+    } catch (error) {
+      console.error('Error searching products:', error);
+    }
+  };  
 
   const handleQuantityChange = (profile, option, id, value) => {
+    setIsProfileChanged(true)
     setQuantities((prev) => ({
       ...prev,
       [`${profile}-${option}-${id}`]: {
@@ -250,7 +100,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData }) =>
   };
 
   const handlePowderCoating = (profile, option, id, value) => {
-    setQuantities((prev) => ({
+    setPowderCoating((prev) => ({
       ...prev,
       [`${profile}-${option}-${id}`]: {
         profile,
@@ -263,6 +113,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData }) =>
 
 
   const onConfirmation = () => {
+    setIsProfileChanged(false);
     const selectedProducts = Object.values(quantities)
       .filter((item) => item.quantity > 0)
       .map(({ profile, option, id, quantity }) => {
@@ -274,6 +125,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData }) =>
           profile,
           option,
           quantity,
+          rate: profileOptions[activeProfile].rate[activeOption]
         };
       });
 
@@ -283,8 +135,12 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData }) =>
 
   const onClear = () => {
     dispatch(clearSelectedProducts({option: 'profile'}));
-    // alert("Quantities cleared!");
   };
+
+  const searchProduct = (value) => {
+    setSearchResults([]);
+    setSearchQuery(value);
+  }
 
   return (
     <>
@@ -295,7 +151,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData }) =>
               active={activeProfile === profile}
               onClick={() => {
                 setActiveProfile(profile);
-                setActiveOption(null);
+                setActiveOption(profileOptions[profile].options[0]);
               }}
             >
               {profile}
@@ -303,7 +159,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData }) =>
           </MDBTabsItem>
         ))}
       </MDBTabs>
-
+        <hr/>
       {activeProfile && (
         <MDBTabs className="mb-4">
           {profileOptions[activeProfile]?.options.map((option) => (
@@ -330,15 +186,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData }) =>
                 <MDBTypography tag="h4" className="mb-0" style={{marginRight: '20px'}}>
                   Products
                 </MDBTypography>
-                <form className='d-flex input-group w-auto me-3'>
-                  <input
-                    type='search'
-                    className='form-control'
-                    placeholder='Search Items'
-                    aria-label='Search'
-                  />
-                  <MDBBtn color='primary'>Search</MDBBtn>
-                </form>
+                <Search searchQuery={searchQuery} setSearchQuery={searchProduct} handleSearch={handleSearch} />
               </div>
               <div>
                 <button
@@ -376,77 +224,58 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData }) =>
                 </tr>
               </thead>
               <tbody>
-                {profileOptions[activeProfile]?.products[activeOption]?.map(
-                  (product, index) => (
-                    <tr key={product.id}>
-                      <td>{index + 1}</td>
-                      <td>
-                        {/* <img
-                          src={product.image}  // Image path from the product
-                          alt={product.description}
-                          style={{ width: "50px", height: "50px", objectFit: "cover" }} // Style the image
-                        /> */}
-                      <ImageZoom productImage={product.image}/>
-                      </td>
-                      <td>{product.sapCode}</td>
-                      <td>{product.description}</td>
-                      <td>{product.rate}</td>
-                      <td>{product.per}</td>
-                      <td>{product.kgm}</td>
-                      <td>{product.length}</td>
-                      <td>
-                      <MDBInput
-                          type="number"
-                          min="0"
-                          value={
-                            quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || ""
-                          }
-                          onChange={(e) =>
-                            handleQuantityChange(
-                              activeProfile,
-                              activeOption,
-                              product.id,
-                              e.target.value
-                            )
-                          }
-                          size="sm"
-                          style={{minWidth: '80px'}}
-                        />
-                      </td>
-                      <td>
-                      <MDBInput
-                          type="number"
-                          min="0"
-                          value={
-                            product.powderCoating
-                          }
-                          onChange={(e) =>
-                            handleQuantityChange(
-                              activeProfile,
-                              activeOption,
-                              product.id,
-                              e.target.value
-                            )
-                          }
-                          size="sm"
-                          style={{minWidth: '80px'}}
-                        />
-                      </td>
-                      <td>
-                        <MDBInput
-                          disabled
-                          type="number"
-                          min="0"
-                          value={
-                            (quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity)*product.rate || ""
-                          }
-                          size="sm"
-                          style={{minWidth: '80px'}}
-                        />
-                      </td>
-                    </tr>
-                  )
-                )}
+              {productsToDisplay.map((product, index) => (
+                <tr key={product.id}>
+                  <td>{index + 1}</td>
+                  <td>
+                    <ImageZoom productImage={itemImg} />
+                  </td>
+                  <td>{product.sapCode}</td>
+                  <td>{product.description}</td>
+                  <td>{profileOptions[activeProfile]?.rate[activeOption]}</td>
+                  <td>{product.per}</td>
+                  <td>{product.kgm}</td>
+                  <td>{product.length}</td>
+                  <td>
+                    <MDBInput
+                      type="number"
+                      min="0"
+                      value={quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || ""}
+                      onChange={(e) => handleQuantityChange(activeProfile, activeOption, product.id, e.target.value)}
+                      size="sm"
+                      style={{ minWidth: '80px' }}
+                    />
+                  </td>
+                  <td>
+                    <MDBDropdown>
+                      <MDBDropdownToggle color="secondary">
+                        {powderCoating[`${activeProfile}-${activeOption}-${product.id}`]?.powderCoating || "Select Color"}
+                      </MDBDropdownToggle>
+                      <MDBDropdownMenu>
+                        {powderColors.map((color) => (
+                          <MDBDropdownItem
+                            className="d-flex"
+                            key={color.hex}
+                            onClick={() => handlePowderCoating(activeProfile, activeOption, product.id, color.name)}
+                          >
+                            <div style={{ width: "20px", height: "20px", backgroundColor: color.hex, marginRight: "8px" }}></div>
+                            {color.name}
+                          </MDBDropdownItem>
+                        ))}
+                      </MDBDropdownMenu>
+                    </MDBDropdown>
+                  </td>
+                  <td>
+                    <MDBInput
+                      disabled
+                      type="number"
+                      value={(quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || 0) * (profileOptions[activeProfile]?.rate[activeOption] || 0)}
+                      size="sm"
+                      style={{ minWidth: '80px' }}
+                    />
+                  </td>
+                </tr>
+              ))}
               </tbody>
             </table>
           </MDBCardBody>

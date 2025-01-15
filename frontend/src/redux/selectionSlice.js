@@ -2,6 +2,8 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   selectedOption: 'profile',
+  activeProfile: null,
+  activeOption: null,
   productsByOption: {
     profile: [],
     hardware: [],
@@ -26,6 +28,12 @@ const selectionSlice = createSlice({
       const { option } = action.payload;
       state.productsByOption[option] = [];
     },
+    setActiveProfile: (state, action) => {
+      state.activeProfile = action.payload;
+    },
+    setActiveOption: (state, action) => {
+      state.activeOption = action.payload;
+    },
   },
 });
 
@@ -33,6 +41,8 @@ export const {
   setSelectedOption,
   addSelectedProducts,
   clearSelectedProducts,
+  setActiveProfile,
+  setActiveOption
 } = selectionSlice.actions;
 
 export default selectionSlice.reducer;
