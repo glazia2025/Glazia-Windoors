@@ -8,27 +8,23 @@ const singleHardwareSchema = new mongoose.Schema({
   subCategory: { type: String, required: true},
   rate: { type: Number, required: true },
   system: { type: String, required: true }, // Unit, Meter, etc.
-  length: { type: String, required: true },
+  moq: { type: String, required: true },
   image: { type: String, required: false },
 });
 
 // Define the profile options schema with dynamic categories
-const hardwareSchema = new mongoose.Schema(
+const hardwareOptionsSchema = new mongoose.Schema(
   {
-    categories: {
+    options: { type: [String], required: true },
+    products: {
       type: Map,
-      options: { type: [String], required: true },
-      products: {
-        type: Map,
-        of: [singleHardwareSchema],
-        required: true,
-      },
+      of: [singleHardwareSchema],
       required: true,
     },
   },
   { strict: false }
 );
 
-const finalHardwareSchema = mongoose.model('hardwareSchema', hardwareSchema);
+const HardwareOptions = mongoose.model('hardwareSchema', hardwareOptionsSchema);
 
-module.exports = finalHardwareSchema;
+module.exports = HardwareOptions;

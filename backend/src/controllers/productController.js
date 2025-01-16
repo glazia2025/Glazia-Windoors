@@ -201,8 +201,6 @@ const searchProduct = async (req, res) => {
     return res.status(400).json({ message: 'Provide sapCode, description, profile, or option to search' });
   }
 
-  console.log("xah")
-
   try {
     const profileOptions = await ProfileOptions.findOne({});
     if (!profileOptions) {
@@ -222,173 +220,132 @@ const searchProduct = async (req, res) => {
 };
 
 
-// async function updateDocument() {
-//   try {
-//     const newProducts =  [
-//       {
-//         id: 1,
-//         sapCode: "K19099",
-//         part: "",
-//         degree: "90",
-//         description: "",
-//         per: "Kg",
-//         kgm: 1.908,
-//         length: "4880",
-//         image: "",
-//       },
-//       {
-//         id: 2,
-//         sapCode: "K19131",
-//         part: "",
-//         degree: "90",
-//         description: "",
-//         per: "Kg",
-//         kgm: 1.927,
-//         length: "4880",
-//         image: "",
-//       },
-//       {
-//         id: 3,
-//         sapCode: "K19100",
-//         part: "",
-//         degree: "90",
-//         description: "",
-//         per: "Kg",
-//         kgm: 1.457,
-//         length: "4880",
-//         image: "",
-//       },
-//       {
-//         id: 4,
-//         sapCode: "K19101",
-//         part: "",
-//         degree: "90",
-//         description: "",
-//         per: "Kg",
-//         kgm: 1.977,
-//         length: "4880",
-//         image: "",
-//       },
-//       {
-//         id: 5,
-//         sapCode: "K19129",
-//         part: "",
-//         degree: "90",
-//         description: "",
-//         per: "Kg",
-//         kgm: 0.95,
-//         length: "4880",
-//         image: "",
-//       },
-//       {
-//         id: 6,
-//         sapCode: "K19102",
-//         part: "",
-//         degree: "90",
-//         description: "",
-//         per: "Kg",
-//         kgm: 0.932,
-//         length: "4880",
-//         image: "",
-//       },
-//       {
-//         id: 7,
-//         sapCode: "K19103",
-//         part: "",
-//         degree: "90",
-//         description: "",
-//         per: "Kg",
-//         kgm: 1.005,
-//         length: "4880",
-//         image: "",
-//       },
-//       {
-//         id: 8,
-//         sapCode: "K19104",
-//         part: "",
-//         degree: "90",
-//         description: "",
-//         per: "Kg",
-//         kgm: 0.756,
-//         length: "4880",
-//         image: "",
-//       },
-//       {
-//         id: 9,
-//         sapCode: "K18749",
-//         part: "",
-//         degree: "90",
-//         description: "",
-//         per: "Kg",
-//         kgm: 0.33,
-//         length: "4880",
-//         image: "",
-//       },
-//       {
-//         id: 10,
-//         sapCode: "K18746",
-//         part: "",
-//         degree: "90",
-//         description: "",
-//         per: "Kg",
-//         kgm: 0.325,
-//         length: "4880",
-//         image: "",
-//       },
-//       {
-//         id: 11,
-//         sapCode: "K18750",
-//         part: "",
-//         degree: "90",
-//         description: "",
-//         per: "Kg",
-//         kgm: 0.272,
-//         length: "4880",
-//         image: "",
-//       },
-//       {
-//         id: 12,
-//         sapCode: "K18747",
-//         part: "",
-//         degree: "90",
-//         description: "",
-//         per: "Kg",
-//         kgm: 0.238,
-//         length: "4880",
-//         image: "",
-//       },
-//       {
-//         id: 13,
-//         sapCode: "K18748",
-//         part: "",
-//         degree: "90",
-//         description: "",
-//         per: "Kg",
-//         kgm: 0.191,
-//         length: "4880",
-//         image: "",
-//       }
-//     ]
-//     // Update the document with the specified _id
-//     const result = await ProfileOptions.updateOne(
-//       { _id: new mongoose.Types.ObjectId("6783f753ba72953976026092") },
-//       { 
-//         $push: { 
-//           "categories.Casement.products.55mm": { 
-//             $each: newProducts
-//           }
-//         }
-//       }
-//     );
+async function updateDocument() {
+  try {
+    const newProducts =  [
+      {
+        id: 1,
+        sapCode: "H-01-02-23",
+        part: "",
+        degree: "45",
+        description: "Frame (Vertical)",
+        per: "Kg",
+        kgm: 1.77,
+        length: "4880",
+        image: ""
+      },
+      {
+        id: 2,
+        sapCode: "H-02-03-23",
+        part: "",
+        degree: "45",
+        description: "Frame (Top)",
+        per: "Kg",
+        kgm: 2.1,
+        length: "4880",
+        image: ""
+      },
+      {
+        id: 3,
+        sapCode: "H-03-03-23",
+        part: "",
+        degree: "45",
+        description: "Frame (Bottom)",
+        per: "Kg",
+        kgm: 1.84,
+        length: "4880",
+        image: ""
+      },
+      {
+        id: 4,
+        sapCode: "H-04-03-23",
+        part: "",
+        degree: "45",
+        description: "Shutter",
+        per: "Kg",
+        kgm: 2.0,
+        length: "4880",
+        image: ""
+      },
+      {
+        id: 5,
+        sapCode: "H-05-03-23",
+        part: "",
+        degree: "45",
+        description: "Bead (24mm Glass)",
+        per: "Kg",
+        kgm: 0.26,
+        length: "4880",
+        image: ""
+      },
+      {
+        id: 6,
+        sapCode: "H-06-03-23",
+        part: "",
+        degree: "45",
+        description: "Fake Mullion",
+        per: "Kg",
+        kgm: 0.98,
+        length: "4880",
+        image: ""
+      },
+      {
+        id: 7,
+        sapCode: "H-01-03-23",
+        part: "",
+        degree: "45",
+        description: "Big Clip for Bottom",
+        per: "Kg",
+        kgm: 0.35,
+        length: "4880",
+        image: ""
+      },
+      {
+        id: 8,
+        sapCode: "S-02-03-23",
+        part: "",
+        degree: "45",
+        description: "Small Clip for Bottom",
+        per: "Kg",
+        kgm: 0.22,
+        length: "4880",
+        image: ""
+      },
+      {
+        id: 9,
+        sapCode: "H-10-03-23",
+        part: "",
+        degree: "45",
+        description: "Fake Mullion",
+        per: "Kg",
+        kgm: 1.0,
+        length: "4880",
+        image: ""
+      }
+    ]
+    
+  
+  
+    // Update the document with the specified _id
+    const result = await ProfileOptions.updateOne(
+      { _id: new mongoose.Types.ObjectId("6783f753ba72953976026092") },
+      { 
+        $push: { 
+          "categories.Slide and Fold.products.3m": { 
+            $each: newProducts
+          }
+        }
+      }
+    );
 
-//     console.log('Document updated:', result.modifiedCount);
-//   } catch (err) {
-//     console.error('Error updating document:', err);
-//   } finally {
-//     // Close the Mongoose connection
-//     mongoose.connection.close();
-//   }
-// }
+    console.log('Document updated:', result.modifiedCount);
+  } catch (err) {
+    console.error('Error updating document:', err);
+  } finally {
+    // Close the Mongoose connection
+    mongoose.connection.close();
+  }
+}
 
 // updateDocument();
 

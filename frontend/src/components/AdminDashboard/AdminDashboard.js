@@ -3,12 +3,11 @@ import "./AdminDashboard.css";
 import { MDBRow, MDBCol, MDBBtn, MDBIcon } from "mdb-react-ui-kit";
 import { useDispatch, useSelector } from "react-redux";
 import ProfileOptions from "./ProfileTable/ProfileTable";
-import HardwareOptions from "../UserDashboard/HardwareOptions";
+import HardwareOptions from "./HardwareTable/HardwareTable";
 import AccessoriesOptions from "../UserDashboard/AcessoriesOptions";
 import "jspdf-autotable";
 import * as pdfjs from "pdfjs-dist";
-import { addSelectedProducts } from "../../redux/selectionSlice";
-import axios from "axios";
+import { setActiveOption, setActiveProfile } from "../../redux/selectionSlice";
 
 // Initialize pdf.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -18,57 +17,26 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
-  const { selectedOption, productsByOption } = useSelector((state) => state.selection);
-  const [profileOptions, setProfileOptions] = useState({});
-
-  // Aggregate products from all options
-  const selectedProducts = Object.values(productsByOption).flat();
-  const prevSelectedProducts = useRef([]);
-
-  useEffect(() => {
-    prevSelectedProducts.current = selectedProducts;
-   }, [selectedProducts]);
-
-  const fetchProducts = async () => {
-      const token = localStorage.getItem('authToken'); 
-      try {
-          const response = await axios.get('http://localhost:5000/api/admin/getProducts', {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }); // Backend route
-            setProfileOptions(response.data.categories);
-      } catch (err) {
-          // setError('Failed to fetch products');
-          // setLoading(false);
-      }
-  };
-
-   useEffect(() => {
-    fetchProducts();
-  }, []);
+  const { selectedOption } = useSelector((state) => state.selection);
 
   const renderSelectedComponent = () => {
     switch (selectedOption) {
       case "profile":
-        return <ProfileOptions onProductSelect={onProductSelect} profileData={profileOptions} selectedProfiles={productsByOption.profile} refreshProducts={fetchProducts}/>;
+        return <ProfileOptions selectedOption={selectedOption}/>;
       case "hardware":
-        return <HardwareOptions onProductSelect={onProductSelect} selectedHardwares={productsByOption.hardware}/>;
+        return <HardwareOptions selectedOption={selectedOption}/>;
       case "accessories":
-        return <AccessoriesOptions onProductSelect={onProductSelect} selectedAccessories={productsByOption.accessories}/>;
+        return <AccessoriesOptions selectedOption={selectedOption}/>;
       default:
         return <p>Please select an option.</p>;
     }
   };
 
-  const onProductSelect = (products) => {
-    dispatch(
-      addSelectedProducts({
-        option: selectedOption,
-        products,
-      })
-    );
-  };
+  const changeCategory = (type, payload) => {
+    dispatch(setActiveProfile(null));
+    dispatch(setActiveOption(null));
+    dispatch({ type, payload })
+  }
 
   return (
     <MDBRow className="pdf-row-wrapper">
@@ -79,7 +47,7 @@ const AdminDashboard = () => {
               style={{ width: "100%" }}
               size="lg"
               color={selectedOption === "profile" ? "primary" : "light"}
-              onClick={() => dispatch({ type: "selection/setSelectedOption", payload: "profile" })}
+              onClick={() => changeCategory('selection/setSelectedOption', 'profile')}
             >
               Profile
             </MDBBtn>
@@ -89,7 +57,7 @@ const AdminDashboard = () => {
               style={{ width: "100%" }}
               size="lg"
               color={selectedOption === "hardware" ? "primary" : "light"}
-              onClick={() => dispatch({ type: "selection/setSelectedOption", payload: "hardware" })}
+              onClick={() => changeCategory("selection/setSelectedOption", "hardware")}
             >
               Hardware
             </MDBBtn>
@@ -99,7 +67,7 @@ const AdminDashboard = () => {
               style={{ width: "100%" }}
               size="lg"
               color={selectedOption === "accessories" ? "primary" : "light"}
-              onClick={() => dispatch({ type: "selection/setSelectedOption", payload: "accessories" })}
+              onClick={() => changeCategory("selection/setSelectedOption", "accessories")}
             >
               Accessories
             </MDBBtn>

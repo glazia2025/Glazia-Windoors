@@ -15,6 +15,7 @@ import './App.css';
 import ProfileSelector from './components/UserDashboard/ProfileOptions';
 import SelectionContainer from './components/UserDashboard/SelectionContainer';
 import AdminForm from './components/AdminDashboard/AdminForm';
+import ExcelDataFetcher from './components/Excel';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -115,6 +116,7 @@ function App() {
               <Route path="/admin/dashboard" element={localStorage.getItem('userRole') === 'admin' && isLoggedIn ? <AdminDashboard /> : <Navigate to="/" />} >
               </Route>
               <Route path="/admin/dashboard/add-product" element={<AdminForm />} />
+              {/* <Route path="/admin/dashboard/add-product" element={<ExcelDataFetcher />} /> */}
 
               {/* <Route path="/admin/dashboard" element={userRole === 'admin' && isLoggedIn ? <AdminForm /> : <Navigate to="/" />} >
                 <Route path="add-product" element={<AdminAddProduct />} />

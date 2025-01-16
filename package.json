@@ -14,7 +14,9 @@
     "jspdf-autotable": "^3.8.4",
     "jwt-decode": "^4.0.0",
     "pdf-lib": "^1.17.1",
-    "react-spinners": "^0.15.0"
+    "react-image-lightbox": "^5.1.4",
+    "react-spinners": "^0.15.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "pdfjs-dist": "^4.10.38"

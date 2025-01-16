@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  MDBRow,
-  MDBCol,
   MDBCard,
   MDBCardBody,
   MDBTabs,
@@ -9,136 +7,62 @@ import {
   MDBTabsLink,
   MDBTypography,
   MDBInput,
+  MDBBtn,
+  MDBDropdown,
+  MDBDropdownToggle,
+  MDBDropdownMenu,
+  MDBDropdownItem,
 } from "mdb-react-ui-kit";
 import { clearSelectedProducts } from "../../redux/selectionSlice";
 import { useDispatch } from "react-redux";
-const harwareOptions = {
-  'Hardware 1': {
-    options: ["40mm", "50mm", "55mm", "27mm"],
-    products: {
-      "40mm": [
-        {
-          id: 1,
-          sapCode: "SAP001",
-          description: "Inward Door Sash",
-          rate: 300,
-          per: "Unit",
-          kgm: 2.5,
-          length: "3m",
-        },
-        {
-          id: 3,
-          sapCode: "SAP002",
-          description: "Outward Door Sash",
-          rate: 280,
-          per: "Unit",
-          kgm: 2.2,
-          length: "2.5m",
-        },
-        {
-          id: 4,
-          sapCode: "SAP002",
-          description: "Outward Door Sash",
-          rate: 280,
-          per: "Unit",
-          kgm: 2.2,
-          length: "2.5m",
-        },
-        {
-          id: 5,
-          sapCode: "SAP002",
-          description: "Outward Door Sash",
-          rate: 280,
-          per: "Unit",
-          kgm: 2.2,
-          length: "2.5m",
-        },
-        {
-          id: 6,
-          sapCode: "SAP002",
-          description: "Outward Door Sash",
-          rate: 280,
-          per: "Unit",
-          kgm: 2.2,
-          length: "2.5m",
-        },
-      ],
-      "50mm": [
-        {
-          id: 3,
-          sapCode: "SAP003",
-          description: "Sliding Door Sash",
-          rate: 320,
-          per: "Unit",
-          kgm: 3.0,
-          length: "3.5m",
-        },
-      ],
-    },
-  },
-  'Hardware 2': {
-    options: ["27mm", "29mm"],
-    products: {
-      "27mm": [
-        {
-          id: 4,
-          sapCode: "SAP004",
-          description: "Fixed Window Frame",
-          rate: 150,
-          per: "Meter",
-          kgm: 1.8,
-          length: "2m",
-        },
-      ],
-      "29mm": [
-        {
-          id: 5,
-          sapCode: "SAP005",
-          description: "Sliding Window Frame",
-          rate: 180,
-          per: "Meter",
-          kgm: 2.0,
-          length: "2.5m",
-        },
-      ],
-    },
-  },
-  'Hardware 3': {
-    options: ["3 m", "4 m"],
-    products: {
-      "3 m": [
-        {
-          id: 5,
-          sapCode: "SAP006",
-          description: "Fixed Window Frame",
-          rate: 150,
-          per: "Meter",
-          kgm: 1.8,
-          length: "2m",
-        }
-      ],
-    }
-  },
-};
-const HardwareSelection = ({ onProductSelect, selectedHardwares }) => {
-  const [activeProfile, setActiveProfile] = useState(null);
-  const [activeOption, setActiveOption] = useState(null);
-  const [quantities, setQuantities] = useState({});
+import ImageZoom from "./ImageZoom";
+import itemImg from './product_image.jpeg';
+import api from '../../utils/api';
+import Search from '../Search';
 
-  const dispatch = useDispatch()
+const hardwareSelection = ({ onProductSelect, selectedProfiles, profileData, onProfileChange }) => {
+  const [quantities, setQuantities] = useState({});
+  const [powderCoating, setPowderCoating] = useState({});
+  const [profileOptions, setProfileOptions] = useState({});
+  const [activeProfile, setActiveProfile] = useState();
+  const [activeOption, setActiveOption] = useState();
+  const [isProfileChanged, setIsProfileChanged] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+
+  const dispatch = useDispatch();
+
+  const productsToDisplay = searchResults.length > 0
+  ? searchResults
+  : profileOptions[activeProfile]?.products[activeOption] || [];
+
+  const powderColors = [
+    { name: "#FF0000", hex: "#FF0000" },
+    { name: "#0000FF", hex: "#0000FF" },
+    { name: "#008000", hex: "#008000" },
+    { name: "#000000", hex: "#000000" }
+  ];
 
   useEffect(() => {
-    if (!selectedHardwares || selectedHardwares.length === 0) {
+    setProfileOptions(profileData);
+    if (Object.keys(profileData).length > 0) {
+      const firstProfile = Object.keys(profileData)[0];
+      setActiveProfile(firstProfile);
+      setActiveOption(profileData[firstProfile]?.options[0]);
+    }
+  }, [profileData]);
+  
+  useEffect(() => {
+    if (!selectedProfiles || selectedProfiles.length === 0) {
       setQuantities((prev) => {
-        if (Object.keys(prev).length > 0) {
-          console.log("Resa")
-          onProductSelect([]); // Emit empty array only when necessary
-        }
+        // if (Object.keys(prev).length > 0) {
+        //   onProductSelect([]); // Emit empty array only when necessary
+        // }
         return {}; // Clear quantities
       });
     } else {
       const updatedQuantities = {};
-      selectedHardwares.forEach((element) => {
+      selectedProfiles.forEach((element) => {
         updatedQuantities[`${element.profile}-${element.option}-${element.id}`] = {
           profile: element.profile,
           option: element.option,
@@ -148,11 +72,22 @@ const HardwareSelection = ({ onProductSelect, selectedHardwares }) => {
       });
       setQuantities(updatedQuantities);
     }
-  }, [selectedHardwares, onProductSelect]);
+  }, [selectedProfiles, onProductSelect]);
   
-  
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await api.get('http://localhost:5000/api/admin/search-product', {
+        params: { sapCode: searchQuery, description: searchQuery, profile: activeProfile, option: activeOption },
+      });
+      setSearchResults(response.data.products);
+    } catch (error) {
+      console.error('Error searching products:', error);
+    }
+  };  
 
   const handleQuantityChange = (profile, option, id, value) => {
+    setIsProfileChanged(true)
     setQuantities((prev) => ({
       ...prev,
       [`${profile}-${option}-${id}`]: {
@@ -164,11 +99,25 @@ const HardwareSelection = ({ onProductSelect, selectedHardwares }) => {
     }));
   };
 
+  const handlePowderCoating = (profile, option, id, value) => {
+    setPowderCoating((prev) => ({
+      ...prev,
+      [`${profile}-${option}-${id}`]: {
+        profile,
+        option,
+        id,
+        powderCoating: value,
+      },
+    }));
+  };
+
+
   const onConfirmation = () => {
+    setIsProfileChanged(false);
     const selectedProducts = Object.values(quantities)
       .filter((item) => item.quantity > 0)
       .map(({ profile, option, id, quantity }) => {
-        const product = harwareOptions[profile]?.products[option]?.find(
+        const product = profileOptions[profile]?.products[option]?.find(
           (prod) => prod.id === id
         );
         return {
@@ -176,6 +125,7 @@ const HardwareSelection = ({ onProductSelect, selectedHardwares }) => {
           profile,
           option,
           quantity,
+          rate: profileOptions[activeProfile].rate[activeOption]
         };
       });
 
@@ -185,19 +135,23 @@ const HardwareSelection = ({ onProductSelect, selectedHardwares }) => {
 
   const onClear = () => {
     dispatch(clearSelectedProducts({option: 'profile'}));
-    // alert("Quantities cleared!");
   };
+
+  const searchProduct = (value) => {
+    setSearchResults([]);
+    setSearchQuery(value);
+  }
 
   return (
     <>
       <MDBTabs className="mb-4">
-        {Object.keys(harwareOptions).map((profile) => (
+        {Object.keys(profileOptions).map((profile) => (
           <MDBTabsItem key={profile}>
             <MDBTabsLink
               active={activeProfile === profile}
               onClick={() => {
                 setActiveProfile(profile);
-                setActiveOption(null);
+                setActiveOption(profileOptions[profile].options[0]);
               }}
             >
               {profile}
@@ -205,10 +159,10 @@ const HardwareSelection = ({ onProductSelect, selectedHardwares }) => {
           </MDBTabsItem>
         ))}
       </MDBTabs>
-
+        <hr/>
       {activeProfile && (
         <MDBTabs className="mb-4">
-          {harwareOptions[activeProfile]?.options.map((option) => (
+          {profileOptions[activeProfile]?.options.map((option) => (
             <MDBTabsItem key={option}>
               <MDBTabsLink
                 active={activeOption === option}
@@ -228,14 +182,17 @@ const HardwareSelection = ({ onProductSelect, selectedHardwares }) => {
               className="d-flex justify-content-between align-items-center mb-3 sticky-top bg-white p-3"
               style={{ top: "0", zIndex: 1 }}
             >
-              <MDBTypography tag="h4" className="mb-0">
-                Products
-              </MDBTypography>
+              <div className="d-flex align-items-center">
+                <MDBTypography tag="h4" className="mb-0" style={{marginRight: '20px'}}>
+                  Products
+                </MDBTypography>
+                <Search searchQuery={searchQuery} setSearchQuery={searchProduct} handleSearch={handleSearch} />
+              </div>
               <div>
                 <button
                   className="btn btn-secondary me-2"
                   onClick={onClear}
-                  disabled={!selectedHardwares.length}
+                  disabled={!selectedProfiles.length}
                 >
                   Clear
                 </button>
@@ -254,6 +211,7 @@ const HardwareSelection = ({ onProductSelect, selectedHardwares }) => {
               <thead>
                 <tr>
                   <th>S No.</th>
+                  <th>Image</th> 
                   <th>SAP Code</th>
                   <th>Description</th>
                   <th>Rate</th>
@@ -261,41 +219,63 @@ const HardwareSelection = ({ onProductSelect, selectedHardwares }) => {
                   <th>Kg/m</th>
                   <th>Length</th>
                   <th>Quantity</th>
+                  <th>Powder Coating</th>
+                  <th>Amount</th>
                 </tr>
               </thead>
               <tbody>
-                {harwareOptions[activeProfile]?.products[activeOption]?.map(
-                  (product, index) => (
-                    <tr key={product.id}>
-                      <td>{index + 1}</td>
-                      <td>{product.sapCode}</td>
-                      <td>{product.description}</td>
-                      <td>{product.rate}</td>
-                      <td>{product.per}</td>
-                      <td>{product.kgm}</td>
-                      <td>{product.length}</td>
-                      <td>
-                      <MDBInput
-                          type="number"
-                          min="0"
-                          value={
-                            quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || ""
-                          }
-                          onChange={(e) =>
-                            handleQuantityChange(
-                              activeProfile,
-                              activeOption,
-                              product.id,
-                              e.target.value
-                            )
-                          }
-                          size="sm"
-                        />
-
-                      </td>
-                    </tr>
-                  )
-                )}
+              {productsToDisplay.map((product, index) => (
+                <tr key={product.id}>
+                  <td>{index + 1}</td>
+                  <td>
+                    <ImageZoom productImage={itemImg} />
+                  </td>
+                  <td>{product.sapCode}</td>
+                  <td>{product.description}</td>
+                  <td>{profileOptions[activeProfile]?.rate[activeOption]}</td>
+                  <td>{product.per}</td>
+                  <td>{product.kgm}</td>
+                  <td>{product.length}</td>
+                  <td>
+                    <MDBInput
+                      type="number"
+                      min="0"
+                      value={quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || ""}
+                      onChange={(e) => handleQuantityChange(activeProfile, activeOption, product.id, e.target.value)}
+                      size="sm"
+                      style={{ minWidth: '80px' }}
+                    />
+                  </td>
+                  <td>
+                    <MDBDropdown>
+                      <MDBDropdownToggle color="secondary">
+                        {powderCoating[`${activeProfile}-${activeOption}-${product.id}`]?.powderCoating || "Select Color"}
+                      </MDBDropdownToggle>
+                      <MDBDropdownMenu>
+                        {powderColors.map((color) => (
+                          <MDBDropdownItem
+                            className="d-flex"
+                            key={color.hex}
+                            onClick={() => handlePowderCoating(activeProfile, activeOption, product.id, color.name)}
+                          >
+                            <div style={{ width: "20px", height: "20px", backgroundColor: color.hex, marginRight: "8px" }}></div>
+                            {color.name}
+                          </MDBDropdownItem>
+                        ))}
+                      </MDBDropdownMenu>
+                    </MDBDropdown>
+                  </td>
+                  <td>
+                    <MDBInput
+                      disabled
+                      type="number"
+                      value={(quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || 0) * (profileOptions[activeProfile]?.rate[activeOption] || 0)}
+                      size="sm"
+                      style={{ minWidth: '80px' }}
+                    />
+                  </td>
+                </tr>
+              ))}
               </tbody>
             </table>
           </MDBCardBody>
@@ -305,4 +285,4 @@ const HardwareSelection = ({ onProductSelect, selectedHardwares }) => {
   );
 };
 
-export default HardwareSelection;
+export default hardwareSelection;

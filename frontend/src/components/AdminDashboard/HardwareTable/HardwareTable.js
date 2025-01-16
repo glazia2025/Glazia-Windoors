@@ -15,9 +15,9 @@ import { setActiveOption, setActiveProfile } from "../../../redux/selectionSlice
 import api from '../../../utils/api';
 import Search from '../../Search';
 
-const ProfileTable = () => {
+const HardwareTable = () => {
   const dispatch = useDispatch();
-  const { activeProfile, activeOption } = useSelector((state) => state.selection);
+  const { activeOption } = useSelector((state) => state.selection);
   const [profileOptions, setProfileOptions] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -26,21 +26,16 @@ const ProfileTable = () => {
 
   const productsToDisplay = searchResults.length > 0
     ? searchResults
-    : profileOptions[activeProfile]?.products[activeOption];
+    : profileOptions?.products?.[activeOption];
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
   const fetchProducts = async () => {
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/getProducts', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setProfileData(response.data.categories);
+      const response = await axios.get('http://localhost:5000/api/admin/getHardwares');
+      setProfileData(response.data);
     } catch (err) {
       console.error("Error fetching products", err);
     }
@@ -48,18 +43,16 @@ const ProfileTable = () => {
 
   useEffect(() => {
     setProfileOptions(profileData);
-    if (!activeProfile && Object.keys(profileData).length > 0) {
-      const firstProfile = Object.keys(profileData)[0];
-      dispatch(setActiveProfile(firstProfile));
-      dispatch(setActiveOption(profileData[firstProfile]?.options[0]));
+    if (!activeOption && profileData?.options?.length > 0) {
+      dispatch(setActiveOption(profileData.options[0]));
     }
   }, [profileData]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.get('http://localhost:5000/api/admin/search-product', {
-        params: { sapCode: searchQuery, description: searchQuery, profile: activeProfile, option: activeOption },
+      const response = await api.get('http://localhost:5000/api/admin/search-hardware', {
+        params: { sapCode: searchQuery, perticular: searchQuery, option: activeOption },
       });
       setSearchResults(response.data.products);
     } catch (error) {
@@ -70,7 +63,7 @@ const ProfileTable = () => {
   const searchProduct = (value) => {
     setSearchResults([]);
     setSearchQuery(value);
-  }
+  };
 
   const handleEditClick = (product) => {
     setEditableProduct({ ...product });
@@ -80,15 +73,15 @@ const ProfileTable = () => {
     const { name, value } = e.target;
     setEditableProduct((prevState) => ({
       ...prevState,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSave = async () => {
-    const token = localStorage.getItem('authToken');
     try {
-      const response = await axios.put(
-        `http://localhost:5000/api/admin/edit-product/${activeProfile}/${activeOption}/${editableProduct._id}`,
+      const token = localStorage.getItem('authToken');
+      await axios.put(
+        `http://localhost:5000/api/admin/edit-hardware/${activeOption}/${editableProduct._id}`,
         editableProduct,
         {
           headers: {
@@ -96,36 +89,33 @@ const ProfileTable = () => {
           },
         }
       );
-      fetchProducts();
-      setEditableProduct(null); // Exit editing mode
+      fetchProducts(); // Refresh product list
+      setEditableProduct(null); // Exit edit mode
     } catch (err) {
       console.error("Error saving product", err);
     }
   };
 
   const handleDelete = async (productId) => {
-    const token = localStorage.getItem('authToken');
     try {
-      await axios.delete(`http://localhost:5000/api/admin/delete-product/${activeProfile}/${activeOption}/${productId}`, {
+      const token = localStorage.getItem('authToken');
+      await axios.delete(`http://localhost:5000/api/admin/delete-hardware/${activeOption}/${productId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       fetchProducts();
-      // Remove product from the state after successful deletion
+      // Update state after deletion
       setProfileOptions((prevOptions) => {
-        const updatedProducts = prevOptions[activeProfile]?.products[activeOption].filter(
+        const updatedProducts = prevOptions.products[activeOption].filter(
           (product) => product.id !== productId
         );
         return {
           ...prevOptions,
-          [activeProfile]: {
-            ...prevOptions[activeProfile],
-            products: {
-              ...prevOptions[activeProfile].products,
-              [activeOption]: updatedProducts
-            }
-          }
+          products: {
+            ...prevOptions.products,
+            [activeOption]: updatedProducts,
+          },
         };
       });
     } catch (err) {
@@ -136,36 +126,18 @@ const ProfileTable = () => {
   return (
     <>
       <MDBTabs className="mb-4">
-        {Object.keys(profileOptions).map((profile) => (
-          <MDBTabsItem key={profile}>
+        {profileOptions?.options?.map((option) => (
+          <MDBTabsItem key={option}>
             <MDBTabsLink
-              active={activeProfile === profile}
-              onClick={() => {
-                dispatch(setActiveProfile(profile));
-                dispatch(setActiveOption(profileOptions[profile]?.options[0]));
-              }}
+              active={activeOption === option}
+              onClick={() => dispatch(setActiveOption(option))}
             >
-              {profile}
+              {option}
             </MDBTabsLink>
           </MDBTabsItem>
         ))}
       </MDBTabs>
       <hr />
-      {activeProfile && (
-        <MDBTabs className="mb-4">
-          {profileOptions[activeProfile]?.options.map((option) => (
-            <MDBTabsItem key={option}>
-              <MDBTabsLink
-                active={activeOption === option}
-                onClick={() => dispatch(setActiveOption(option))}
-              >
-                {option}
-              </MDBTabsLink>
-            </MDBTabsItem>
-          ))}
-        </MDBTabs>
-      )}
-
       {activeOption && (
         <MDBCard className="mt-4">
           <MDBCardBody>
@@ -182,13 +154,10 @@ const ProfileTable = () => {
                 <tr>
                   <th>S No.</th>
                   <th>SAP Code</th>
-                  <th>Part</th>
-                  <th>Description</th>
-                  <th>90 degree/ 45 degree</th>
+                  <th>Sub Category</th>
+                  <th>Perticular</th>
                   <th>Rate</th>
-                  <th>Per</th>
-                  <th>Kg/m</th>
-                  <th>Length</th>
+                  <th>MOQ</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -196,14 +165,11 @@ const ProfileTable = () => {
                 {productsToDisplay?.map((product, index) => (
                   <tr key={product.id}>
                     <td>{index + 1}</td>
-                    <td>{product.sapCode}</td>
-                    <td>{editableProduct?.id === product.id ? <MDBInput name="part" value={editableProduct.part} onChange={handleInputChange} /> : product.part || 'N.A'}</td>
-                    <td>{editableProduct?.id === product.id ? <MDBInput name="description" value={editableProduct.description} onChange={handleInputChange} /> : product.description || 'N.A'}</td>
-                    <td>{product.degree}</td>
-                    <td>{profileOptions[activeProfile].rate[activeOption]}</td>
-                    <td>{editableProduct?.id === product.id ? <MDBInput name="per" value={editableProduct.per} onChange={handleInputChange} /> : product.per}</td>
-                    <td>{editableProduct?.id === product.id ? <MDBInput name="kgm" value={editableProduct.kgm} onChange={handleInputChange} /> : product.kgm}</td>
-                    <td>{editableProduct?.id === product.id ? <MDBInput name="length" value={editableProduct.length} onChange={handleInputChange} /> : product.length}</td>
+                    <td>{editableProduct?.id === product.id ? <MDBInput name="sapCode" value={editableProduct.sapCode} onChange={handleInputChange} /> : product.sapCode}</td>
+                    <td>{editableProduct?.id === product.id ? <MDBInput name="subCategory" value={editableProduct.subCategory} onChange={handleInputChange} /> : product.subCategory}</td>
+                    <td>{editableProduct?.id === product.id ? <MDBInput name="perticular" value={editableProduct.perticular} onChange={handleInputChange} /> : product.perticular}</td>
+                    <td>{editableProduct?.id === product.id ? <MDBInput name="rate" value={editableProduct.rate} onChange={handleInputChange} /> : product.rate}</td>
+                    <td>{editableProduct?.id === product.id ? <MDBInput name="moq" value={editableProduct.moq} onChange={handleInputChange} /> : product.moq}</td>
                     <td className="d-flex">
                       {editableProduct?.id === product.id ? (
                         <>
@@ -211,9 +177,11 @@ const ProfileTable = () => {
                           <MDBBtn color="secondary" size="sm" className="m-1" onClick={() => setEditableProduct(null)}>Cancel</MDBBtn>
                         </>
                       ) : (
-                        <MDBBtn color="warning" size="sm" className="m-1" onClick={() => handleEditClick(product)}>Edit</MDBBtn>
+                        <>
+                          <MDBBtn color="warning" size="sm" className="m-1" onClick={() => handleEditClick(product)}>Edit</MDBBtn>
+                          <MDBBtn color="danger" size="sm" className="m-1" onClick={() => handleDelete(product._id)}>Delete</MDBBtn>
+                        </>
                       )}
-                      <MDBBtn color="danger" size="sm" className="m-1" onClick={() => handleDelete(product._id)}>Delete</MDBBtn>
                     </td>
                   </tr>
                 ))}
@@ -226,4 +194,4 @@ const ProfileTable = () => {
   );
 };
 
-export default ProfileTable;
+export default HardwareTable;
