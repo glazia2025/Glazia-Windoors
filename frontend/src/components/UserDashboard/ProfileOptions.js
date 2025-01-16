@@ -20,10 +20,10 @@ import itemImg from './product_image.jpeg';
 import api from '../../utils/api';
 import Search from '../Search';
 
-const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData, onProfileChange }) => {
+const ProfileSelection = ({ onProductSelect, selectedProfiles }) => {
   const [quantities, setQuantities] = useState({});
   const [powderCoating, setPowderCoating] = useState({});
-  const [profileOptions, setProfileOptions] = useState({});
+  const [profileData, setProfileData] = useState({});
   const [activeProfile, setActiveProfile] = useState();
   const [activeOption, setActiveOption] = useState();
   const [isProfileChanged, setIsProfileChanged] = useState(false);
@@ -34,7 +34,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData, onPr
 
   const productsToDisplay = searchResults.length > 0
   ? searchResults
-  : profileOptions[activeProfile]?.products[activeOption] || [];
+  : profileData[activeProfile]?.products[activeOption] || [];
 
   const powderColors = [
     { name: "#FF0000", hex: "#FF0000" },
@@ -44,7 +44,25 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData, onPr
   ];
 
   useEffect(() => {
-    setProfileOptions(profileData);
+    console.log("coll")
+    const fetchProducts = async () => {
+        const token = localStorage.getItem('authToken'); 
+        try {
+            const response = await api.get('http://localhost:5000/api/admin/getProducts', {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }); 
+              setProfileData(response.data.categories);
+        } catch (err) {
+            // setError('Failed to fetch products');
+            // setLoading(false);
+        }
+    };
+    fetchProducts();
+  }, []);
+
+  useEffect(() => {
     if (Object.keys(profileData).length > 0) {
       const firstProfile = Object.keys(profileData)[0];
       setActiveProfile(firstProfile);
@@ -56,7 +74,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData, onPr
     if (!selectedProfiles || selectedProfiles.length === 0) {
       setQuantities((prev) => {
         // if (Object.keys(prev).length > 0) {
-        //   onProductSelect([]); // Emit empty array only when necessary
+        //   onProductSelect([]);
         // }
         return {}; // Clear quantities
       });
@@ -117,7 +135,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData, onPr
     const selectedProducts = Object.values(quantities)
       .filter((item) => item.quantity > 0)
       .map(({ profile, option, id, quantity }) => {
-        const product = profileOptions[profile]?.products[option]?.find(
+        const product = profileData[profile]?.products[option]?.find(
           (prod) => prod.id === id
         );
         return {
@@ -125,7 +143,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData, onPr
           profile,
           option,
           quantity,
-          rate: profileOptions[activeProfile].rate[activeOption]
+          rate: profileData[activeProfile].rate[activeOption]
         };
       });
 
@@ -145,13 +163,13 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData, onPr
   return (
     <>
       <MDBTabs className="mb-4">
-        {Object.keys(profileOptions).map((profile) => (
+        {Object.keys(profileData).map((profile) => (
           <MDBTabsItem key={profile}>
             <MDBTabsLink
               active={activeProfile === profile}
               onClick={() => {
                 setActiveProfile(profile);
-                setActiveOption(profileOptions[profile].options[0]);
+                setActiveOption(profileData[profile].options[0]);
               }}
             >
               {profile}
@@ -162,7 +180,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData, onPr
         <hr/>
       {activeProfile && (
         <MDBTabs className="mb-4">
-          {profileOptions[activeProfile]?.options.map((option) => (
+          {profileData[activeProfile]?.options.map((option) => (
             <MDBTabsItem key={option}>
               <MDBTabsLink
                 active={activeOption === option}
@@ -232,7 +250,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData, onPr
                   </td>
                   <td>{product.sapCode}</td>
                   <td>{product.description}</td>
-                  <td>{profileOptions[activeProfile]?.rate[activeOption]}</td>
+                  <td>{profileData[activeProfile]?.rate[activeOption]}</td>
                   <td>{product.per}</td>
                   <td>{product.kgm}</td>
                   <td>{product.length}</td>
@@ -269,7 +287,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles, profileData, onPr
                     <MDBInput
                       disabled
                       type="number"
-                      value={(quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || 0) * (profileOptions[activeProfile]?.rate[activeOption] || 0)}
+                      value={(quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || 0) * (profileData[activeProfile]?.rate[activeOption] || 0)}
                       size="sm"
                       style={{ minWidth: '80px' }}
                     />

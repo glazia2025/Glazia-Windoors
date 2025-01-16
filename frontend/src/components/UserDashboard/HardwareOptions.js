@@ -7,63 +7,64 @@ import {
   MDBTabsLink,
   MDBTypography,
   MDBInput,
-  MDBBtn,
-  MDBDropdown,
-  MDBDropdownToggle,
-  MDBDropdownMenu,
-  MDBDropdownItem,
 } from "mdb-react-ui-kit";
+import axios from "axios";
+import api from '../../utils/api';
 import { clearSelectedProducts } from "../../redux/selectionSlice";
 import { useDispatch } from "react-redux";
 import ImageZoom from "./ImageZoom";
 import itemImg from './product_image.jpeg';
-import api from '../../utils/api';
 import Search from '../Search';
 
-const hardwareSelection = ({ onProductSelect, selectedProfiles, profileData, onProfileChange }) => {
+const ProfileSelection = ({ onProductSelect, selectedHardwares }) => {
   const [quantities, setQuantities] = useState({});
-  const [powderCoating, setPowderCoating] = useState({});
-  const [profileOptions, setProfileOptions] = useState({});
-  const [activeProfile, setActiveProfile] = useState();
+  const [hardwareData, setHardwareData] = useState({});
   const [activeOption, setActiveOption] = useState();
-  const [isProfileChanged, setIsProfileChanged] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
 
   const dispatch = useDispatch();
 
   const productsToDisplay = searchResults.length > 0
-  ? searchResults
-  : profileOptions[activeProfile]?.products[activeOption] || [];
-
-  const powderColors = [
-    { name: "#FF0000", hex: "#FF0000" },
-    { name: "#0000FF", hex: "#0000FF" },
-    { name: "#008000", hex: "#008000" },
-    { name: "#000000", hex: "#000000" }
-  ];
+    ? searchResults
+    : hardwareData?.products?.[activeOption];
 
   useEffect(() => {
-    setProfileOptions(profileData);
-    if (Object.keys(profileData).length > 0) {
-      const firstProfile = Object.keys(profileData)[0];
-      setActiveProfile(firstProfile);
-      setActiveOption(profileData[firstProfile]?.options[0]);
+    const fetchProducts = async () => {
+        const token = localStorage.getItem('authToken'); 
+        try {
+            const response = await api.get('http://localhost:5000/api/admin/getHardwares', {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }); 
+              setHardwareData(response.data);
+        } catch (err) {
+            // setError('Failed to fetch products');
+            // setLoading(false);
+        }
+    };
+    fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    if (Object.keys(hardwareData).length > 0) {
+      setActiveOption(hardwareData?.options[0]);
     }
-  }, [profileData]);
+  }, [hardwareData]);
   
   useEffect(() => {
-    if (!selectedProfiles || selectedProfiles.length === 0) {
+    if (!selectedHardwares || selectedHardwares.length === 0) {
       setQuantities((prev) => {
         // if (Object.keys(prev).length > 0) {
-        //   onProductSelect([]); // Emit empty array only when necessary
+        //   onProductSelect([]);
         // }
         return {}; // Clear quantities
       });
     } else {
       const updatedQuantities = {};
-      selectedProfiles.forEach((element) => {
-        updatedQuantities[`${element.profile}-${element.option}-${element.id}`] = {
+      selectedHardwares.forEach((element) => {
+        updatedQuantities[`${element.option}-${element.id}`] = {
           profile: element.profile,
           option: element.option,
           id: element.id,
@@ -72,26 +73,24 @@ const hardwareSelection = ({ onProductSelect, selectedProfiles, profileData, onP
       });
       setQuantities(updatedQuantities);
     }
-  }, [selectedProfiles, onProductSelect]);
+  }, [selectedHardwares, onProductSelect]);
   
   const handleSearch = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.get('http://localhost:5000/api/admin/search-product', {
-        params: { sapCode: searchQuery, description: searchQuery, profile: activeProfile, option: activeOption },
+      const response = await api.get('http://localhost:5000/api/admin/search-hardware', {
+        params: { sapCode: searchQuery, perticular: searchQuery, option: activeOption },
       });
       setSearchResults(response.data.products);
     } catch (error) {
       console.error('Error searching products:', error);
     }
-  };  
+  };
 
-  const handleQuantityChange = (profile, option, id, value) => {
-    setIsProfileChanged(true)
+  const handleQuantityChange = (option, id, value) => {
     setQuantities((prev) => ({
       ...prev,
-      [`${profile}-${option}-${id}`]: {
-        profile,
+      [`${option}-${id}`]: {
         option,
         id,
         quantity: parseInt(value, 10) || 0,
@@ -99,25 +98,11 @@ const hardwareSelection = ({ onProductSelect, selectedProfiles, profileData, onP
     }));
   };
 
-  const handlePowderCoating = (profile, option, id, value) => {
-    setPowderCoating((prev) => ({
-      ...prev,
-      [`${profile}-${option}-${id}`]: {
-        profile,
-        option,
-        id,
-        powderCoating: value,
-      },
-    }));
-  };
-
-
   const onConfirmation = () => {
-    setIsProfileChanged(false);
     const selectedProducts = Object.values(quantities)
       .filter((item) => item.quantity > 0)
       .map(({ profile, option, id, quantity }) => {
-        const product = profileOptions[profile]?.products[option]?.find(
+        const product = hardwareData?.products[option]?.find(
           (prod) => prod.id === id
         );
         return {
@@ -125,7 +110,7 @@ const hardwareSelection = ({ onProductSelect, selectedProfiles, profileData, onP
           profile,
           option,
           quantity,
-          rate: profileOptions[activeProfile].rate[activeOption]
+          rate: product.rate
         };
       });
 
@@ -145,35 +130,18 @@ const hardwareSelection = ({ onProductSelect, selectedProfiles, profileData, onP
   return (
     <>
       <MDBTabs className="mb-4">
-        {Object.keys(profileOptions).map((profile) => (
-          <MDBTabsItem key={profile}>
+        {hardwareData?.options?.map((option) => (
+          <MDBTabsItem key={option}>
             <MDBTabsLink
-              active={activeProfile === profile}
-              onClick={() => {
-                setActiveProfile(profile);
-                setActiveOption(profileOptions[profile].options[0]);
-              }}
+              active={activeOption === option}
+              onClick={() => setActiveOption(option)}
             >
-              {profile}
+              {option}
             </MDBTabsLink>
           </MDBTabsItem>
         ))}
       </MDBTabs>
         <hr/>
-      {activeProfile && (
-        <MDBTabs className="mb-4">
-          {profileOptions[activeProfile]?.options.map((option) => (
-            <MDBTabsItem key={option}>
-              <MDBTabsLink
-                active={activeOption === option}
-                onClick={() => setActiveOption(option)}
-              >
-                {option}
-              </MDBTabsLink>
-            </MDBTabsItem>
-          ))}
-        </MDBTabs>
-      )}
 
       {activeOption && (
         <MDBCard className="mt-4">
@@ -192,7 +160,7 @@ const hardwareSelection = ({ onProductSelect, selectedProfiles, profileData, onP
                 <button
                   className="btn btn-secondary me-2"
                   onClick={onClear}
-                  disabled={!selectedProfiles.length}
+                  disabled={!selectedHardwares.length}
                 >
                   Clear
                 </button>
@@ -211,15 +179,13 @@ const hardwareSelection = ({ onProductSelect, selectedProfiles, profileData, onP
               <thead>
                 <tr>
                   <th>S No.</th>
-                  <th>Image</th> 
+                  <th>Image</th>
                   <th>SAP Code</th>
-                  <th>Description</th>
+                  <th>Sub Category</th>
+                  <th>Perticular</th>
                   <th>Rate</th>
-                  <th>Per</th>
-                  <th>Kg/m</th>
-                  <th>Length</th>
+                  <th>MOQ</th>
                   <th>Quantity</th>
-                  <th>Powder Coating</th>
                   <th>Amount</th>
                 </tr>
               </thead>
@@ -231,45 +197,25 @@ const hardwareSelection = ({ onProductSelect, selectedProfiles, profileData, onP
                     <ImageZoom productImage={itemImg} />
                   </td>
                   <td>{product.sapCode}</td>
-                  <td>{product.description}</td>
-                  <td>{profileOptions[activeProfile]?.rate[activeOption]}</td>
-                  <td>{product.per}</td>
-                  <td>{product.kgm}</td>
-                  <td>{product.length}</td>
+                  <td>{product.subCategory}</td>
+                  <td>{product?.perticular}</td>
+                  <td>{product.rate}</td>
+                  <td>{product.moq}</td>
                   <td>
                     <MDBInput
                       type="number"
                       min="0"
-                      value={quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || ""}
-                      onChange={(e) => handleQuantityChange(activeProfile, activeOption, product.id, e.target.value)}
+                      value={quantities[`${activeOption}-${product.id}`]?.quantity || ""}
+                      onChange={(e) => handleQuantityChange(activeOption, product.id, e.target.value)}
                       size="sm"
                       style={{ minWidth: '80px' }}
                     />
                   </td>
                   <td>
-                    <MDBDropdown>
-                      <MDBDropdownToggle color="secondary">
-                        {powderCoating[`${activeProfile}-${activeOption}-${product.id}`]?.powderCoating || "Select Color"}
-                      </MDBDropdownToggle>
-                      <MDBDropdownMenu>
-                        {powderColors.map((color) => (
-                          <MDBDropdownItem
-                            className="d-flex"
-                            key={color.hex}
-                            onClick={() => handlePowderCoating(activeProfile, activeOption, product.id, color.name)}
-                          >
-                            <div style={{ width: "20px", height: "20px", backgroundColor: color.hex, marginRight: "8px" }}></div>
-                            {color.name}
-                          </MDBDropdownItem>
-                        ))}
-                      </MDBDropdownMenu>
-                    </MDBDropdown>
-                  </td>
-                  <td>
                     <MDBInput
                       disabled
                       type="number"
-                      value={(quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || 0) * (profileOptions[activeProfile]?.rate[activeOption] || 0)}
+                      value={(quantities[`${activeOption}-${product.id}`]?.quantity || 0) * (product.rate || 0)}
                       size="sm"
                       style={{ minWidth: '80px' }}
                     />
@@ -285,4 +231,4 @@ const hardwareSelection = ({ onProductSelect, selectedProfiles, profileData, onP
   );
 };
 
-export default hardwareSelection;
+export default ProfileSelection;

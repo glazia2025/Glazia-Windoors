@@ -21,7 +21,6 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 const SelectionContainer = () => {
   const dispatch = useDispatch();
   const { selectedOption, productsByOption } = useSelector((state) => state.selection);
-  const [profileOptions, setProfileOptions] = useState({});
   const [isSliderOpen, setIsSliderOpen] = useState(false); // State for slider visibility
 
   // Aggregate products from all options
@@ -43,28 +42,12 @@ const SelectionContainer = () => {
     prevSelectedProducts.current = selectedProducts;
   }, [selectedProducts]);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-        const token = localStorage.getItem('authToken'); 
-        try {
-            const response = await axios.get('http://localhost:5000/api/admin/getProducts', {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }); // Backend route
-              setProfileOptions(response.data.categories);
-        } catch (err) {
-            // setError('Failed to fetch products');
-            // setLoading(false);
-        }
-    };
-    fetchProducts();
-  }, []);
+
 
   const renderSelectedComponent = () => {
     switch (selectedOption) {
       case "profile":
-        return <ProfileOptions onProductSelect={onProductSelect} profileData={profileOptions} selectedProfiles={productsByOption.profile}/>;
+        return <ProfileOptions onProductSelect={onProductSelect} selectedProfiles={productsByOption.profile}/>;
       case "hardware":
         return <HardwareOptions onProductSelect={onProductSelect} selectedHardwares={productsByOption.hardware}/>;
       case "accessories":
@@ -175,18 +158,18 @@ const SelectionContainer = () => {
       ],
       body: selectedProducts?.map((product, index) => [
         index + 1,
-        product.description,
+        product.description || product.perticular,
         product.sapCode,
         product.quantity,
         product.rate,
-        product.per,
-        (product.quantity * profileOptions[product.profile].rate[product.option])?.toFixed(2),
+        product.per || 'Piece',
+        (product.quantity * product.rate)
       ]),
     });
 
     // Totals calculation
     const subtotal = selectedProducts?.reduce(
-      (total, product) => total + product.quantity * profileOptions[product.profile].rate[product.option],
+      (total, product) => total + product.quantity * product.rate,
       0
     );
     const gst = subtotal * 0.18; // 18% GST
@@ -261,16 +244,18 @@ const SelectionContainer = () => {
               Hardware
             </MDBBtn>
           </MDBCol>
-          <MDBCol md="auto" className="mb-3" style={{flex: '1 1 auto'}}>
+          {/* <MDBCol md="auto" className="mb-3" style={{flex: '1 1 auto'}}>
             <MDBBtn
-              style={{ width: "100%" }}
-              size="lg"
-              color={selectedOption === "accessories" ? "primary" : "light"}
-              onClick={() => dispatch({ type: "selection/setSelectedOption", payload: "accessories" })}
-            >
+          style={{ width: "100%", cursor: "not-allowed" }}
+          size="lg"
+          color="light"
+          disabled
+          data-mdb-toggle="tooltip"
+          title="Coming Soon"
+                  >
               Accessories
             </MDBBtn>
-          </MDBCol>
+          </MDBCol> */}
         </MDBRow>
 
         <MDBRow>
@@ -281,15 +266,26 @@ const SelectionContainer = () => {
       </MDBCol>
 
       {selectedProducts.length > 0 && (
-        <MDBCol className="mt-3" style={{ flex: "1 1 auto", maxWidth: "50%" }}>
+        <MDBCol className="mt-3" style={{ flex: "1 1 auto", width: "35%", maxWidth: "50%", borderLeft: "1px solid #ddd",}}>
           <div
             style={{
-              border: "1px solid #ddd",
               padding: "10px",
               height: "100%",
+              position: 'fixed',
+              top: '10%'
             }}
           >
-            <canvas key={selectedProducts.length} ref={canvasRef} style={{ background: "#fff", marginTop: '10%' }} />
+            <canvas
+              key={selectedProducts.length}
+              ref={canvasRef}
+              style={{
+                width: "100%",
+                height: "auto",
+                background: "#fff",
+                display: "block",
+              }}
+            />
+
           </div>
         </MDBCol>
       )}
