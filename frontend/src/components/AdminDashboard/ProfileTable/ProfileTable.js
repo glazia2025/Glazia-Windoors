@@ -35,7 +35,7 @@ const ProfileTable = () => {
   const fetchProducts = async () => {
     const token = localStorage.getItem('authToken');
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/getProducts', {
+      const response = await api.get('http://localhost:5000/api/admin/getProducts', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -87,7 +87,7 @@ const ProfileTable = () => {
   const handleSave = async () => {
     const token = localStorage.getItem('authToken');
     try {
-      const response = await axios.put(
+      const response = await api.put(
         `http://localhost:5000/api/admin/edit-product/${activeProfile}/${activeOption}/${editableProduct._id}`,
         editableProduct,
         {
@@ -106,7 +106,7 @@ const ProfileTable = () => {
   const handleDelete = async (productId) => {
     const token = localStorage.getItem('authToken');
     try {
-      await axios.delete(`http://localhost:5000/api/admin/delete-product/${activeProfile}/${activeOption}/${productId}`, {
+      await api.delete(`http://localhost:5000/api/admin/delete-product/${activeProfile}/${activeOption}/${productId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

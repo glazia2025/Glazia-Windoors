@@ -21,7 +21,7 @@ const AdminForm = () => {
 
           {/* Main Options (Profile, Hardware, Accessories) */}
           <div className="d-flex justify-content-center mb-4">
-            {['profile', 'hardware', 'accessories'].map(option => (
+            {['profile', 'hardware'].map(option => (
               <MDBBtn
                 key={option}
                 color={mainOption === option ? 'primary' : 'outline-primary'}

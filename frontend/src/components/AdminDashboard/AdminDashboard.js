@@ -62,7 +62,7 @@ const AdminDashboard = () => {
               Hardware
             </MDBBtn>
           </MDBCol>
-          <MDBCol md="auto" className="mb-3" style={{flex: '1 1 auto'}}>
+          {/* <MDBCol md="auto" className="mb-3" style={{flex: '1 1 auto'}}>
             <MDBBtn
               style={{ width: "100%" }}
               size="lg"
@@ -71,7 +71,7 @@ const AdminDashboard = () => {
             >
               Accessories
             </MDBBtn>
-          </MDBCol>
+          </MDBCol> */}
         </MDBRow>
 
         <MDBRow>

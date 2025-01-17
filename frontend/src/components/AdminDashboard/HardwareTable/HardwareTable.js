@@ -34,7 +34,7 @@ const HardwareTable = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/getHardwares');
+      const response = await api.get('http://localhost:5000/api/admin/getHardwares');
       setProfileData(response.data);
     } catch (err) {
       console.error("Error fetching products", err);
@@ -80,7 +80,7 @@ const HardwareTable = () => {
   const handleSave = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      await axios.put(
+      await api.put(
         `http://localhost:5000/api/admin/edit-hardware/${activeOption}/${editableProduct._id}`,
         editableProduct,
         {
@@ -99,7 +99,7 @@ const HardwareTable = () => {
   const handleDelete = async (productId) => {
     try {
       const token = localStorage.getItem('authToken');
-      await axios.delete(`http://localhost:5000/api/admin/delete-hardware/${activeOption}/${productId}`, {
+      await api.delete(`http://localhost:5000/api/admin/delete-hardware/${activeOption}/${productId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

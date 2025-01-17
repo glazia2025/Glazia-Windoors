@@ -16,6 +16,8 @@ import ProfileSelector from './components/UserDashboard/ProfileOptions';
 import SelectionContainer from './components/UserDashboard/SelectionContainer';
 import AdminForm from './components/AdminDashboard/AdminForm';
 import ExcelDataFetcher from './components/Excel';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -84,6 +86,16 @@ function App() {
 
   return (
       <div style={{overflowX: 'hidden'}}>
+        <ToastContainer
+          style={{marginTop: '100px'}}
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          pauseOnHover
+          draggable
+        />
         <>
           {isLoading && (
             <div style={{
