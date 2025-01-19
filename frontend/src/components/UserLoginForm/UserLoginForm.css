@@ -2,7 +2,7 @@ body {
   background-color: hsl(0, 0%, 96%);
 }
 .mdb-container {
-  height: 100vh;
+  /* height: 100vh; */
   max-width: 80vw;
   display: flex;
   align-items: center;

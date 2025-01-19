@@ -13,7 +13,7 @@ dotenv.config();
 
 // Middleware
 app.use(cors()); // Allow cross-origin requests
-app.use(express.json()); // Parse incoming JSON requests
+app.use(express.json({limit: '100mb'}));
 
 connectDB();
 

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import {
   MDBCard,
   MDBCardBody,
@@ -8,12 +7,15 @@ import {
   MDBTabsLink,
   MDBTypography,
   MDBBtn,
-  MDBInput
+  MDBInput,
+  MDBIcon,
+  MDBFile
 } from "mdb-react-ui-kit";
 import { useDispatch, useSelector } from 'react-redux';
 import { setActiveOption, setActiveProfile } from "../../../redux/selectionSlice";
 import api from '../../../utils/api';
 import Search from '../../Search';
+import ImageZoom from "../../UserDashboard/ImageZoom";
 
 const ProfileTable = () => {
   const dispatch = useDispatch();
@@ -35,11 +37,7 @@ const ProfileTable = () => {
   const fetchProducts = async () => {
     const token = localStorage.getItem('authToken');
     try {
-      const response = await api.get('http://localhost:5000/api/admin/getProducts', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.get('http://localhost:5000/api/admin/getProducts');
       setProfileData(response.data.categories);
     } catch (err) {
       console.error("Error fetching products", err);
@@ -77,11 +75,28 @@ const ProfileTable = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditableProduct((prevState) => ({
-      ...prevState,
-      [name]: value
-    }));
+    const { name, files } = e.target;
+  
+    if (name === "image" && files.length > 0) {
+      const file = files[0];
+      const reader = new FileReader();
+  
+      reader.onload = (event) => {
+        const base64Image = event.target.result;
+        setEditableProduct((prevState) => ({
+          ...prevState,
+          [name]: base64Image,
+        }));
+      };
+  
+      reader.readAsDataURL(file);
+    } else {
+      const { value } = e.target;
+      setEditableProduct((prevState) => ({
+        ...prevState,
+        [name]: value,
+      }));
+    }
   };
 
   const handleSave = async () => {
@@ -177,25 +192,27 @@ const ProfileTable = () => {
               </div>
               <Search searchQuery={searchQuery} setSearchQuery={searchProduct} handleSearch={handleSearch} />
             </div>
-            <table className="table table-bordered">
+            <table className="table table-bordered"  style={{ tableLayout: 'fixed', width: '100%' }}>
               <thead>
                 <tr>
-                  <th>S No.</th>
+                  <th style={{ width: '5%' }}>S No.</th>
+                  <th style={{ width: '10%' }}>Image</th>
                   <th>SAP Code</th>
                   <th>Part</th>
-                  <th>Description</th>
+                  <th style={{ width: '15%' }}>Description</th>
                   <th>90 degree/ 45 degree</th>
-                  <th>Rate</th>
+                  <th style={{ width: '5%' }}>Rate</th>
                   <th>Per</th>
                   <th>Kg/m</th>
                   <th>Length</th>
-                  <th>Actions</th>
+                  <th style={{ width: '15%' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {productsToDisplay?.map((product, index) => (
                   <tr key={product.id}>
                     <td>{index + 1}</td>
+                    <td>{editableProduct?.id === product.id ? <MDBFile name="image" size='sm' onChange={handleInputChange} id='formFileSm' /> : product.image ? <ImageZoom productImage={product.image} /> : 'N.A'}</td>
                     <td>{product.sapCode}</td>
                     <td>{editableProduct?.id === product.id ? <MDBInput name="part" value={editableProduct.part} onChange={handleInputChange} /> : product.part || 'N.A'}</td>
                     <td>{editableProduct?.id === product.id ? <MDBInput name="description" value={editableProduct.description} onChange={handleInputChange} /> : product.description || 'N.A'}</td>
@@ -207,13 +224,19 @@ const ProfileTable = () => {
                     <td className="d-flex">
                       {editableProduct?.id === product.id ? (
                         <>
-                          <MDBBtn color="success" size="sm" className="m-1" onClick={handleSave}>Save</MDBBtn>
-                          <MDBBtn color="secondary" size="sm" className="m-1" onClick={() => setEditableProduct(null)}>Cancel</MDBBtn>
+                          <MDBBtn color="success" size="sm" className="m-1" onClick={handleSave}><MDBIcon far icon="save" /></MDBBtn>
+                          <MDBBtn color="secondary" size="sm" className="m-1" onClick={() => setEditableProduct(null)}>
+                            <MDBIcon fas icon="times" />
+                          </MDBBtn>
                         </>
                       ) : (
-                        <MDBBtn color="warning" size="sm" className="m-1" onClick={() => handleEditClick(product)}>Edit</MDBBtn>
+                        <MDBBtn color="warning" size="sm" className="m-1" onClick={() => handleEditClick(product)}>
+                          <MDBIcon fas icon="pen" />&nbsp;
+                        </MDBBtn>
                       )}
-                      <MDBBtn color="danger" size="sm" className="m-1" onClick={() => handleDelete(product._id)}>Delete</MDBBtn>
+                      <MDBBtn color="danger" size="sm" className="m-1" onClick={() => handleDelete(product._id)}>
+                        <MDBIcon fas icon="trash" />&nbsp;
+                      </MDBBtn>
                     </td>
                   </tr>
                 ))}

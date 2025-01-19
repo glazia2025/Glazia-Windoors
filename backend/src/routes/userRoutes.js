@@ -1,10 +1,16 @@
 const express = require('express');
-const { getProducts } = require('../controllers/productController');
+const { getProducts, getProfileHierarchy } = require('../controllers/productController');
 const { createUser, getUser, updateUser } = require('../controllers/userController');
+const { createOrder, getOrders } = require('../controllers/orderController');
+const { getHardwareHeirarchy } = require('../controllers/hardwareController');
 const router = express.Router();
 
 router.post('/register', createUser);
 router.get('/getUser', getUser);
 router.put('/updateUser', updateUser);
+router.post('/pi-generate', createOrder);
+router.get('/getOrders', getOrders);
+router.get('/get-profile-heirarchy', getProfileHierarchy);
+router.get('/get-hardware-heirarchy', getHardwareHeirarchy);
 
 module.exports = router;

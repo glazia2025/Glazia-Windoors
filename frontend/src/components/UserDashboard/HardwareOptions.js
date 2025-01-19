@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useImperativeHandle, forwardRef } from "react";
 import {
   MDBCard,
   MDBCardBody,
@@ -10,46 +10,54 @@ import {
 } from "mdb-react-ui-kit";
 import axios from "axios";
 import api from '../../utils/api';
-import { clearSelectedProducts } from "../../redux/selectionSlice";
-import { useDispatch } from "react-redux";
+import { clearSelectedProducts, setActiveOption } from "../../redux/selectionSlice";
+import { useDispatch, useSelector } from "react-redux";
 import ImageZoom from "./ImageZoom";
 import itemImg from './product_image.jpeg';
 import Search from '../Search';
+import { fetchProductsFailure, fetchProductsStart, fetchProductsSuccess } from "../../redux/hardwareSlice";
 
-const ProfileSelection = ({ onProductSelect, selectedHardwares }) => {
+const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref) => {
+  const { activeOption } = useSelector((state) => state.selection);
   const [quantities, setQuantities] = useState({});
-  const [hardwareData, setHardwareData] = useState({});
-  const [activeOption, setActiveOption] = useState();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
 
   const dispatch = useDispatch();
+  const { data: hardwareData } = useSelector((state) => state.hardwares);
 
   const productsToDisplay = searchResults.length > 0
     ? searchResults
     : hardwareData?.products?.[activeOption];
 
   useEffect(() => {
-    const fetchProducts = async () => {
-        const token = localStorage.getItem('authToken'); 
-        try {
-            const response = await api.get('http://localhost:5000/api/admin/getHardwares', {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }); 
-              setHardwareData(response.data);
-        } catch (err) {
-            // setError('Failed to fetch products');
-            // setLoading(false);
-        }
-    };
     fetchProducts();
-  }, []);
+  }, [dispatch]);
+
+  const fetchProducts = async () => {
+    dispatch(fetchProductsStart());
+    const token = localStorage.getItem("authToken");
+    try {
+      const response = await api.get("http://localhost:5000/api/admin/getHardwares", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      dispatch(fetchProductsSuccess(response.data));
+    } catch (err) {
+      dispatch(fetchProductsFailure("Failed to fetch products"));
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    fetchProducts,
+  }));
 
   useEffect(() => {
     if (Object.keys(hardwareData).length > 0) {
-      setActiveOption(hardwareData?.options[0]);
+      if(!hardwareData?.options?.includes(activeOption)) {
+        dispatch(setActiveOption(hardwareData?.options[0]));
+      }
     }
   }, [hardwareData]);
   
@@ -110,7 +118,8 @@ const ProfileSelection = ({ onProductSelect, selectedHardwares }) => {
           profile,
           option,
           quantity,
-          rate: product.rate
+          rate: product.rate,
+          amount: product.rate*quantity
         };
       });
 
@@ -134,7 +143,7 @@ const ProfileSelection = ({ onProductSelect, selectedHardwares }) => {
           <MDBTabsItem key={option}>
             <MDBTabsLink
               active={activeOption === option}
-              onClick={() => setActiveOption(option)}
+              onClick={() =>  dispatch(setActiveOption(option))}
             >
               {option}
             </MDBTabsLink>
@@ -190,16 +199,16 @@ const ProfileSelection = ({ onProductSelect, selectedHardwares }) => {
                 </tr>
               </thead>
               <tbody>
-              {productsToDisplay.map((product, index) => (
+              {productsToDisplay?.map((product, index) => (
                 <tr key={product.id}>
                   <td>{index + 1}</td>
                   <td>
-                    <ImageZoom productImage={itemImg} />
+                    {product.image !== '' ? <ImageZoom productImage={product.image} /> : 'N.A'}
                   </td>
                   <td>{product.sapCode}</td>
                   <td>{product.subCategory}</td>
                   <td>{product?.perticular}</td>
-                  <td>{product.rate}</td>
+                  <td>{'₹' + product.rate}</td>
                   <td>{product.moq}</td>
                   <td>
                     <MDBInput
@@ -229,6 +238,6 @@ const ProfileSelection = ({ onProductSelect, selectedHardwares }) => {
       )}
     </>
   );
-};
+});
 
 export default ProfileSelection;

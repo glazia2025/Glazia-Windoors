@@ -23,11 +23,6 @@ bcrypt.hash(password, 10, (err, hashedPassword) => {
     // Now that the password is hashed, create the staticAdmin object
 
     staticAdmin.password = hashedPassword;
-    // Log the hashed password for confirmation
-    // console.log('Hashed password:', hashedPassword);
-
-    // You can now use staticAdmin as expected
-    // console.log(staticAdmin);
   }
 });
 

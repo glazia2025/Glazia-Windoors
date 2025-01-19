@@ -7,7 +7,7 @@ const Search = ({ searchQuery, setSearchQuery, handleSearch }) => {
       <input
         type="search"
         className="form-control"
-        placeholder="Search Items"
+        placeholder="Search Sap Code or Description"
         aria-label="Search"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}

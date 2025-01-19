@@ -183,7 +183,6 @@ const searchHardware = async (req, res) => {
   }
 
   try {
-    console.log("kjhvjkeh");
     const hardwareOptions = await HardwareOptions.findOne({});
     if (!hardwareOptions) {
       return res.status(404).json({ message: 'No products found' });
@@ -203,4 +202,85 @@ const searchHardware = async (req, res) => {
   }
 };
 
-module.exports = { addHardware, getHardwares, addAllProducts, editHardware, deleteHardware, searchHardware };
+const saveProductImage = async (req, res) => {
+  try {
+    const productImagesData = req.body; // Array of {productCode, image}
+    
+    // Get all unique product codes
+    const productCodes = productImagesData.map(item => item.productCode);
+    
+    // Get the HardwareOptions document
+    const hardwareOptions = await HardwareOptions.findOne();
+    if (!hardwareOptions) {
+      return res.status(404).json({ error: 'Hardware options not found' });
+    }
+
+    // Keep track of updates
+    const updatedProducts = [];
+    const notFoundProducts = [];
+
+    // Iterate through each product category in the products Map
+    for (const [category, products] of hardwareOptions.products.entries()) {
+      // For each product in the category
+      products.forEach((product, index) => {
+        // Find matching product image data
+        const matchingImageData = productImagesData.find(
+          imgData => imgData.productCode === product.sapCode
+        );
+
+        if (matchingImageData) {
+          // Update the product's image
+          hardwareOptions.products.get(category)[index].image = matchingImageData.image;
+          updatedProducts.push({
+            category,
+            sapCode: product.sapCode,
+            perticular: product.perticular
+          });
+        }
+      });
+    }
+
+    // Find products that weren't updated
+    productImagesData.forEach(imgData => {
+      const found = updatedProducts.some(up => up.sapCode === imgData.productCode);
+      if (!found) {
+        notFoundProducts.push(imgData.productCode);
+      }
+    });
+
+    // Save the updated document
+    await hardwareOptions.save();
+
+    // Return response with results
+    res.json({
+      success: true,
+      updated: updatedProducts.length,
+      updatedProducts,
+      notFound: notFoundProducts.length,
+      notFoundProducts
+    });
+
+  } catch (error) {
+    console.error('Error saving product images:', error);
+    res.status(500).json({
+      error: 'Failed to save product images',
+      message: error.message
+    });
+  }
+};
+
+const getHardwareHeirarchy = async (req, res) => {
+  try {
+    const hardwareOptions = await HardwareOptions.findOne({});
+    if (!hardwareOptions) {
+      return res.status(404).json({ message: 'No profile found' });
+    }
+    console.log("hardwareOptions", hardwareOptions)
+    const finalObject = Array.from(hardwareOptions.options).map(profile => profile);
+    res.status(200).json({ products: finalObject });
+  } catch (error) {
+    res.status(500).json({ message: 'Error getting profiles' });
+  }
+}
+
+module.exports = { addHardware, getHardwares, addAllProducts, editHardware, deleteHardware, searchHardware, saveProductImage, getHardwareHeirarchy };

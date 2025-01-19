@@ -23,3 +23,30 @@ canvas {
   opacity: 0.6;
   z-index: 2;
 }
+
+.main-selectors {
+  max-width: 90%;
+  flex: 1 1 auto !important; 
+  margin-left: 5% !important;  
+  margin-right: 5% !important;  
+  margin-bottom: 5% !important;  
+}
+
+.slider {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 40%;
+  background-color: white;
+  box-shadow: -2px 0px 5px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+  transition: transform 0.3s ease-in-out, width 0.5s ease;
+  transform: translateX(100%); /* Closed by default */
+}
+
+@media screen and (max-width: 900px) {
+  .slider {
+    width: 100%;
+  }
+}

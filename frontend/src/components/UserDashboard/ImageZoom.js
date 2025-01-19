@@ -20,6 +20,7 @@ const ImageZoom = ({productImage}) => {
       {isOpen && (
         <Lightbox
           mainSrc={productImage}
+          enableZoom="true"
           onCloseRequest={() => setIsOpen(false)}
         />
       )}

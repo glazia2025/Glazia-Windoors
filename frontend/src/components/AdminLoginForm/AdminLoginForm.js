@@ -43,7 +43,7 @@ const AdminLoginForm = ({ setUserRole, setIsLoggedIn }) => {
   };
 
   return (
-    <MDBContainer fluid className="p-3 my-5 mdb-container">
+    <MDBContainer fluid className="p-3 mdb-container" style={{alignItems: 'flex-start', marginTop: '70px'}}>
       <MDBRow>
         <MDBCol col='10' md='6'>
           <img src="/Assets/Images/admin.svg" className="img-fluid admin-img" alt="Phone image" />

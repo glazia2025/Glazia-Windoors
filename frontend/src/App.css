@@ -5,7 +5,8 @@
 .app-container {
   display: flex;
   flex-direction: column;
-  min-height: 80vh; /* Ensure the app takes full height */
+  min-height: 80vh;
+  margin-top: 120px;
 }
 
 .App-logo {
@@ -32,6 +33,10 @@
 
 .App-link {
   color: #61dafb;
+}
+
+.no-capitalize {
+  text-transform: none !important;
 }
 
 @keyframes App-logo-spin {

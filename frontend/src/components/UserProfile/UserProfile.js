@@ -86,7 +86,6 @@ const UserProfile = () => {
         minHeight: '100vh',
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'center',
       }}
     >
       <MDBContainer className="py-5">

@@ -71,7 +71,7 @@ const MobileLoginForm = ({ setUserRole }) => {
 
   return (
     <MDBContainer fluid className="mdb-container">
-      <MDBRow className='align-items-center'>
+      <MDBRow>
         <MDBCol md='7' className='text-center text-md-start d-flex flex-column justify-content-center'>
             <img 
               src={loginImage} 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useImperativeHandle, useState, forwardRef } from "react";
 import {
   MDBCard,
   MDBCardBody,
@@ -7,30 +7,41 @@ import {
   MDBTabsLink,
   MDBTypography,
   MDBInput,
-  MDBBtn,
   MDBDropdown,
   MDBDropdownToggle,
   MDBDropdownMenu,
   MDBDropdownItem,
+  MDBTooltip
 } from "mdb-react-ui-kit";
-import { clearSelectedProducts } from "../../redux/selectionSlice";
-import { useDispatch } from "react-redux";
+import { clearSelectedProducts, setActiveOption, setActiveProfile } from "../../redux/selectionSlice";
+import { useDispatch, useSelector } from "react-redux";
 import ImageZoom from "./ImageZoom";
 import itemImg from './product_image.jpeg';
 import api from '../../utils/api';
 import Search from '../Search';
+import { fetchProductsFailure, fetchProductsStart, fetchProductsSuccess } from "../../redux/profileSlice";
+import TechSheet from "./Technical-sheet/TechnicalSheet";
 
-const ProfileSelection = ({ onProductSelect, selectedProfiles }) => {
+const ProfileSelection = forwardRef(({ onProductSelect, selectedProfiles }, ref) => {
   const [quantities, setQuantities] = useState({});
   const [powderCoating, setPowderCoating] = useState({});
-  const [profileData, setProfileData] = useState({});
-  const [activeProfile, setActiveProfile] = useState();
-  const [activeOption, setActiveOption] = useState();
-  const [isProfileChanged, setIsProfileChanged] = useState(false);
+  // const [activeProfile, setActiveProfile] = useState();
+  // const [activeOption, setActiveOption] = useState();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [sheetData, setSheetData] = useState({
+    shutterHeight: null,
+    shutterWidth: null,
+    lockingMechanism: null,
+    glassSize: null,
+    alloy: null,
+    interlock: null,
+  });
+
+  const { activeProfile, activeOption } = useSelector((state) => state.selection);
 
   const dispatch = useDispatch();
+  const { data: profileData } = useSelector((state) => state.profiles);
 
   const productsToDisplay = searchResults.length > 0
   ? searchResults
@@ -44,29 +55,33 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles }) => {
   ];
 
   useEffect(() => {
-    console.log("coll")
-    const fetchProducts = async () => {
-        const token = localStorage.getItem('authToken'); 
-        try {
-            const response = await api.get('http://localhost:5000/api/admin/getProducts', {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }); 
-              setProfileData(response.data.categories);
-        } catch (err) {
-            // setError('Failed to fetch products');
-            // setLoading(false);
-        }
-    };
     fetchProducts();
-  }, []);
+  }, [dispatch]);
+
+  useImperativeHandle(ref, () => ({
+    fetchProducts,
+  }));
+
+  const fetchProducts = async () => {
+    dispatch(fetchProductsStart());
+    const token = localStorage.getItem("authToken");
+    try {
+      const response = await api.get("http://localhost:5000/api/admin/getProducts", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      dispatch(fetchProductsSuccess(response.data.categories));
+    } catch (err) {
+      dispatch(fetchProductsFailure("Failed to fetch products"));
+    }
+  };
 
   useEffect(() => {
     if (Object.keys(profileData).length > 0) {
       const firstProfile = Object.keys(profileData)[0];
-      setActiveProfile(firstProfile);
-      setActiveOption(profileData[firstProfile]?.options[0]);
+      dispatch(setActiveProfile(firstProfile));
+      dispatch(setActiveOption(profileData[firstProfile]?.options[0]));
     }
   }, [profileData]);
   
@@ -91,6 +106,36 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles }) => {
       setQuantities(updatedQuantities);
     }
   }, [selectedProfiles, onProductSelect]);
+
+  const fetchTechSheet = async () => {
+    try {
+      const response = await api.get(`http://localhost:5000/api/admin/get-tech-sheet?main=profile&category=${activeProfile}&subCategory=${activeOption}`);
+      setSheetData({
+        shutterHeight: response.data.shutterHeight || null,
+        shutterWidth: response.data.shutterWidth || null,
+        lockingMechanism: response.data.lockingMechanism || '',
+        glassSize: response.data.glassSize || '',
+        alloy: response.data.alloy || '',
+        interlock: response.data.interlock || null,
+      });
+    } catch (err) {
+      console.error("Error fetching products", err);
+    }
+  }
+
+  useEffect(() => {
+    if (activeProfile && activeOption) {
+      setSheetData({
+        shutterHeight: null,
+        shutterWidth: null,
+        lockingMechanism: null,
+        glassSize: null,
+        alloy: null,
+        interlock: null,
+      })
+      fetchTechSheet();
+    }
+  }, [activeProfile, activeOption]); 
   
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -105,7 +150,6 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles }) => {
   };  
 
   const handleQuantityChange = (profile, option, id, value) => {
-    setIsProfileChanged(true)
     setQuantities((prev) => ({
       ...prev,
       [`${profile}-${option}-${id}`]: {
@@ -131,7 +175,6 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles }) => {
 
 
   const onConfirmation = () => {
-    setIsProfileChanged(false);
     const selectedProducts = Object.values(quantities)
       .filter((item) => item.quantity > 0)
       .map(({ profile, option, id, quantity }) => {
@@ -143,11 +186,10 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles }) => {
           profile,
           option,
           quantity,
-          rate: profileData[activeProfile].rate[activeOption]
+          rate: profileData[activeProfile].rate[activeOption],
+          amount: (quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || 0) * (profileData[activeProfile]?.rate[activeOption] || 0)
         };
       });
-
-    console.log("Selected Products:", selectedProducts);
     onProductSelect(selectedProducts);
   };
 
@@ -168,8 +210,8 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles }) => {
             <MDBTabsLink
               active={activeProfile === profile}
               onClick={() => {
-                setActiveProfile(profile);
-                setActiveOption(profileData[profile].options[0]);
+                dispatch(setActiveProfile(profile));
+                dispatch(setActiveOption(profileData[profile]?.options[0]));
               }}
             >
               {profile}
@@ -184,7 +226,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles }) => {
             <MDBTabsItem key={option}>
               <MDBTabsLink
                 active={activeOption === option}
-                onClick={() => setActiveOption(option)}
+                onClick={() => dispatch(setActiveOption(option))}
               >
                 {option}
               </MDBTabsLink>
@@ -192,10 +234,13 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles }) => {
           ))}
         </MDBTabs>
       )}
+      {(sheetData.shutterHeight || sheetData.shutterWidth || sheetData.lockingMechanism || sheetData.glassSize || sheetData.alloy ||    sheetData.interlock) && (
+        <TechSheet sheetData={sheetData}/>
+      )}
 
       {activeOption && (
         <MDBCard className="mt-4">
-          <MDBCardBody>
+          <MDBCardBody style={{overflowX: 'scroll', maxWidth: '100%'}}>
             <div
               className="d-flex justify-content-between align-items-center mb-3 sticky-top bg-white p-3"
               style={{ top: "0", zIndex: 1 }}
@@ -214,15 +259,17 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles }) => {
                 >
                   Clear
                 </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={onConfirmation}
-                  disabled={
-                    !Object.values(quantities).some((q) => q.quantity > 0)
-                  }
-                >
-                  Confirm
-                </button>
+                <MDBTooltip tag='span' wrapperClass='d-inline-block' title='Please enter quantity'>
+                  <button
+                    className="btn btn-primary"
+                    onClick={onConfirmation}
+                    disabled={
+                      !Object.values(quantities).some((q) => q.quantity > 0)
+                    }
+                  >
+                    Confirm
+                  </button>
+                </MDBTooltip>
               </div>
             </div>
             <table className="table table-bordered">
@@ -250,7 +297,7 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles }) => {
                   </td>
                   <td>{product.sapCode}</td>
                   <td>{product.description}</td>
-                  <td>{profileData[activeProfile]?.rate[activeOption]}</td>
+                  <td>{'₹' + profileData[activeProfile]?.rate[activeOption]}</td>
                   <td>{product.per}</td>
                   <td>{product.kgm}</td>
                   <td>{product.length}</td>
@@ -301,6 +348,6 @@ const ProfileSelection = ({ onProductSelect, selectedProfiles }) => {
       )}
     </>
   );
-};
+});
 
 export default ProfileSelection;

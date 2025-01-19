@@ -4,6 +4,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import store from '../redux/store';
 import { startLoading, stopLoading } from '../redux/loadingSlice';
 
+let activeRequests = 0; // Counter to track active requests
+
 const api = axios.create({
   baseURL: 'http://localhost:5000/api',
 });
@@ -11,12 +13,13 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    store.dispatch(startLoading());
+    activeRequests += 1; // Increment active requests
+    if (activeRequests === 1) {
+      store.dispatch(startLoading()); // Start loading only for the first request
+    }
     return config;
   },
   (error) => {
-    store.dispatch(stopLoading());
-    toast.error('Request failed. Please try again.');
     return Promise.reject(error);
   }
 );
@@ -24,16 +27,20 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    store.dispatch(stopLoading());
-    console.log("catchec", response.data.message);
+    activeRequests -= 1; // Decrement active requests
+    if (activeRequests === 0) {
+      store.dispatch(stopLoading()); // Stop loading when all requests complete
+    }
     if (response.data?.message) {
-    console.log("catchec 2");
       toast.success(response.data.message);
     }
     return response;
   },
   (error) => {
-    store.dispatch(stopLoading());
+    activeRequests -= 1; // Decrement active requests on error
+    if (activeRequests === 0) {
+      store.dispatch(stopLoading()); // Stop loading when all requests complete
+    }
     const errorMessage = error.response?.data?.message || 'An error occurred.';
     toast.error(errorMessage);
     return Promise.reject(error);

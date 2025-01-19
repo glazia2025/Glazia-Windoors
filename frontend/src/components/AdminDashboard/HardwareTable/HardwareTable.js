@@ -8,12 +8,14 @@ import {
   MDBTabsLink,
   MDBTypography,
   MDBBtn,
-  MDBInput
+  MDBInput,
+  MDBFile
 } from "mdb-react-ui-kit";
 import { useDispatch, useSelector } from 'react-redux';
 import { setActiveOption, setActiveProfile } from "../../../redux/selectionSlice";
 import api from '../../../utils/api';
 import Search from '../../Search';
+import ImageZoom from "../../UserDashboard/ImageZoom";
 
 const HardwareTable = () => {
   const dispatch = useDispatch();
@@ -70,12 +72,30 @@ const HardwareTable = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditableProduct((prevState) => ({
-      ...prevState,
-      [name]: value,
-    }));
+    const { name, files } = e.target;
+  
+    if (name === "image" && files.length > 0) {
+      const file = files[0];
+      const reader = new FileReader();
+  
+      reader.onload = (event) => {
+        const base64Image = event.target.result;
+        setEditableProduct((prevState) => ({
+          ...prevState,
+          [name]: base64Image,
+        }));
+      };
+  
+      reader.readAsDataURL(file);
+    } else {
+      const { value } = e.target;
+      setEditableProduct((prevState) => ({
+        ...prevState,
+        [name]: value,
+      }));
+    }
   };
+  
 
   const handleSave = async () => {
     try {
@@ -153,6 +173,7 @@ const HardwareTable = () => {
               <thead>
                 <tr>
                   <th>S No.</th>
+                  <th>Image</th>
                   <th>SAP Code</th>
                   <th>Sub Category</th>
                   <th>Perticular</th>
@@ -165,6 +186,7 @@ const HardwareTable = () => {
                 {productsToDisplay?.map((product, index) => (
                   <tr key={product.id}>
                     <td>{index + 1}</td>
+                    <td>{editableProduct?.id === product.id ? <MDBFile name="image" size='sm' onChange={handleInputChange} id='formFileSm' /> : <ImageZoom productImage={product.image} />}</td>
                     <td>{editableProduct?.id === product.id ? <MDBInput name="sapCode" value={editableProduct.sapCode} onChange={handleInputChange} /> : product.sapCode}</td>
                     <td>{editableProduct?.id === product.id ? <MDBInput name="subCategory" value={editableProduct.subCategory} onChange={handleInputChange} /> : product.subCategory}</td>
                     <td>{editableProduct?.id === product.id ? <MDBInput name="perticular" value={editableProduct.perticular} onChange={handleInputChange} /> : product.perticular}</td>

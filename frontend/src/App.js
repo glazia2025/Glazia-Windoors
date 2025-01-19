@@ -12,19 +12,20 @@ import { useSelector } from 'react-redux';
 import SyncLoader from 'react-spinners/SyncLoader';
 import Footer from './components/Footer';
 import './App.css';
-import ProfileSelector from './components/UserDashboard/ProfileOptions';
 import SelectionContainer from './components/UserDashboard/SelectionContainer';
 import AdminForm from './components/AdminDashboard/AdminForm';
 import ExcelDataFetcher from './components/Excel';
-import { toast, ToastContainer } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Orders from './components/AdminDashboard/Orders/Orders';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
   const navigate = useNavigate(); 
   const isLoading = useSelector((state) => state.loader.isLoading);
 
-  const [isInitialLoad, setIsInitialLoad] = useState(true); // Track initial load
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
     const decoded = checkTokenExpiration();
@@ -34,6 +35,7 @@ function App() {
       setIsLoggedIn(true);
   
       if (isInitialLoad) {
+        console.log("culrp");
         if (decoded.role === 'admin') {
           navigate('/admin/dashboard');
         } else {
@@ -42,14 +44,14 @@ function App() {
         setIsInitialLoad(false);
       }
     } else {
-      // Redirect unauthenticated users to login
-      console.log("dfdrgerg",localStorage.getItem('userRole'))
-      if (!isInitialLoad && !isLoggedIn) {
-        navigate(localStorage.getItem('userRole') === 'admin' ? '/' : '/user/login');
-        setUserRole(null) 
-      }
       setIsLoggedIn(false);
+      if (!isInitialLoad) {
+        console.log("culp 2");
+        
+        navigate(localStorage.getItem('userRole') === 'admin' ? '/' : '/user/login');
+      }
       setUserRole(null);
+
     }
   }, [navigate]);
 
@@ -72,17 +74,18 @@ function App() {
         const currentTime = Date.now() / 1000;
   
         if (decoded.exp < currentTime) {
-          console.log("decoded.exp", decoded.exp)
           localStorage.removeItem('authToken');
+          localStorage.removeItem('userRole');
         } else {
           return decoded;
         }
       } catch (error) {
         console.error('Error decoding token', error);
         localStorage.removeItem('authToken');
+        localStorage.removeItem('userRole');
       }
     }
-  };
+  };  
 
   return (
       <div style={{overflowX: 'hidden'}}>
@@ -115,24 +118,28 @@ function App() {
           )}
           {/* Your app content */}
         </>
-        {isLoggedIn && <Header isLoggedIn={isLoggedIn} onLogout={onLogout}/>}
+        {isLoggedIn && localStorage.getItem('userRole') && <Header isLoggedIn={isLoggedIn} onLogout={onLogout}/>}
           <div className='app-container'>
             <Routes>
               {/* Admin Login Route */}
-              <Route path="/" element={<AdminLoginForm setUserRole={setUserRole} setIsLoggedIn={setIsLoggedIn}/>} />
-              
-              {/* User Login Route */}
-              <Route path="/user/login" element={<UserLoginForm setUserRole={setUserRole} />} />
+              {!isLoggedIn && (
+                <>
+                  <Route
+                    path="/"
+                    element={<AdminLoginForm setUserRole={setUserRole} setIsLoggedIn={setIsLoggedIn} />}
+                  />
+                  <Route
+                    path="/user/login"
+                    element={<UserLoginForm setUserRole={setUserRole} />}
+                  />
+                </>
+              )}
 
               {/* Admin Dashboard (protected by role check) */}
               <Route path="/admin/dashboard" element={localStorage.getItem('userRole') === 'admin' && isLoggedIn ? <AdminDashboard /> : <Navigate to="/" />} >
               </Route>
-              <Route path="/admin/dashboard/add-product" element={<AdminForm />} />
-              {/* <Route path="/admin/dashboard/add-product" element={<ExcelDataFetcher />} /> */}
-
-              {/* <Route path="/admin/dashboard" element={userRole === 'admin' && isLoggedIn ? <AdminForm /> : <Navigate to="/" />} >
-                <Route path="add-product" element={<AdminAddProduct />} />
-              </Route> */}
+              <Route path="/admin/dashboard/add-product" element={localStorage.getItem('userRole') === 'admin' && isLoggedIn ? <AdminForm /> : <Navigate to="/" />} />
+              <Route path="/admin/dashboard/view-orders" element={localStorage.getItem('userRole') === 'admin' && isLoggedIn ? <Orders />:<Navigate to="/" />} />
 
               {/* User Orders page (accessible by regular user only) */}
               <Route path="/user/orders" element={localStorage.getItem('userRole') === 'user' && isLoggedIn ? <SelectionContainer /> : <Navigate to="/user/login" />} />

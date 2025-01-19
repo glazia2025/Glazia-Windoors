@@ -1,5 +1,6 @@
 const { default: mongoose } = require('mongoose');
 const ProfileOptions = require('../models/ProfileOptions');
+const TechnicalSheet = require('../models/TechSheet');
 
 const addProduct = async (req, res) => {
   const { category, option, product, rate } = req.body;
@@ -89,7 +90,7 @@ const addProduct = async (req, res) => {
     res.status(200).json({ message: 'Product added successfully', profileOptions });
 
   } catch (error) {
-    console.error("Error occurred while adding product:", error);  // Log any unexpected errors
+    console.error("Error occurred while adding product:", error);
     res.status(500).json({ message: 'Error updating the product' });
   }
 };
@@ -219,6 +220,98 @@ const searchProduct = async (req, res) => {
   }
 };
 
+const getProfileHierarchy = async (req, res) => {
+  try {
+    const profileOptions = await ProfileOptions.findOne({});
+    if (!profileOptions) {
+      return res.status(404).json({ message: 'No profile found' });
+    }
+    const finalObject = Array.from(profileOptions.categories.keys()).map(profile => {
+      return {
+        profile,
+        options: profileOptions.categories.get(profile).options // Corrected here to use get()
+      };
+    });
+    res.status(200).json({ products: finalObject });
+  } catch (error) {
+    res.status(500).json({ message: 'Error getting profiles' });
+  }
+}
+
+const updateTechSheet = async (req, res) => {
+  const { main, category, subCategory, shutterHeight, shutterWidth, lockingMechanism, glassSize, alloy, interlock } = req.body;
+
+  if (!main || !category || !subCategory) {
+    return res.status(400).json({ message: 'Please provide category / subCategory' });
+  }
+
+  try {
+    let techSheet = await TechnicalSheet.findOne({ main, category, subCategory });
+
+    // Create a new tech sheet if it doesn't exist
+    if (!techSheet) {
+      techSheet = new TechnicalSheet({
+        main,
+        category,
+        subCategory,
+        shutterHeight,
+        shutterWidth,
+        lockingMechanism,
+        glassSize,
+        alloy,
+        interlock,
+      });
+
+      const savedTechSheet = await techSheet.save();
+      return res.status(201).json({
+        message: 'Technical Sheet Added Successfully',
+        techSheet: savedTechSheet,
+      });
+    }
+
+    // Update existing tech sheet
+    techSheet.set({
+      shutterHeight,
+      shutterWidth,
+      lockingMechanism,
+      glassSize,
+      alloy,
+      interlock,
+    });
+
+    const updatedTechSheet = await techSheet.save();
+    return res.status(200).json({
+      message: 'Technical Sheet updated successfully.',
+      techSheet: updatedTechSheet,
+    });
+    
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Internal server error', error });
+  }
+};
+
+const getTechSheet = async (req, res) => {
+  try {
+    const { main, category, subCategory } = req.query;
+    console.log("ma--", main, category, subCategory);
+
+    if (!main || !category || !subCategory) {
+      return res.status(400).json({ message: 'Missing required parameters: main, category, subCategory' });
+    }
+
+    const sheet = await TechnicalSheet.findOne({ main, category, subCategory });
+
+    if (!sheet) {
+      return res.status(200).json({ });
+    }
+
+    res.status(200).json(sheet);
+  } catch (error) {
+    console.error("Error fetching sheet:", error);
+    res.status(500).json({ message: 'Error fetching sheet', error: error.message });
+  }
+};
 
 async function updateDocument() {
   try {
@@ -349,4 +442,4 @@ async function updateDocument() {
 
 // updateDocument();
 
-module.exports = { addProduct, getProducts, editProduct, deleteProduct, searchProduct };
+module.exports = { addProduct, getProducts, editProduct, deleteProduct, searchProduct, getProfileHierarchy, updateTechSheet, getTechSheet };

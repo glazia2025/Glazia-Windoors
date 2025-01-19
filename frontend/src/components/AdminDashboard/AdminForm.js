@@ -15,7 +15,7 @@ const AdminForm = () => {
 
   return (
     <MDBContainer>
-      <MDBRow className='justify-content-center' style={{marginTop: '5%'}}>
+      <MDBRow className='justify-content-center'>
         <MDBCol md="8">
           <h2 className="text-center my-4">Product Management Form</h2>
 
