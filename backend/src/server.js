@@ -13,7 +13,7 @@ dotenv.config();
 
 // Middleware
 app.use(cors()); // Allow cross-origin requests
-app.use(express.json({limit: '100mb'}));
+app.use(express.json({ extended: false }));
 
 connectDB();
 
@@ -33,6 +33,6 @@ app.get('/', (req, res) => {
 });
 // duTlxgmhfnwZXzSb
 // Start the server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
