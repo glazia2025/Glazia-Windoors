@@ -41,6 +41,7 @@
     ]
   },
   "devDependencies": {
+    "ajv": "^8.17.1",
     "web-vitals": "^4.2.4"
   }
 }
