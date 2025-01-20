@@ -18,7 +18,8 @@
     "react-spinners": "^0.15.0",
     "react-toastify": "^11.0.3",
     "redux": "^5.0.1",
-    "styled-components": "^6.1.14"
+    "styled-components": "^6.1.14",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "react-scripts start",
