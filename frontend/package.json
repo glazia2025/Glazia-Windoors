@@ -9,6 +9,7 @@
     "dotenv": "^16.4.7",
     "jwt-decode": "^4.0.0",
     "mdb-react-ui-kit": "^9.0.0",
+    "pdfjs-dist": "^4.10.38",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
     "react-redux": "^9.2.0",
