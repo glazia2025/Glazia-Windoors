@@ -7,6 +7,7 @@
     "axios": "^1.7.9",
     "cra-template": "1.2.0",
     "dotenv": "^16.4.7",
+    "jwt-decode": "^4.0.0",
     "mdb-react-ui-kit": "^9.0.0",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
