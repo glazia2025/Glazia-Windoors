@@ -16,7 +16,6 @@ import api from "../../utils/api";
 
 import "./SelectionContainer.css";
 import Nalco from "./Nalco/Nalco";
-import { translate } from "pdf-lib";
 
 // Initialize pdf.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
