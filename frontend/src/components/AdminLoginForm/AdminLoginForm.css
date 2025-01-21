@@ -9,3 +9,23 @@
 .admin-img {
   width: 90%;
 }
+
+.admin-login-image {
+  margin-top: -50px;
+}
+
+@media screen and (min-width: 900px) {
+  .admin-login {
+    margin-top: 100px;
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .admin-login {
+    margin-top: 50px;
+  }
+
+  .admin-login-image {
+    margin-bottom: 4rem !important;
+  }
+}

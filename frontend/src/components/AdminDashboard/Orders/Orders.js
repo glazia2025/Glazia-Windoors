@@ -52,7 +52,7 @@ const Orders = () => {
                             </MDBCol>
                             <MDBCol className="d-flex align-items-center">
                               <p className="text-muted mb-0 small">
-                                {product.description || 'N.A'}
+                                {product.description || product.perticular || 'N.A'}
                               </p>
                             </MDBCol>
                             <MDBCol className="d-flex align-items-center">

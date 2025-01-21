@@ -43,13 +43,13 @@ const AdminLoginForm = ({ setUserRole, setIsLoggedIn }) => {
   };
 
   return (
-    <MDBContainer fluid className="p-3 mdb-container" style={{alignItems: 'flex-start', marginTop: '70px'}}>
+    <MDBContainer fluid className="p-3 mdb-container admin-login" style={{alignItems: 'flex-start'}}>
       <MDBRow>
-        <MDBCol col='10' md='6'>
+        <MDBCol col='10' md='6' className='mb-4 admin-login-image'>
           <img src="/Assets/Images/admin.svg" className="img-fluid admin-img" alt="Phone image" />
         </MDBCol>
         <MDBCol col='4' md='6'>
-          <h1 className='mb-4'>Admin Login</h1>
+          <h1>Admin Login</h1>
           <MDBInput value={username} wrapperClass='mb-4' label='Username' id='formControlLg' type='text' size="lg" onChange={(e) => setUsername(e.target.value)}/>
           <MDBInput value={password} wrapperClass='mb-4' label='Password' id='formControlLg' type='password' size="lg" onChange={(e) => setPassword(e.target.value)}/>
 

@@ -189,9 +189,12 @@ const SelectionContainer = () => {
   
     // Invoice details
     doc.text("Order No: 001", 15, 60);
-    doc.text("Dated: 07-01-2025", 50, 60);
+    const today = new Date();
+    const dateString = today.toLocaleDateString('en-GB'); // Formats date as dd-mm-yyyy
+
+    doc.text(`Dated: ${dateString}`, 50, 60);
     doc.text("Supplier's Ref: N.A", 15, 70);
-    doc.text("Despatch Through: 10-jan-2025", 15, 80);
+    // doc.text("Despatch Through: 10-jan-2025", 15, 80);
     doc.text("Destination: Gurgaon", 15, 90);
     doc.text("Terms of Delivery: N.A", 15, 100);
   
