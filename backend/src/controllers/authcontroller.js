@@ -106,6 +106,7 @@ const adminLogin = async (req, res) => {
     }
 
     // Create JWT token with role as 'admin'
+    console.log("debugge", process.env.JWT_SECRET)
     const token = jwt.sign({ username, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     // Send token as response
