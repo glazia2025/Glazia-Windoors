@@ -14,7 +14,7 @@ const TechnicalSheetForm = ({ category ,subCategory }) => {
 
   const fetchTechSheet = async () => {
     try {
-      const response = await api.get(`http://localhost:5000/api/admin/get-tech-sheet?main=profile&category=${category}&subCategory=${subCategory}`);
+      const response = await api.get(`https://api.glazia.in/api/admin/get-tech-sheet?main=profile&category=${category}&subCategory=${subCategory}`);
       console.log(response)
       setFormData({
         shutterHeight: response.data.shutterHeight || null,
@@ -48,7 +48,7 @@ const TechnicalSheetForm = ({ category ,subCategory }) => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await api.post(
-        "http://localhost:5000/api/admin/update-tech-sheet",
+        "https://api.glazia.in/api/admin/update-tech-sheet",
         techData,
         {
           headers: {

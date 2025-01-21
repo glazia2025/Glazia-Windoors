@@ -20,7 +20,7 @@ const Nalco = () => {
   const fetchNalcoPrice = async () => {
     const token = localStorage.getItem('authToken');
     try {
-      const response = await api.get('http://localhost:5000/api/admin/get-nalco', {
+      const response = await api.get('https://api.glazia.in/api/admin/get-nalco', {
         headers: {
           Authorization: `Bearer ${token}`,
         },

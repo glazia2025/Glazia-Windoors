@@ -7,7 +7,7 @@ import { startLoading, stopLoading } from '../redux/loadingSlice';
 let activeRequests = 0; // Counter to track active requests
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'https://api.glazia.in/api',
 });
 
 // Request interceptor

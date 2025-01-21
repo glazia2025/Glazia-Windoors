@@ -66,7 +66,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedProfiles }, ref)
     dispatch(fetchProductsStart());
     const token = localStorage.getItem("authToken");
     try {
-      const response = await api.get("http://localhost:5000/api/admin/getProducts", {
+      const response = await api.get("https://api.glazia.in/api/admin/getProducts", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -109,7 +109,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedProfiles }, ref)
 
   const fetchTechSheet = async () => {
     try {
-      const response = await api.get(`http://localhost:5000/api/admin/get-tech-sheet?main=profile&category=${activeProfile}&subCategory=${activeOption}`);
+      const response = await api.get(`https://api.glazia.in/api/admin/get-tech-sheet?main=profile&category=${activeProfile}&subCategory=${activeOption}`);
       setSheetData({
         shutterHeight: response.data.shutterHeight || null,
         shutterWidth: response.data.shutterWidth || null,
@@ -140,7 +140,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedProfiles }, ref)
   const handleSearch = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.get('http://localhost:5000/api/admin/search-product', {
+      const response = await api.get('https://api.glazia.in/api/admin/search-product', {
         params: { sapCode: searchQuery, description: searchQuery, profile: activeProfile, option: activeOption },
       });
       setSearchResults(response.data.products);

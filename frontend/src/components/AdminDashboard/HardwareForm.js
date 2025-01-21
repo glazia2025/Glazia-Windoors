@@ -19,7 +19,7 @@ const HardwareForm = () => {
     const fetchProducts = async () => {
       const token = localStorage.getItem('authToken');
       try {
-        const response = await api.get('http://localhost:5000/api/admin/getHardwares', {
+        const response = await api.get('https://api.glazia.in/api/admin/getHardwares', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -79,7 +79,7 @@ const HardwareForm = () => {
       try {
         const token = localStorage.getItem('authToken');
         const response = await api.post(
-          "http://localhost:5000/api/admin/add-hardware",
+          "https://api.glazia.in/api/admin/add-hardware",
           productData,
           {
             headers: {

@@ -13,7 +13,7 @@ const ExcelUploader = () => {
   const saveProductImages = async (data) => {
     try {
       setSaveStatus('saving');
-      const response = await fetch('http://localhost:5000/api/admin/save-product-images', {
+      const response = await fetch('https://api.glazia.in/api/admin/save-product-images', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

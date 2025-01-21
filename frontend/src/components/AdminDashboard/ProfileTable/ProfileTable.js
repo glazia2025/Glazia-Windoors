@@ -37,7 +37,7 @@ const ProfileTable = () => {
   const fetchProducts = async () => {
     const token = localStorage.getItem('authToken');
     try {
-      const response = await api.get('http://localhost:5000/api/admin/getProducts');
+      const response = await api.get('https://api.glazia.in/api/admin/getProducts');
       setProfileData(response.data.categories);
     } catch (err) {
       console.error("Error fetching products", err);
@@ -56,7 +56,7 @@ const ProfileTable = () => {
   const handleSearch = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.get('http://localhost:5000/api/admin/search-product', {
+      const response = await api.get('https://api.glazia.in/api/admin/search-product', {
         params: { sapCode: searchQuery, description: searchQuery, profile: activeProfile, option: activeOption },
       });
       setSearchResults(response.data.products);
@@ -103,7 +103,7 @@ const ProfileTable = () => {
     const token = localStorage.getItem('authToken');
     try {
       const response = await api.put(
-        `http://localhost:5000/api/admin/edit-product/${activeProfile}/${activeOption}/${editableProduct._id}`,
+        `https://api.glazia.in/api/admin/edit-product/${activeProfile}/${activeOption}/${editableProduct._id}`,
         editableProduct,
         {
           headers: {
@@ -121,7 +121,7 @@ const ProfileTable = () => {
   const handleDelete = async (productId) => {
     const token = localStorage.getItem('authToken');
     try {
-      await api.delete(`http://localhost:5000/api/admin/delete-product/${activeProfile}/${activeOption}/${productId}`, {
+      await api.delete(`https://api.glazia.in/api/admin/delete-product/${activeProfile}/${activeOption}/${productId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

@@ -27,7 +27,7 @@ const ProfileForm = () => {
     const fetchProducts = async () => {
         const token = localStorage.getItem('authToken');
         try {
-            const response = await api.get('http://localhost:5000/api/admin/getProducts', {
+            const response = await api.get('https://api.glazia.in/api/admin/getProducts', {
                 headers: {
                   Authorization: `Bearer ${token}`,
                 },
@@ -145,7 +145,7 @@ const ProfileForm = () => {
         const token = localStorage.getItem('authToken');
         
         const response = await api.post(
-          "http://localhost:5000/api/admin/add-product",
+          "https://api.glazia.in/api/admin/add-product",
           productData,
           {
             headers: {

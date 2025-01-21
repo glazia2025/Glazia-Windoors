@@ -38,7 +38,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
     dispatch(fetchProductsStart());
     const token = localStorage.getItem("authToken");
     try {
-      const response = await api.get("http://localhost:5000/api/admin/getHardwares", {
+      const response = await api.get("https://api.glazia.in/api/admin/getHardwares", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -86,7 +86,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
   const handleSearch = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.get('http://localhost:5000/api/admin/search-hardware', {
+      const response = await api.get('https://api.glazia.in/api/admin/search-hardware', {
         params: { sapCode: searchQuery, perticular: searchQuery, option: activeOption },
       });
       setSearchResults(response.data.products);

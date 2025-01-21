@@ -36,7 +36,7 @@ const HardwareTable = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get('http://localhost:5000/api/admin/getHardwares');
+      const response = await api.get('https://api.glazia.in/api/admin/getHardwares');
       setProfileData(response.data);
     } catch (err) {
       console.error("Error fetching products", err);
@@ -53,7 +53,7 @@ const HardwareTable = () => {
   const handleSearch = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.get('http://localhost:5000/api/admin/search-hardware', {
+      const response = await api.get('https://api.glazia.in/api/admin/search-hardware', {
         params: { sapCode: searchQuery, perticular: searchQuery, option: activeOption },
       });
       setSearchResults(response.data.products);
@@ -101,7 +101,7 @@ const HardwareTable = () => {
     try {
       const token = localStorage.getItem('authToken');
       await api.put(
-        `http://localhost:5000/api/admin/edit-hardware/${activeOption}/${editableProduct._id}`,
+        `https://api.glazia.in/api/admin/edit-hardware/${activeOption}/${editableProduct._id}`,
         editableProduct,
         {
           headers: {
@@ -119,7 +119,7 @@ const HardwareTable = () => {
   const handleDelete = async (productId) => {
     try {
       const token = localStorage.getItem('authToken');
-      await api.delete(`http://localhost:5000/api/admin/delete-hardware/${activeOption}/${productId}`, {
+      await api.delete(`https://api.glazia.in/api/admin/delete-hardware/${activeOption}/${productId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

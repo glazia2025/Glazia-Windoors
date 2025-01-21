@@ -35,12 +35,12 @@ const Header = ({ isLoggedIn, onLogout }) => {
     const token = localStorage.getItem("authToken");
     try {
       const [profileResponse, hardwareResponse] = await Promise.all([
-        api.get("http://localhost:5000/api/admin/get-profile-heirarchy", {
+        api.get("https://api.glazia.in/api/admin/get-profile-heirarchy", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }),
-        api.get("http://localhost:5000/api/admin/get-hardware-heirarchy", {
+        api.get("https://api.glazia.in/api/admin/get-hardware-heirarchy", {
           headers: {
             Authorization: `Bearer ${token}`,
           },

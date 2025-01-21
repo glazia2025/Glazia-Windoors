@@ -49,7 +49,7 @@ const Sidenav = () => {
     const fetchProducts = async () => {
         const token = localStorage.getItem('authToken'); 
         try {
-            const response = await api.get('http://localhost:5000/api/admin/getProducts', {
+            const response = await api.get('https://api.glazia.in/api/admin/getProducts', {
                 headers: {
                   Authorization: `Bearer ${token}`,
                 },

@@ -46,7 +46,7 @@ const ExcelDataFetcher = () => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await api.post(
-        "http://localhost:5000/api/admin/add-all",
+        "https://api.glazia.in/api/admin/add-all",
         formattedData,
         {
           headers: {

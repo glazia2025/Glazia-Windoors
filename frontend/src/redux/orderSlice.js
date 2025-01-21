@@ -9,7 +9,7 @@ export const fetchOrders = createAsyncThunk(
       try {
         const token = localStorage.getItem("authToken");
   
-        const response = await api.get("http://localhost:5000/api/admin/getOrders", {
+        const response = await api.get("https://api.glazia.in/api/admin/getOrders", {
           headers: { Authorization: `Bearer ${token}` },
           signal: thunkAPI.signal, // Allows request cancellation
         });

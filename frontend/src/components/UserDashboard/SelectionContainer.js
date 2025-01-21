@@ -151,7 +151,7 @@ const SelectionContainer = () => {
       
       const token = localStorage.getItem('authToken');
   
-      await api.post('http://localhost:5000/api/admin/pi-generate', {
+      await api.post('https://api.glazia.in/api/admin/pi-generate', {
         ...orderPayload
       }, {
         headers: {
