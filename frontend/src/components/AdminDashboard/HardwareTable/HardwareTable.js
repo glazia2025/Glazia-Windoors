@@ -169,46 +169,48 @@ const HardwareTable = () => {
               </div>
               <Search searchQuery={searchQuery} setSearchQuery={searchProduct} handleSearch={handleSearch} />
             </div>
-            <table className="table table-bordered">
-              <thead>
-                <tr>
-                  <th>S No.</th>
-                  <th>Image</th>
-                  <th>SAP Code</th>
-                  <th>Sub Category</th>
-                  <th>Perticular</th>
-                  <th>Rate</th>
-                  <th>MOQ</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {productsToDisplay?.map((product, index) => (
-                  <tr key={product.id}>
-                    <td>{index + 1}</td>
-                    <td>{editableProduct?.id === product.id ? <MDBFile name="image" size='sm' onChange={handleInputChange} id='formFileSm' /> : <ImageZoom productImage={product.image} />}</td>
-                    <td>{editableProduct?.id === product.id ? <MDBInput name="sapCode" value={editableProduct.sapCode} onChange={handleInputChange} /> : product.sapCode}</td>
-                    <td>{editableProduct?.id === product.id ? <MDBInput name="subCategory" value={editableProduct.subCategory} onChange={handleInputChange} /> : product.subCategory}</td>
-                    <td>{editableProduct?.id === product.id ? <MDBInput name="perticular" value={editableProduct.perticular} onChange={handleInputChange} /> : product.perticular}</td>
-                    <td>{editableProduct?.id === product.id ? <MDBInput name="rate" value={editableProduct.rate} onChange={handleInputChange} /> : product.rate}</td>
-                    <td>{editableProduct?.id === product.id ? <MDBInput name="moq" value={editableProduct.moq} onChange={handleInputChange} /> : product.moq}</td>
-                    <td className="d-flex">
-                      {editableProduct?.id === product.id ? (
-                        <>
-                          <MDBBtn color="success" size="sm" className="m-1" onClick={handleSave}>Save</MDBBtn>
-                          <MDBBtn color="secondary" size="sm" className="m-1" onClick={() => setEditableProduct(null)}>Cancel</MDBBtn>
-                        </>
-                      ) : (
-                        <>
-                          <MDBBtn color="warning" size="sm" className="m-1" onClick={() => handleEditClick(product)}>Edit</MDBBtn>
-                          <MDBBtn color="danger" size="sm" className="m-1" onClick={() => handleDelete(product._id)}>Delete</MDBBtn>
-                        </>
-                      )}
-                    </td>
+            <div className="table-responsive">
+              <table className="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>S No.</th>
+                    <th>Image</th>
+                    <th>SAP Code</th>
+                    <th>Sub Category</th>
+                    <th>Perticular</th>
+                    <th>Rate</th>
+                    <th>MOQ</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {productsToDisplay?.map((product, index) => (
+                    <tr key={product.id}>
+                      <td>{index + 1}</td>
+                      <td>{editableProduct?.id === product.id ? <MDBFile name="image" size='sm' onChange={handleInputChange} id='formFileSm' /> : <ImageZoom productImage={product.image} />}</td>
+                      <td>{editableProduct?.id === product.id ? <MDBInput name="sapCode" value={editableProduct.sapCode} onChange={handleInputChange} /> : product.sapCode}</td>
+                      <td>{editableProduct?.id === product.id ? <MDBInput name="subCategory" value={editableProduct.subCategory} onChange={handleInputChange} /> : product.subCategory}</td>
+                      <td>{editableProduct?.id === product.id ? <MDBInput name="perticular" value={editableProduct.perticular} onChange={handleInputChange} /> : product.perticular}</td>
+                      <td>{editableProduct?.id === product.id ? <MDBInput name="rate" value={editableProduct.rate} onChange={handleInputChange} /> : product.rate}</td>
+                      <td>{editableProduct?.id === product.id ? <MDBInput name="moq" value={editableProduct.moq} onChange={handleInputChange} /> : product.moq}</td>
+                      <td className="d-flex">
+                        {editableProduct?.id === product.id ? (
+                          <>
+                            <MDBBtn color="success" size="sm" className="m-1" onClick={handleSave}>Save</MDBBtn>
+                            <MDBBtn color="secondary" size="sm" className="m-1" onClick={() => setEditableProduct(null)}>Cancel</MDBBtn>
+                          </>
+                        ) : (
+                          <>
+                            <MDBBtn color="warning" size="sm" className="m-1" onClick={() => handleEditClick(product)}>Edit</MDBBtn>
+                            <MDBBtn color="danger" size="sm" className="m-1" onClick={() => handleDelete(product._id)}>Delete</MDBBtn>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </MDBCardBody>
         </MDBCard>
       )}
