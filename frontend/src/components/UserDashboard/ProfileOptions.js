@@ -373,7 +373,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedProfiles }, ref)
                             <MDBDropdownMenu style={{padding: '10px', maxHeight: '300px', overflowY: 'auto'}}>
                               {powderColors.map((color, index) => (
                                 <>
-                                <div style={{marginTop: '10px', marginBottom: '5px', fontWeight: '600'}}>{color.name} -</div>
+                                <div key={color.name} style={{marginTop: '10px', marginBottom: '5px', fontWeight: '600'}}>{color.name} -</div>
                                 {color.colors.map((value) => (
                                   <MDBDropdownItem
                                     className="d-flex cursor-pointer"
