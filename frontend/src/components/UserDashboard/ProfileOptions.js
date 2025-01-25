@@ -51,53 +51,53 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedProfiles }, ref)
 
   const powderColors = [
     {name: 'Metallic Shades', colors: [
-      { name: "SWC39N", hex: "#989084" },
-      { name: "SW10AN", hex: "#A7A2A0" },
-      { name: "SW26AN", hex: "#9E9E94" },
-      { name: "SW17AN", hex: "#A19C9A" },
-      { name: "SW326N", hex: "#4C4F4E" },
-      { name: "SW31BN", hex: "#45403D" },
-      { name: "SW324N", hex: "#3A4244" },
-      { name: "SW30BN", hex: "#796A5A" },
-      { name: "SW28BN", hex: "#41362F" },
+      { name: "Matt Metro Gold", hex: "#989084" },
+      { name: "Satin RAL 9006", hex: "#A7A2A0" },
+      { name: "Matt Eco Grey", hex: "#9E9E94" },
+      { name: "Satin RAL 9007", hex: "#A19C9A" },
+      { name: "Fine Texture Sparkle Grey", hex: "#4C4F4E" },
+      { name: "Fine Texture 2900 MT Grey", hex: "#45403D" },
+      { name: "Fine Texture Noir 2200 Sable", hex: "#3A4244" },
+      { name: "Fine Texture 2500 MT Grey", hex: "#796A5A" },
+      { name: "Matt Anodic Bronze III", hex: "#41362F" },
     ]},
     {name: 'Solid Shades', colors: [
-      { name: "SC18AN", hex: "#FFFEF7" },
-      { name: "SC19AN", hex: "#FFFFFF" },
-      { name: "SC17AN", hex: "#F7FBF2" },
-      { name: "SC11AN", hex: "#D6D5C8" },
-      { name: "SDA53N", hex: "#ACA27D" },
-      { name: "SP12AN", hex: "#CDD3D1" },
-      { name: "SP12CN", hex: "#C0BEAC" },
-      { name: "SP100N", hex: "#868A8C" },
-      { name: "SP294N", hex: "#484F54" },
-      { name: "SP203N", hex: "#46494E" },
-      { name: "SP223N", hex: "#444A4A" },
-      { name: "SP15AN", hex: "#393A34" },
-      { name: "SP18AN", hex: "#3F4648" },
-      { name: "SP338N", hex: "#353536" },
-      { name: "SN25AN", hex: "#00181B" },
-      { name: "SN333N", hex: "#00181B" },
-      { name: "SM13AN", hex: "#7B4D28" },
-      { name: "SM226N", hex: "#56382D" },
+      { name: "Satin RAL 9016", hex: "#FFFEF7" },
+      { name: "Satin RAL 9003", hex: "#FFFFFF" },
+      { name: "Satin RAL 9010", hex: "#F7FBF2" },
+      { name: "Satin RAL 9002", hex: "#D6D5C8" },
+      { name: "Matt Champagne", hex: "#ACA27D" },
+      { name: "Satin RAL 7035", hex: "#CDD3D1" },
+      { name: "Satin RAL 7032", hex: "#C0BEAC" },
+      { name: "Satin RAL 7037", hex: "#868A8C" },
+      { name: "Matt RAL 7043", hex: "#484F54" },
+      { name: "Matt RAL 7015", hex: "#46494E" },
+      { name: "Matt RAL 7024", hex: "#444A4A" },
+      { name: "Satin RAL 7022", hex: "#393A34" },
+      { name: "Satin RAL 7016", hex: "#3F4648" },
+      { name: "Fine Texture", hex: "#353536" },
+      { name: "Matt RAL 9005", hex: "#00181B" },
+      { name: "Fine Texture RAL 9005", hex: "#00181B" },
+      { name: "Satin RAL 8003", hex: "#7B4D28" },
+      { name: "Matt RAL 8016", hex: "#56382D" },
     ]},
     {name: 'Bonded Metallic Shades', colors: [
-      { name: "Y2208N", hex: "#B0B2A1" },
-      { name: "Y2220N", hex: "#5B6162" },
-      { name: "Y2219N", hex: "#49484E" },
-      { name: "Y2204N", hex: "#C3BEA7" },
-      { name: "Y2206N", hex: "#B28637" },
-      { name: "Y2218N", hex: "#7B6540" },
-      { name: "Y2200N", hex: "#A69982" },
-      { name: "Y2103N", hex: "#977145" },
-      { name: "YW15FN", hex: "#A2A6A4" },
+      { name: "Matt Soft Silver", hex: "#B0B2A1" },
+      { name: "Matt Steel Blue Platinum", hex: "#5B6162" },
+      { name: "Matt Steel Blue Grey 715", hex: "#49484E" },
+      { name: "Matt Silver Champagne", hex: "#C3BEA7" },
+      { name: "Matt Gold Splendor", hex: "#B28637" },
+      { name: "Matt Steel Bronze-1", hex: "#7B6540" },
+      { name: "Matt Golden Beach", hex: "#A69982" },
+      { name: "Satin Golden Bronze", hex: "#977145" },
+      { name: "Satin (Dry Blended Metallic) RAL 9006", hex: "#A2A6A4" },
     ]},
     {name: 'Solid Shades', colors: [
-      { name: "YCB18N", hex: "#FFFEF7" },
-      { name: "YC19AN", hex: "#FFFFFF" },
-      { name: "YCA87N", hex: "#FFFEF7" },
-      { name: "YPD78N", hex: "#CDD3D1" },
-      { name: "YP242N", hex: "#565C5B" },
+      { name: "Satin RAL 9016", hex: "#FFFEF7" },
+      { name: "Satin RAL 9003", hex: "#FFFFFF" },
+      { name: "Satin RAL 9010", hex: "#FFFEF7" },
+      { name: "Matt RAL 7035", hex: "#CDD3D1" },
+      { name: "Matt RAL 7043", hex: "#565C5B" },
     ]}
   ];
 
@@ -370,19 +370,22 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedProfiles }, ref)
                             <MDBDropdownToggle color="secondary">
                               {powderCoating[`${activeProfile}-${activeOption}-${product.id}`]?.powderCoating || "Select Color"}
                             </MDBDropdownToggle>
-                            <MDBDropdownMenu style={{padding: '10px', maxHeight: '300px', overflowY: 'auto'}}>
+                            <MDBDropdownMenu style={{padding: '10px', maxHeight: '300px', overflowY: 'auto', width: 'max-content'}}>
                               {powderColors.map((color, index) => (
                                 <>
-                                <div key={color.name} style={{marginTop: '10px', marginBottom: '5px', fontWeight: '600'}}>{color.name} -</div>
-                                {color.colors.map((value) => (
+                                <div key={color.name + index} style={{marginTop: '10px', marginBottom: '5px', fontWeight: '600'}}>{color.name} -</div>
+                                {color.colors.map((value, index) => (
+                                  <>
                                   <MDBDropdownItem
-                                    className="d-flex cursor-pointer"
-                                    key={value.hex}
+                                    className="d-flex cursor-pointer m-2"
+                                    key={value.hex + value.index}
                                     onClick={() => handlePowderCoating(activeProfile, activeOption, product.id, value.name)}
                                   >
                                     <div style={{ width: "20px", height: "20px", backgroundColor: value.hex, marginRight: "8px" }}></div>
                                     {value.name}
                                   </MDBDropdownItem>
+                                    <hr/>
+                                    </>
                                 ))}
                                 </>
                               ))}
