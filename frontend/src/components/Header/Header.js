@@ -74,15 +74,43 @@ const Header = ({ isLoggedIn, onLogout }) => {
     <MDBNavbar fixed='top' expand='lg' light bgColor='light'>
       <MDBContainer fluid>
         <MDBNavbarBrand><img className='logo' src={logo}/></MDBNavbarBrand>
-
-        <MDBNavbarToggler
-          aria-controls='navbarSupportedContent'
-          aria-expanded='false'
-          aria-label='Toggle navigation'
-          onClick={() => setOpenBasic(!openBasic)}
-        >
-          <MDBIcon icon='bars' fas />
-        </MDBNavbarToggler>
+        <div className='mobile-connect-wrapper d-flex'>
+          {userRole !== 'admin' && <MDBDropdown className="me-3 mobile-connector">
+                  <MDBDropdownToggle tag='a' className='nav-link' style={{ cursor: 'pointer' }}>
+                    <MDBIcon fas icon="headphones-alt" style={{color: '#386bc0', fontWeight: 'bold'}}/> Connect with Us
+                  </MDBDropdownToggle>
+                  <MDBDropdownMenu className='dropdown-menu-end'>
+                    <MDBDropdownItem link href="tel:+1234567890">
+                      <div className='d-flex align-items-center fs-6'>
+                        {/* <MDBIcon fas icon="phone" />  */}
+                        <img src='/Assets/Icons/contact.png'/>
+                        <div className='d-flex flex-column call' style={{marginLeft: '10px'}}>
+                          <span style={{fontWeight: 'bold'}}>Call Us</span>
+                          <span className='company-number'>+91 9958053708</span>
+                        </div>
+                      </div>
+                    </MDBDropdownItem>
+                    <MDBDropdownItem link href="mailto:support@example.com">
+                      <div className='d-flex align-items-center fs-6'>
+                          {/* <MDBIcon fas icon="phone" />  */}
+                          <img src='/Assets/Icons/mail.png'/>
+                          <div className='d-flex flex-column call' style={{marginLeft: '10px'}}>
+                            <span style={{fontWeight: 'bold'}}>Email Us</span>
+                            <span className='company-email'>glazia.in@gmail.com</span>
+                          </div>
+                      </div>
+                    </MDBDropdownItem>
+                  </MDBDropdownMenu>
+                </MDBDropdown>}
+          <MDBNavbarToggler
+            aria-controls='navbarSupportedContent'
+            aria-expanded='false'
+            aria-label='Toggle navigation'
+            onClick={() => setOpenBasic(!openBasic)}
+          >
+            <MDBIcon icon='bars' fas />
+          </MDBNavbarToggler>
+        </div>
 
         <MDBCollapse navbar open={openBasic}>
           <MDBNavbarNav className='mr-auto mb-2 mb-lg-0'>
@@ -152,7 +180,7 @@ const Header = ({ isLoggedIn, onLogout }) => {
           {isLoggedIn && (
             <div className="d-flex align-items-center">
               {/* Connect with Us Dropdown */}
-              {userRole !== 'admin' && <MDBDropdown className="me-3">
+              {userRole !== 'admin' && <MDBDropdown className="me-3 web-connector">
                 <MDBDropdownToggle tag='a' className='nav-link' style={{ cursor: 'pointer' }}>
                   <MDBIcon fas icon="headphones-alt" style={{color: '#386bc0', fontWeight: 'bold'}}/> Connect with Us
                 </MDBDropdownToggle>

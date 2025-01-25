@@ -29,3 +29,21 @@
 .cursor-pointer {
     cursor: pointer;
 }
+
+.web-connector {
+    display: block;
+}
+
+.mobile-connector {
+    display: none;
+}
+
+@media screen and (max-width: 900px) {
+    .mobile-connector {
+        display: block;
+    }
+
+    .web-connector {
+        display: none;
+    }
+}
