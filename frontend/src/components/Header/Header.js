@@ -173,7 +173,7 @@ const Header = ({ isLoggedIn, onLogout }) => {
                         <img src='/Assets/Icons/mail.png'/>
                         <div className='d-flex flex-column call' style={{marginLeft: '10px'}}>
                           <span style={{fontWeight: 'bold'}}>Email Us</span>
-                          <span className='company-email'>contact@glazia.com</span>
+                          <span className='company-email'>glazia.in@gmail.com</span>
                         </div>
                     </div>
                   </MDBDropdownItem>
