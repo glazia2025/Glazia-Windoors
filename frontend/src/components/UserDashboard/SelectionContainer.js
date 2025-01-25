@@ -59,12 +59,12 @@ const SelectionContainer = () => {
 
   const authenticateUser = async () => {
     const token = localStorage.getItem('authToken');
-    if (!token) return navigate('/');
+    if (!token) return navigate('/admin/login');
     try {
       const { data } = await api.get('/admin/getUser', { headers: { Authorization: `Bearer ${token}` } });
       dispatch(setUser(data.user));
     } catch {
-      navigate('/');
+      navigate('/admin/login');
     }
   };
 
@@ -290,7 +290,7 @@ const SelectionContainer = () => {
               <div style={{ width: 'max-content' }}>
                 <MDBTooltip tag="span" wrapperClass="d-inline-block" title="Please add products">
                   <MDBBtn
-                    style={{ marginLeft: '10px' }}
+                    className="download-pdf"
                     disabled={selectedProducts.length === 0}
                     onClick={generatePDF}
                   >
@@ -381,13 +381,13 @@ const SelectionContainer = () => {
         }}>
           <button onClick={() => setIsSliderOpen(false)} style={{
             position: 'absolute',
-            top: '10px',
+            top: '12%',
             right: '10px',
             background: 'transparent',
             border: 'none',
-            fontSize: '20px',
+            fontSize: '30px',
           }}>×</button>
-          <div style={{ padding: '20px' }}>
+          <div>
             <canvas ref={canvasRef} style={{ width: '100%', backgroundColor: 'white', marginTop: '100px' }} />
           </div>
         </div>

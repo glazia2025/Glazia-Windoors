@@ -37,7 +37,7 @@ const Nalco = () => {
 
   return (
     <div>
-      <MDBCard style={{width: 'max-content'}} background='primary' className='text-white mb-3'>
+      <MDBCard background='primary' className='text-white mb-3 w-100'>
         <MDBCardHeader>Today &nbsp; <MDBIcon far icon="calendar-check" /> {formattedDate}</MDBCardHeader>
         <MDBCardBody>
           <MDBCardTitle>Nalco Price Aluminium</MDBCardTitle>

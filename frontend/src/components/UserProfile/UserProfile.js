@@ -28,7 +28,7 @@ const UserProfile = () => {
     if (!user) {
       const token = localStorage.getItem('authToken');
       if (!token) {
-        navigate('/'); // Redirect to login if not authenticated
+        navigate('/admin/login'); // Redirect to login if not authenticated
         return;
       }
 
@@ -40,7 +40,7 @@ const UserProfile = () => {
           dispatch(setUser(response.data.user));
         } catch (err) {
           console.error('Error fetching user:', err);
-          navigate('/');
+          navigate('/admin/login');
         }
       };
 

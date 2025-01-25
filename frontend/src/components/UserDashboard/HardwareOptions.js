@@ -7,13 +7,13 @@ import {
   MDBTabsLink,
   MDBTypography,
   MDBInput,
+  MDBIcon,
+  MDBTooltip
 } from "mdb-react-ui-kit";
-import axios from "axios";
 import api from '../../utils/api';
 import { clearSelectedProducts, setActiveOption } from "../../redux/selectionSlice";
 import { useDispatch, useSelector } from "react-redux";
 import ImageZoom from "./ImageZoom";
-import itemImg from './product_image.jpeg';
 import Search from '../Search';
 import { fetchProductsFailure, fetchProductsStart, fetchProductsSuccess } from "../../redux/hardwareSlice";
 
@@ -154,18 +154,21 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
 
       {activeOption && (
         <MDBCard className="mt-4">
-          <MDBCardBody>
-            <div
-              className="d-flex justify-content-between align-items-center mb-3 sticky-top bg-white p-3"
-              style={{ top: "0", zIndex: 1 }}
+          <MDBCardBody style={{overflowX: 'scroll', maxWidth: '100%'}}>
+            <div 
+              className="table-controller d-flex justify-content-between align-items-center mb-3 sticky-top bg-white table-responsive"
+              style={{ 
+                top: "0", 
+                zIndex: 1 
+              }}
             >
-              <div className="d-flex align-items-center">
-                <MDBTypography tag="h4" className="mb-0" style={{marginRight: '20px'}}>
-                  Products
+              <div className="table-controller d-flex align-items-center">
+                <MDBTypography tag="h5" className="mb-0 me-3">
+                  Hardware {'>'} {activeOption}
                 </MDBTypography>
                 <Search searchQuery={searchQuery} setSearchQuery={searchProduct} handleSearch={handleSearch} />
               </div>
-              <div>
+              <div className="d-flex action-wrapper">
                 <button
                   className="btn btn-secondary me-2"
                   onClick={onClear}
@@ -173,66 +176,73 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
                 >
                   Clear
                 </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={onConfirmation}
-                  disabled={
-                    !Object.values(quantities).some((q) => q.quantity > 0)
-                  }
-                >
-                  Confirm
-                </button>
+                <div className="action-wrapper">
+                  <MDBTooltip tag='div' wrapperClass="w-100"  title='Please enter quantity' className="d-flex">
+                    <button style={{ flex: '1 1 auto', width: '100%' }}
+                      className="btn btn-primary"
+                      onClick={onConfirmation}
+                      disabled={
+                        !Object.values(quantities).some((q) => q.quantity > 0)
+                      }
+                    >
+                      Confirm
+                    </button>
+                  </MDBTooltip>
+                </div>
               </div>
             </div>
-            <table className="table table-bordered">
-              <thead>
-                <tr>
-                  <th>S No.</th>
-                  <th>Image</th>
-                  <th>SAP Code</th>
-                  <th>Sub Category</th>
-                  <th>Perticular</th>
-                  <th>Rate</th>
-                  <th>MOQ</th>
-                  <th>Quantity</th>
-                  <th>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-              {productsToDisplay?.map((product, index) => (
-                <tr key={product.id}>
-                  <td>{index + 1}</td>
-                  <td>
-                    {product.image !== '' ? <ImageZoom productImage={product.image} /> : 'N.A'}
-                  </td>
-                  <td>{product.sapCode}</td>
-                  <td>{product.subCategory}</td>
-                  <td>{product?.perticular}</td>
-                  <td>{'₹' + product.rate}</td>
-                  <td>{product.moq}</td>
-                  <td>
-                    <MDBInput
-                      type="number"
-                      min="0"
-                      value={quantities[`${activeOption}-${product.id}`]?.quantity || ""}
-                      onChange={(e) => handleQuantityChange(activeOption, product.id, e.target.value)}
-                      size="sm"
-                      style={{ minWidth: '80px' }}
-                    />
-                  </td>
-                  <td>
-                    <MDBInput
-                      disabled
-                      type="number"
-                      value={(quantities[`${activeOption}-${product.id}`]?.quantity || 0) * (product.rate || 0)}
-                      size="sm"
-                      style={{ minWidth: '80px' }}
-                    />
-                  </td>
-                </tr>
-              ))}
-              </tbody>
-            </table>
+            <h6 className="scroll-right">Scroll right <MDBIcon fas icon="angle-double-right" style={{color: '#3b71ca'}}/></h6>
+            <div className="table-responsive">
+              <table className="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>S No.</th>
+                    <th>Image</th>
+                    <th>SAP Code</th>
+                    <th>Sub Category</th>
+                    <th>Perticular</th>
+                    <th>Rate</th>
+                    <th>MOQ</th>
+                    <th>Quantity</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                {productsToDisplay?.map((product, index) => (
+                  <tr key={product.id}>
+                    <td>{index + 1}</td>
+                    <td>
+                      {product.image !== '' ? <ImageZoom productImage={product.image} /> : 'N.A'}
+                    </td>
+                    <td>{product.sapCode}</td>
+                    <td>{product.subCategory}</td>
+                    <td>{product?.perticular}</td>
+                    <td>{'₹' + product.rate}</td>
+                    <td>{product.moq}</td>
+                    <td>
+                      <MDBInput
+                        type="number"
+                        min="0"
+                        value={quantities[`${activeOption}-${product.id}`]?.quantity || ""}
+                        onChange={(e) => handleQuantityChange(activeOption, product.id, e.target.value)}
+                        size="sm"
+                        style={{ minWidth: '80px' }}
+                      />
+                    </td>
+                    <td>
+                      <MDBInput
+                        disabled
+                        type="number"
+                        value={(quantities[`${activeOption}-${product.id}`]?.quantity || 0) * (product.rate || 0)}
+                        size="sm"
+                        style={{ minWidth: '80px' }}
+                      />
+                    </td>
+                  </tr>
+                ))}
+                </tbody>
+              </table>
+            </div>
           </MDBCardBody>
         </MDBCard>
       )}

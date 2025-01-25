@@ -46,9 +46,7 @@ function App() {
     } else {
       setIsLoggedIn(false);
       if (!isInitialLoad) {
-        console.log("culp 2");
-        
-        navigate(localStorage.getItem('userRole') === 'admin' ? '/' : '/user/login');
+        navigate(localStorage.getItem('userRole') === 'admin' ? '/admin/login' : '/');
       }
       setUserRole(null);
 
@@ -125,11 +123,11 @@ function App() {
               {!isLoggedIn && (
                 <>
                   <Route
-                    path="/"
+                    path="/admin/login"
                     element={<AdminLoginForm setUserRole={setUserRole} setIsLoggedIn={setIsLoggedIn} />}
                   />
                   <Route
-                    path="/user/login"
+                    path="/"
                     element={<UserLoginForm setUserRole={setUserRole} />}
                   />
                 </>
@@ -142,8 +140,8 @@ function App() {
               <Route path="/admin/dashboard/view-orders" element={localStorage.getItem('userRole') === 'admin' && isLoggedIn ? <Orders />:<Navigate to="/" />} />
 
               {/* User Orders page (accessible by regular user only) */}
-              <Route path="/user/orders" element={localStorage.getItem('userRole') === 'user' && isLoggedIn ? <SelectionContainer /> : <Navigate to="/user/login" />} />
-              <Route path='/profile' element={localStorage.getItem('userRole') === 'user' && isLoggedIn ? <UserProfile /> : <Navigate to="/user/login" />} />
+              <Route path="/user/orders" element={localStorage.getItem('userRole') === 'user' && isLoggedIn ? <SelectionContainer /> : <Navigate to="/" />} />
+              <Route path='/profile' element={localStorage.getItem('userRole') === 'user' && isLoggedIn ? <UserProfile /> : <Navigate to="/" />} />
             </Routes>
           </div>
         <Footer/>

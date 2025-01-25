@@ -11,7 +11,8 @@ import {
   MDBDropdownToggle,
   MDBDropdownMenu,
   MDBDropdownItem,
-  MDBTooltip
+  MDBTooltip,
+  MDBIcon
 } from "mdb-react-ui-kit";
 import { clearSelectedProducts, setActiveOption, setActiveProfile } from "../../redux/selectionSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -21,6 +22,7 @@ import api from '../../utils/api';
 import Search from '../Search';
 import { fetchProductsFailure, fetchProductsStart, fetchProductsSuccess } from "../../redux/profileSlice";
 import TechSheet from "./Technical-sheet/TechnicalSheet";
+import './ProfileOptions.css';
 
 const ProfileSelection = forwardRef(({ onProductSelect, selectedProfiles }, ref) => {
   const [quantities, setQuantities] = useState({});
@@ -48,10 +50,55 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedProfiles }, ref)
   : profileData[activeProfile]?.products[activeOption] || [];
 
   const powderColors = [
-    { name: "#FF0000", hex: "#FF0000" },
-    { name: "#0000FF", hex: "#0000FF" },
-    { name: "#008000", hex: "#008000" },
-    { name: "#000000", hex: "#000000" }
+    {name: 'Metallic Shades', colors: [
+      { name: "SWC39N", hex: "#989084" },
+      { name: "SW10AN", hex: "#A7A2A0" },
+      { name: "SW26AN", hex: "#9E9E94" },
+      { name: "SW17AN", hex: "#A19C9A" },
+      { name: "SW326N", hex: "#4C4F4E" },
+      { name: "SW31BN", hex: "#45403D" },
+      { name: "SW324N", hex: "#3A4244" },
+      { name: "SW30BN", hex: "#796A5A" },
+      { name: "SW28BN", hex: "#41362F" },
+    ]},
+    {name: 'Solid Shades', colors: [
+      { name: "SC18AN", hex: "#FFFEF7" },
+      { name: "SC19AN", hex: "#FFFFFF" },
+      { name: "SC17AN", hex: "#F7FBF2" },
+      { name: "SC11AN", hex: "#D6D5C8" },
+      { name: "SDA53N", hex: "#ACA27D" },
+      { name: "SP12AN", hex: "#CDD3D1" },
+      { name: "SP12CN", hex: "#C0BEAC" },
+      { name: "SP100N", hex: "#868A8C" },
+      { name: "SP294N", hex: "#484F54" },
+      { name: "SP203N", hex: "#46494E" },
+      { name: "SP223N", hex: "#444A4A" },
+      { name: "SP15AN", hex: "#393A34" },
+      { name: "SP18AN", hex: "#3F4648" },
+      { name: "SP338N", hex: "#353536" },
+      { name: "SN25AN", hex: "#00181B" },
+      { name: "SN333N", hex: "#00181B" },
+      { name: "SM13AN", hex: "#7B4D28" },
+      { name: "SM226N", hex: "#56382D" },
+    ]},
+    {name: 'Bonded Metallic Shades', colors: [
+      { name: "Y2208N", hex: "#B0B2A1" },
+      { name: "Y2220N", hex: "#5B6162" },
+      { name: "Y2219N", hex: "#49484E" },
+      { name: "Y2204N", hex: "#C3BEA7" },
+      { name: "Y2206N", hex: "#B28637" },
+      { name: "Y2218N", hex: "#7B6540" },
+      { name: "Y2200N", hex: "#A69982" },
+      { name: "Y2103N", hex: "#977145" },
+      { name: "YW15FN", hex: "#A2A6A4" },
+    ]},
+    {name: 'Solid Shades', colors: [
+      { name: "YCB18N", hex: "#FFFEF7" },
+      { name: "YC19AN", hex: "#FFFFFF" },
+      { name: "YCA87N", hex: "#FFFEF7" },
+      { name: "YPD78N", hex: "#CDD3D1" },
+      { name: "YP242N", hex: "#565C5B" },
+    ]}
   ];
 
   useEffect(() => {
@@ -241,17 +288,20 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedProfiles }, ref)
       {activeOption && (
         <MDBCard className="mt-4">
           <MDBCardBody style={{overflowX: 'scroll', maxWidth: '100%'}}>
-            <div
-              className="d-flex justify-content-between align-items-center mb-3 sticky-top bg-white p-3"
-              style={{ top: "0", zIndex: 1 }}
+            <div 
+              className="table-controller d-flex justify-content-between align-items-center mb-3 sticky-top bg-white table-responsive"
+              style={{ 
+                top: "0", 
+                zIndex: 1 
+              }}
             >
-              <div className="d-flex align-items-center">
-                <MDBTypography tag="h4" className="mb-0" style={{marginRight: '20px'}}>
-                  Products
+              <div className="table-controller d-flex align-items-center">
+                <MDBTypography tag="h5" className="mb-0 me-3">
+                  Profile {'>'} {activeProfile} {'>'} {activeOption}
                 </MDBTypography>
                 <Search searchQuery={searchQuery} setSearchQuery={searchProduct} handleSearch={handleSearch} />
               </div>
-              <div>
+              <div className="d-flex action-wrapper">
                 <button
                   className="btn btn-secondary me-2"
                   onClick={onClear}
@@ -259,90 +309,100 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedProfiles }, ref)
                 >
                   Clear
                 </button>
-                <MDBTooltip tag='span' wrapperClass='d-inline-block' title='Please enter quantity'>
-                  <button
-                    className="btn btn-primary"
-                    onClick={onConfirmation}
-                    disabled={
-                      !Object.values(quantities).some((q) => q.quantity > 0)
-                    }
-                  >
-                    Confirm
-                  </button>
-                </MDBTooltip>
+                <div className="action-wrapper">
+                  <MDBTooltip tag='div' wrapperClass="w-100"  title='Please enter quantity' className="d-flex">
+                    <button style={{ flex: '1 1 auto', width: '100%' }}
+                      className="btn btn-primary"
+                      onClick={onConfirmation}
+                      disabled={
+                        !Object.values(quantities).some((q) => q.quantity > 0)
+                      }
+                    >
+                      Confirm
+                    </button>
+                  </MDBTooltip>
+                </div>
               </div>
             </div>
-            <table className="table table-bordered">
-              <thead>
-                <tr>
-                  <th>S No.</th>
-                  <th>Image</th> 
-                  <th>SAP Code</th>
-                  <th>Description</th>
-                  <th>Rate</th>
-                  <th>Per</th>
-                  <th>Kg/m</th>
-                  <th>Length</th>
-                  <th>Quantity</th>
-                  <th>Powder Coating</th>
-                  <th>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-              {productsToDisplay.map((product, index) => (
-                <tr key={product.id}>
-                  <td>{index + 1}</td>
-                  <td>
-                    <ImageZoom productImage={itemImg} />
-                  </td>
-                  <td>{product.sapCode}</td>
-                  <td>{product.description}</td>
-                  <td>{'₹' + profileData[activeProfile]?.rate[activeOption]}</td>
-                  <td>{product.per}</td>
-                  <td>{product.kgm}</td>
-                  <td>{product.length}</td>
-                  <td>
-                    <MDBInput
-                      type="number"
-                      min="0"
-                      value={quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || ""}
-                      onChange={(e) => handleQuantityChange(activeProfile, activeOption, product.id, e.target.value)}
-                      size="sm"
-                      style={{ minWidth: '80px' }}
-                    />
-                  </td>
-                  <td>
-                    <MDBDropdown>
-                      <MDBDropdownToggle color="secondary">
-                        {powderCoating[`${activeProfile}-${activeOption}-${product.id}`]?.powderCoating || "Select Color"}
-                      </MDBDropdownToggle>
-                      <MDBDropdownMenu>
-                        {powderColors.map((color) => (
-                          <MDBDropdownItem
-                            className="d-flex"
-                            key={color.hex}
-                            onClick={() => handlePowderCoating(activeProfile, activeOption, product.id, color.name)}
-                          >
-                            <div style={{ width: "20px", height: "20px", backgroundColor: color.hex, marginRight: "8px" }}></div>
-                            {color.name}
-                          </MDBDropdownItem>
-                        ))}
-                      </MDBDropdownMenu>
-                    </MDBDropdown>
-                  </td>
-                  <td>
-                    <MDBInput
-                      disabled
-                      type="number"
-                      value={(quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || 0) * (profileData[activeProfile]?.rate[activeOption] || 0)}
-                      size="sm"
-                      style={{ minWidth: '80px' }}
-                    />
-                  </td>
-                </tr>
-              ))}
-              </tbody>
-            </table>
+            <h6 className="scroll-right">Scroll right <MDBIcon fas icon="angle-double-right" style={{color: '#3b71ca'}}/></h6>
+            <div className="table-responsive">
+                  <table className="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th>S No.</th>
+                        <th>Image</th> 
+                        <th>SAP Code</th>
+                        <th>Description</th>
+                        <th>Rate</th>
+                        <th>Per</th>
+                        <th>Kg/m</th>
+                        <th>Length</th>
+                        <th>Quantity</th>
+                        <th>Powder Coating</th>
+                        <th>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                    {productsToDisplay.map((product, index) => (
+                      <tr key={product.id}>
+                        <td>{index + 1}</td>
+                        <td>
+                          <ImageZoom productImage={itemImg} />
+                        </td>
+                        <td>{product.sapCode}</td>
+                        <td>{product.description}</td>
+                        <td>{'₹' + profileData[activeProfile]?.rate[activeOption]}</td>
+                        <td>{product.per}</td>
+                        <td>{product.kgm}</td>
+                        <td>{product.length}</td>
+                        <td>
+                          <MDBInput
+                            type="number"
+                            min="0"
+                            value={quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || ""}
+                            onChange={(e) => handleQuantityChange(activeProfile, activeOption, product.id, e.target.value)}
+                            size="sm"
+                            style={{ minWidth: '80px' }}
+                          />
+                        </td>
+                        <td>
+                          <MDBDropdown>
+                            <MDBDropdownToggle color="secondary">
+                              {powderCoating[`${activeProfile}-${activeOption}-${product.id}`]?.powderCoating || "Select Color"}
+                            </MDBDropdownToggle>
+                            <MDBDropdownMenu style={{padding: '10px', maxHeight: '300px', overflowY: 'auto'}}>
+                              {powderColors.map((color, index) => (
+                                <>
+                                <div style={{marginTop: '10px', marginBottom: '5px', fontWeight: '600'}}>{color.name} -</div>
+                                {color.colors.map((value) => (
+                                  <MDBDropdownItem
+                                    className="d-flex cursor-pointer"
+                                    key={value.hex}
+                                    onClick={() => handlePowderCoating(activeProfile, activeOption, product.id, value.name)}
+                                  >
+                                    <div style={{ width: "20px", height: "20px", backgroundColor: value.hex, marginRight: "8px" }}></div>
+                                    {value.name}
+                                  </MDBDropdownItem>
+                                ))}
+                                </>
+                              ))}
+                            </MDBDropdownMenu>
+                          </MDBDropdown>
+                        </td>
+                        <td>
+                          <MDBInput
+                            disabled
+                            type="number"
+                            value={(quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || 0) * (profileData[activeProfile]?.rate[activeOption] || 0)}
+                            size="sm"
+                            style={{ minWidth: '80px' }}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                    </tbody>
+                  </table>
+            </div>
           </MDBCardBody>
         </MDBCard>
       )}

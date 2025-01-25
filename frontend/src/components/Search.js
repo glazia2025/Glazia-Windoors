@@ -1,12 +1,13 @@
 import React from 'react';
-import { MDBBtn, MDBIcon, MDBInput } from 'mdb-react-ui-kit';
+import { MDBBtn, MDBIcon } from 'mdb-react-ui-kit';
+import './Search.css';
 
 const Search = ({ searchQuery, setSearchQuery, handleSearch }) => {
   return (
-    <form onSubmit={handleSearch} className="d-flex input-group w-auto me-3">
+    <form onSubmit={handleSearch} className="d-flex input-group w-auto search-bar">
       <input
         type="search"
-        className="form-control"
+        className="form-control search-input"
         placeholder="Search Sap Code or Description"
         aria-label="Search"
         value={searchQuery}

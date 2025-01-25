@@ -45,8 +45,16 @@ canvas {
   transform: translateX(100%); /* Closed by default */
 }
 
+.download-pdf {
+  margin-left: 10px;
+}
+
 @media screen and (max-width: 900px) {
   .slider {
     width: 100%;
+  }
+
+  .download-pdf {
+    margin-left: 0 !important;
   }
 }

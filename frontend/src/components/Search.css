@@ -1,0 +1,10 @@
+.search-bar {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+@media screen and (min-width: 900px) {
+    .search-input {
+        min-width: 270px !important;
+    }
+}
