@@ -15,35 +15,41 @@ import { clearSelectedProducts, setActiveOption } from "../../redux/selectionSli
 import { useDispatch, useSelector } from "react-redux";
 import ImageZoom from "./ImageZoom";
 import Search from '../Search';
-import { fetchProductsFailure, fetchProductsStart, fetchProductsSuccess } from "../../redux/hardwareSlice";
+import { fetchProductsFailure, fetchProductsStart, fetchProductsSuccess, setHardwareProducts } from "../../redux/hardwareSlice";
 
 const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref) => {
   const { activeOption } = useSelector((state) => state.selection);
   const [quantities, setQuantities] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
+  const { hardwareHeirarchy } = useSelector((state) => state.heirarchy);
+  const { products: hardwareData } = useSelector((state) => state.hardwares);
   const [searchResults, setSearchResults] = useState([]);
 
   const dispatch = useDispatch();
-  const { data: hardwareData } = useSelector((state) => state.hardwares);
 
   const productsToDisplay = searchResults.length > 0
     ? searchResults
-    : hardwareData?.products?.[activeOption];
+    : hardwareData?.[activeOption];
 
+    console.log("productsToDisplay", productsToDisplay)
   useEffect(() => {
-    fetchProducts();
-  }, [dispatch]);
+    if(hardwareHeirarchy.includes(activeOption) && !hardwareData?.[activeOption]) {
+      fetchProducts(activeOption);
+    }
+  }, [activeOption]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (reqOption) => {
     dispatch(fetchProductsStart());
     const token = localStorage.getItem("authToken");
     try {
-      const response = await api.get("https://api.glazia.in/api/admin/getHardwares", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      dispatch(fetchProductsSuccess(response.data));
+      const response = await api.get(
+        `https://api.glazia.in/api/admin/getHardwares?reqOption=${encodeURIComponent(reqOption)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      dispatch(setHardwareProducts({ option: activeOption, payload: response.data.products[activeOption] }));
+      
+      // dispatch(fetchProductsSuccess({ ...response.data, products: uniqueProducts }));
     } catch (err) {
       dispatch(fetchProductsFailure("Failed to fetch products"));
     }
@@ -54,12 +60,12 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
   }));
 
   useEffect(() => {
-    if (Object.keys(hardwareData).length > 0) {
-      if(!hardwareData?.options?.includes(activeOption)) {
-        dispatch(setActiveOption(hardwareData?.options[0]));
-      }
-    }
-  }, [hardwareData]);
+    dispatch(setActiveOption(hardwareHeirarchy[0]));
+    // if (Object.keys(hardwareData).length > 0) {
+    //   if(!hardwareData?.options?.includes(activeOption)) {
+    //   }
+    // }
+  }, [hardwareHeirarchy]);
   
   useEffect(() => {
     if (!selectedHardwares || selectedHardwares.length === 0) {
@@ -110,7 +116,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
     const selectedProducts = Object.values(quantities)
       .filter((item) => item.quantity > 0)
       .map(({ profile, option, id, quantity }) => {
-        const product = hardwareData?.products[option]?.find(
+        const product = hardwareData[option]?.find(
           (prod) => prod.id === id
         );
         return {
@@ -118,8 +124,8 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
           profile,
           option,
           quantity,
-          rate: product.rate,
-          amount: product.rate*quantity
+          rate: product?.rate,
+          amount: product?.rate*quantity
         };
       });
 
@@ -139,7 +145,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
   return (
     <>
       <MDBTabs className="mb-4">
-        {hardwareData?.options?.map((option) => (
+        {hardwareHeirarchy?.map((option) => (
           <MDBTabsItem key={option}>
             <MDBTabsLink
               active={activeOption === option}

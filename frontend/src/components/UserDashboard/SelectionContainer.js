@@ -272,7 +272,7 @@ const SelectionContainer = () => {
 
   return (
     <MDBRow className="pdf-row-wrapper">
-      <MDBCol className="main-selectors">
+      <MDBCol className="main-selectors" style={{minWidth: '70%'}}>
         <MDBRow className="d-flex justify-content-between align-items-end">
           <MDBCol className="btns-container w-100 justify-content-between">
             <MDBRow>

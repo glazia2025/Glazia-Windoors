@@ -63,9 +63,9 @@ const Footer = () => {
       </MDBContainer>
 
       <div className='text-center p-3' style={{backgroundColor: '#2b5499'}}>
-        © 2020 Copyright:
-        <a className='text-white' href='https://mdbootstrap.com/'>
-          MDBootstrap.com
+        © 2025 Copyright:
+        <a className='text-white' href='https://Glazia.in/'>
+          Glazia.in
         </a>
       </div>
     </MDBFooter>

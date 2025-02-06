@@ -57,17 +57,31 @@ const addHardware = async (req, res) => {
 };
 
 const getHardwares = async (req, res) => {
+  const { reqOption } = req.query;
   try {
     const hardwareOptions = await HardwareOptions.findOne({});
+
     if (!hardwareOptions) {
-      return res.status(404).json({ message: 'Profile options not found' });
+      return res.status(404).json({ message: 'Hardware options not found' });
     }
-    res.status(200).json(hardwareOptions);
+
+    const selectedProduct = hardwareOptions.products.get(reqOption);
+
+    if (!selectedProduct) {
+      return res.status(404).json({ message: `No product found for reqOption: ${reqOption}` });
+    }
+    
+    res.status(200).json({
+      options: hardwareOptions.options,
+      products: { [reqOption]: selectedProduct }
+    });
+
   } catch (error) {
-    console.error("Error fetching profile options:", error);
-    res.status(500).json({ message: 'Error fetching profile options' });
+    console.error("Error fetching hardware options:", error);
+    res.status(500).json({ message: 'Error fetching hardware options' });
   }
 };
+
 
 
 const addAllProducts = async (req, res) => {
