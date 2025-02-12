@@ -24,8 +24,8 @@ const HardwareForm = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        console.log(response.data.options); // Log response data correctly
-        setProfileOptions(response.data.options); // Set the state to response.data
+        console.log(response.data.options);
+        setProfileOptions(response.data.options);
       } catch (err) {
         console.error('Failed to fetch products', err);
       }

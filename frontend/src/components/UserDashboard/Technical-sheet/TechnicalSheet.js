@@ -13,7 +13,7 @@ const TechSheet = ({ sheetData }) => {
             <th scope='col'>Locking Mechanism</th>
             <th scope='col'>Glass Size, mm</th>
             <th scope='col'>Alloy</th>
-            <th scope='col'>Interlock</th>
+            <th scope='col'>Interlock (mm)</th>
           </tr>
         </MDBTableHead>
         <MDBTableBody>

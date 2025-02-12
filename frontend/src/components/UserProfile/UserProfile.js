@@ -135,6 +135,7 @@ const UserProfile = () => {
                           <MDBInput
                             value={editableUser?.[field] || ''}
                             onChange={(e) => handleInputChange(field, e.target.value)}
+                            disabled={field === 'phoneNumber' || field === 'gstNumber'} 
                           />
                         ) : (
                           <MDBCardText className="text-muted">{editableUser?.[field]}</MDBCardText>

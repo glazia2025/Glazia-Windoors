@@ -18,6 +18,23 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (receivedPhoneNumber) {
+      setPhoneNumber(receivedPhoneNumber); // Use the receivedPhoneNumber prop
+    }
+  
+    // Reset all form fields to initial values when the component is reinitialized or `receivedPhoneNumber` changes
+    setUserName('');
+    setEmail('');
+    setGstNumber('');
+    setPincode('');
+    setCity('');
+    setState('');
+    setCompleteAddress('');
+    setErrorMessage('');
+    setMessage('');
+  }, [receivedPhoneNumber]);
   
   useEffect(() => {
     if (receivedPhoneNumber) {
@@ -58,7 +75,7 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
   };
 
   return (
-<MDBCol md="5">
+<MDBCol>
           <MDBCard className="my-5">
             <MDBCardBody>
               <h2 className="mb-4">Please fill out the details</h2>
@@ -78,7 +95,7 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
                   disabled
                   size="lg"
                   wrapperClass="mb-4"
-                  label="Phone Number"
+                  label="Phone Number (Non-Editable)"
                   id="phoneNumberInput"
                   type="text"
                   value={phoneNumber}
@@ -97,7 +114,7 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
                 <MDBInput
                   size="lg"
                   wrapperClass="mb-4"
-                  label="GST Number"
+                  label="GST Number (Further Non-Editable)"
                   id="gstNumberInput"
                   type="text"
                   value={gstNumber}

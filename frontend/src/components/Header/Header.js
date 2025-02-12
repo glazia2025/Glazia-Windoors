@@ -16,7 +16,7 @@ import {
 } from 'mdb-react-ui-kit';
 import './Header.css';
 import { useNavigate } from 'react-router-dom';
-import logo from '../../glazia_logo.png';
+import logo from '../../Glazia.png';
 import { useDispatch, useSelector } from 'react-redux';
 import api from '../../utils/api';
 import { setHardwareHeirarchy, setProfileHeirarchy } from '../../redux/heirarchySlice';
@@ -58,7 +58,6 @@ const Header = ({ isLoggedIn, onLogout }) => {
     dispatch(setActiveProfile(profile));
     dispatch(setActiveOption(option));
     dispatch(setSelectedOption(mainOption));
-    console.log("kjhjkhjhkh", userRole);
     (userRole === 'admin') ? navigate('/admin/dashboard') : navigate('/user/orders');
   }
   
@@ -73,7 +72,7 @@ const Header = ({ isLoggedIn, onLogout }) => {
   return (
     <MDBNavbar fixed='top' expand='lg' light bgColor='light'>
       <MDBContainer fluid>
-        <MDBNavbarBrand><img className='logo' src={logo}/></MDBNavbarBrand>
+        <MDBNavbarBrand className='cursor-pointer' onClick={() => userRole === 'admin' ? navigate('/admin/dashboard') : navigate('/user/orders')}><img className='logo' src={logo}/></MDBNavbarBrand>
         <div className='mobile-connect-wrapper d-flex'>
           {userRole !== 'admin' && <MDBDropdown className="me-3 mobile-connector">
                   <MDBDropdownToggle tag='a' className='nav-link' style={{ cursor: 'pointer' }}>
@@ -121,7 +120,7 @@ const Header = ({ isLoggedIn, onLogout }) => {
                   {userRole === 'admin' ? (
                     <MDBNavbarLink onClick={() => navigate('/admin/dashboard')}>Admin Dashboard</MDBNavbarLink>
                   ) : userRole === 'user' ? (
-                    <MDBNavbarLink onClick={() => navigate('/user/orders')}>View Products</MDBNavbarLink>
+                    <MDBNavbarLink onClick={() => navigate('/user/orders')}>Home</MDBNavbarLink>
                   ) : null}                
                 </MDBNavbarItem>
                 <MDBNavbarItem>
@@ -254,3 +253,5 @@ const Header = ({ isLoggedIn, onLogout }) => {
 };
 
 export default Header;
+
+// mongodb+srv://glaziain:Glazia@123@glazia.elx92.mongodb.net/?retryWrites=true&w=majority&appName=glazia

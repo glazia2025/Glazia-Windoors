@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { UserOrder, Nalco } = require('../models/Order');
+const nodemailer = require('nodemailer');
+const fs = require('fs');
 
 const createOrder = async (req, res) => {
     const { user, products } = req.body;
@@ -76,4 +78,39 @@ const updateNalco = async (req, res) => {
     }
 };
 
-module.exports = { createOrder, getOrders, updateNalco };
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'saur222509@gmail.com',
+      pass: 'lpauzjdbyjkceuie',
+    },
+  });
+
+const sendEmail = async (req, res) => {
+    const { to, subject, text, pdf } = req.body;
+
+    const pdfBuffer = Buffer.from(pdf, 'base64');
+  
+    const mailOptions = {
+      from: 'saur222509@gmail.com',
+      to,
+      subject,
+      text,
+      attachments: [
+        {
+          filename: 'Glazia Performa Invoice.pdf',
+          content: pdfBuffer,
+          encoding: 'base64',
+        },
+      ],
+    };
+    res.send('Email sent successfully');
+    transporter.sendMail(mailOptions, (error, info) => {
+        console.log(error)
+      if (error) {
+        return res.status(500).send('Error sending email');
+      }
+    });
+}
+
+module.exports = { createOrder, getOrders, updateNalco, sendEmail };

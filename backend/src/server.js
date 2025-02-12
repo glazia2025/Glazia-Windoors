@@ -12,7 +12,7 @@ require('dotenv').config({ path: '/etc/app.env' });
 
 // Middleware
 app.use(cors()); // Allow cross-origin requests
-app.use(express.json({ extended: false }));
+app.use(express.json({ extended: false, limit: '10mb' }));
 
 connectDB();
 

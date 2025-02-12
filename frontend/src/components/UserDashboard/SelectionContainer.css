@@ -15,12 +15,13 @@ canvas {
 
 .overlay {
   background: #000;
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
   width: 100%;
-  opacity: 0.6;
+  height: 100vh;
+  opacity: 0.8;
   z-index: 2;
 }
 
@@ -49,6 +50,26 @@ canvas {
   margin-left: 10px;
 }
 
+.expand-btn {
+  position: fixed;
+  top: 40%;
+  color: #fff;
+  background: #3b71ca;
+  border: 1px solid #e0e0e0;
+  transform: translateX(-30%) rotate(-90deg);
+  transform-origin: left top;
+  text-align: left;
+  padding: 0px 50px;
+  white-space: nowrap;
+  /* font-size: 12px; */
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+}
+
+.canva2-container {
+  margin-top: 5%;
+}
+
 @media screen and (max-width: 900px) {
   .slider {
     width: 100%;
@@ -57,4 +78,79 @@ canvas {
   .download-pdf {
     margin-left: 0 !important;
   }
+
+  .overlay-download {
+    display: none !important;
+  }
+  
+  .canva2-container {
+    margin-top: 20%;
+  }
+
+  .total-pricing, .total-pricing-slider {
+    padding: 5px !important;
+  }
+
+  .sub-price {
+    font-size: 5px !important;
+  }
+  .main-price {
+    font-size: 5px !important;
+  }
+
+  .slider-price {
+    font-size: 12px !important;
+  }
+
+  .slider-main-price {
+    font-size: 14px !important;
+  }
+
+  .mobile-download {
+    display: block !important;
+  }
+}
+
+.mobile-download {
+  display: none;
+}
+
+.canva-container {
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.canva2-container, .canva-container, .pdf-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.canva2-container, .canva-container, .pdf-wrapper {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+
+.overlay-download {
+  display: block;
+  position: fixed;
+  right: 50%;
+  top: 15%;
+  z-index: 999;
+}
+
+.total-pricing, .total-pricing-slider {
+  display: flex;
+  flex-direction: column;
+  background: #3b71ca;
+  padding: 10px;
+  color: #fff;
+}
+
+.price-control {
+  display: flex;
+  justify-content: space-between;
+}
+
+.sub-price {
+  font-size: 12px;
 }

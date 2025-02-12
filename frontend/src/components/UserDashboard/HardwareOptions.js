@@ -8,30 +8,33 @@ import {
   MDBTypography,
   MDBInput,
   MDBIcon,
-  MDBTooltip
+  MDBTooltip,
+  MDBBtn
 } from "mdb-react-ui-kit";
 import api from '../../utils/api';
 import { clearSelectedProducts, setActiveOption } from "../../redux/selectionSlice";
 import { useDispatch, useSelector } from "react-redux";
 import ImageZoom from "./ImageZoom";
 import Search from '../Search';
-import { fetchProductsFailure, fetchProductsStart, fetchProductsSuccess, setHardwareProducts } from "../../redux/hardwareSlice";
+import { fetchProductsFailure, fetchProductsStart, setHardwareProducts } from "../../redux/hardwareSlice";
 
-const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref) => {
+const ProfileSelection = forwardRef(({ onProductSelect, onRemoveProduct, selectedHardwares }, ref) => {
+  const { productsByOption } = useSelector((state) => state.selection);
+  
+  const selectedProducts = Object.values(productsByOption).flat();
   const { activeOption } = useSelector((state) => state.selection);
   const [quantities, setQuantities] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const { hardwareHeirarchy } = useSelector((state) => state.heirarchy);
   const { products: hardwareData } = useSelector((state) => state.hardwares);
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState(null);
 
   const dispatch = useDispatch();
 
-  const productsToDisplay = searchResults.length > 0
+  const productsToDisplay = searchResults?.length > 0
     ? searchResults
     : hardwareData?.[activeOption];
 
-    console.log("productsToDisplay", productsToDisplay)
   useEffect(() => {
     if(hardwareHeirarchy.includes(activeOption) && !hardwareData?.[activeOption]) {
       fetchProducts(activeOption);
@@ -49,7 +52,6 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
       
       dispatch(setHardwareProducts({ option: activeOption, payload: response.data.products[activeOption] }));
       
-      // dispatch(fetchProductsSuccess({ ...response.data, products: uniqueProducts }));
     } catch (err) {
       dispatch(fetchProductsFailure("Failed to fetch products"));
     }
@@ -61,43 +63,48 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
 
   useEffect(() => {
     dispatch(setActiveOption(hardwareHeirarchy[0]));
-    // if (Object.keys(hardwareData).length > 0) {
-    //   if(!hardwareData?.options?.includes(activeOption)) {
-    //   }
-    // }
   }, [hardwareHeirarchy]);
   
   useEffect(() => {
     if (!selectedHardwares || selectedHardwares.length === 0) {
       setQuantities((prev) => {
-        // if (Object.keys(prev).length > 0) {
-        //   onProductSelect([]);
-        // }
-        return {}; // Clear quantities
+        return {};
       });
     } else {
-      const updatedQuantities = {};
-      selectedHardwares.forEach((element) => {
-        updatedQuantities[`${element.option}-${element.id}`] = {
-          profile: element.profile,
-          option: element.option,
-          id: element.id,
-          quantity: element.quantity || 0,
-        };
-      });
-      setQuantities(updatedQuantities);
-    }
+        setQuantities((prevQuantities) => {
+          const updatedQuantities = { ...prevQuantities };
+    
+          selectedHardwares.forEach((element) => {
+            const key = `${element.option}-${element.id}`;
+            updatedQuantities[key] = {
+              profile: element.profile,
+              option: element.option,
+              id: element.id,
+              quantity: element.quantity ?? prevQuantities[key]?.quantity ?? 0,
+            };
+          });
+    
+          return updatedQuantities;
+        });
+      }
   }, [selectedHardwares, onProductSelect]);
   
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const handleSearch = async (query) => {
+    setSearchResults(null);
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    
     try {
       const response = await api.get('https://api.glazia.in/api/admin/search-hardware', {
-        params: { sapCode: searchQuery, perticular: searchQuery, option: activeOption },
+        params: { sapCode: query, perticular: query, option: activeOption },
       });
       setSearchResults(response.data.products);
     } catch (error) {
       console.error('Error searching products:', error);
+      setSearchResults([]);
     }
   };
 
@@ -129,18 +136,139 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
         };
       });
 
-    console.log("Selected Products:", selectedProducts);
     onProductSelect(selectedProducts);
   };
 
-  const onClear = () => {
-    dispatch(clearSelectedProducts({option: 'profile'}));
+  const onConfirmRow = (product) => {
+    const key = `${activeOption}-${product.id}`;
+    const selectedProduct = {
+      ...product,
+      option: activeOption,
+      id: product.id,
+      quantity: quantities[key]?.quantity || 0,
+      rate: product?.rate,
+      amount: (quantities[`${activeOption}-${product.id}`]?.quantity || 0) * (product?.rate || 0)
+    };
+  
+    if (selectedProduct.quantity > 0) {
+      onProductSelect(selectedProduct);
+    } else {
+      alert("Please enter a valid quantity before confirming.");
+    }
   };
 
-  const searchProduct = (value) => {
-    setSearchResults([]);
-    setSearchQuery(value);
-  }
+  const onCancelRow = (product) => {
+    const key = `${activeOption}-${product.id}`;
+    onRemoveProduct(product?.sapCode);
+    delete quantities[key];
+    setQuantities(quantities);
+  };
+
+  const onClear = () => {
+    dispatch(clearSelectedProducts({option: 'hardware'}));
+  };
+
+  const renderTableContent = () => {
+    if (searchQuery && searchResults?.length === 0) {
+      return (
+        <div className="text-center p-4">
+          <MDBTypography tag="h5" className="text-muted">
+            <MDBIcon far icon="folder-open" className="me-2" />
+            No results found for "{searchQuery}"
+          </MDBTypography>
+          <p className="text-muted mt-2">
+            Try adjusting your search terms or browse all products
+          </p>
+        </div>
+      );
+    }
+
+    if (!productsToDisplay || productsToDisplay?.length === 0) {
+      return (
+        <div className="text-center p-4">
+          <MDBTypography tag="h5" className="text-muted">
+            <MDBIcon far icon="folder-open" className="me-2" />
+            No products available for this category
+          </MDBTypography>
+          <p className="text-muted mt-2">
+            Please select a different category or check back later
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <table className="table table-bordered">
+        <thead>
+          <tr>
+            <th>S No.</th>
+            <th>Image</th>
+            <th>SAP Code</th>
+            <th>Sub Category</th>
+            <th>Perticular</th>
+            <th>Rate</th>
+            <th>MOQ</th>
+            <th>Quantity</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {productsToDisplay?.map((product, index) => (
+            <tr key={product.id}>
+              <td>{index + 1}</td>
+              <td>
+                {product.image !== '' ? <ImageZoom productImage={product.image} /> : 'N.A'}
+              </td>
+              <td>{product.sapCode}</td>
+              <td>{product.subCategory}</td>
+              <td>{product?.perticular}</td>
+              <td>{'₹' + product.rate}</td>
+              <td>{product.moq}</td>
+              <td>
+                <MDBInput
+                  type="number"
+                  min="0"
+                  value={quantities[`${activeOption}-${product.id}`]?.quantity || ""}
+                  onChange={(e) => handleQuantityChange(activeOption, product.id, e.target.value)}
+                  size="sm"
+                  style={{ minWidth: '80px' }}
+                />
+              </td>
+              <td className="d-flex align-items-center justify-content-start">
+                <MDBInput
+                  disabled
+                  type="number"
+                  value={(quantities[`${activeOption}-${product.id}`]?.quantity || 0) * (product.rate || 0)}
+                  size="sm"
+                  style={{ minWidth: '80px' }}
+                />
+                {!selectedProducts.find((sp) => sp.sapCode === product.sapCode) ? 
+                  <MDBBtn 
+                    disabled={!(quantities[`${activeOption}-${product.id}`]?.quantity)} 
+                    onClick={() => onConfirmRow(product)} 
+                    style={{marginLeft: '10px'}} 
+                    className="confirm-button w-auto text-nowrap d-flex justify-content-center align-items-center"
+                  >
+                    Save
+                  </MDBBtn>
+                  :
+                  <MDBBtn 
+                    color='danger' 
+                    disabled={!(quantities[`${activeOption}-${product.id}`]?.quantity)} 
+                    onClick={() => onCancelRow(product)} 
+                    style={{marginLeft: '10px'}} 
+                    className="confirm-button w-auto text-nowrap d-flex justify-content-center align-items-center"
+                  >
+                    X
+                  </MDBBtn>
+                }
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  };
 
   return (
     <>
@@ -149,14 +277,14 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
           <MDBTabsItem key={option}>
             <MDBTabsLink
               active={activeOption === option}
-              onClick={() =>  dispatch(setActiveOption(option))}
+              onClick={() => dispatch(setActiveOption(option))}
             >
               {option}
             </MDBTabsLink>
           </MDBTabsItem>
         ))}
       </MDBTabs>
-        <hr/>
+      <hr/>
 
       {activeOption && (
         <MDBCard className="mt-4">
@@ -172,24 +300,32 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
                 <MDBTypography tag="h5" className="mb-0 me-3">
                   Hardware {'>'} {activeOption}
                 </MDBTypography>
-                <Search searchQuery={searchQuery} setSearchQuery={searchProduct} handleSearch={handleSearch} />
+                <Search 
+                  searchQuery={searchQuery} 
+                  setQuery={(value) => {
+                    if (value === '') {
+                      setSearchResults([]);
+                      setSearchQuery('');
+                    }
+                  }} 
+                  handleSearch={handleSearch} 
+                />
               </div>
               <div className="d-flex action-wrapper">
                 <button
                   className="btn btn-secondary me-2"
                   onClick={onClear}
-                  disabled={!selectedHardwares.length}
+                  style={{minWidth: 'fit-content'}}
                 >
                   Clear
                 </button>
                 <div className="action-wrapper">
-                  <MDBTooltip tag='div' wrapperClass="w-100"  title='Please enter quantity' className="d-flex">
-                    <button style={{ flex: '1 1 auto', width: '100%' }}
+                  <MDBTooltip tag='div' title='Please enter quantity' className="d-flex">
+                    <button 
+                      style={{ flex: '1 1 auto', width: '100%' }}
                       className="btn btn-primary"
                       onClick={onConfirmation}
-                      disabled={
-                        !Object.values(quantities).some((q) => q.quantity > 0)
-                      }
+                      disabled={!Object.values(quantities).some((q) => q.quantity > 0)}
                     >
                       Confirm
                     </button>
@@ -199,55 +335,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedHardwares }, ref
             </div>
             <h6 className="scroll-right">Scroll right <MDBIcon fas icon="angle-double-right" style={{color: '#3b71ca'}}/></h6>
             <div className="table-responsive">
-              <table className="table table-bordered">
-                <thead>
-                  <tr>
-                    <th>S No.</th>
-                    <th>Image</th>
-                    <th>SAP Code</th>
-                    <th>Sub Category</th>
-                    <th>Perticular</th>
-                    <th>Rate</th>
-                    <th>MOQ</th>
-                    <th>Quantity</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                {productsToDisplay?.map((product, index) => (
-                  <tr key={product.id}>
-                    <td>{index + 1}</td>
-                    <td>
-                      {product.image !== '' ? <ImageZoom productImage={product.image} /> : 'N.A'}
-                    </td>
-                    <td>{product.sapCode}</td>
-                    <td>{product.subCategory}</td>
-                    <td>{product?.perticular}</td>
-                    <td>{'₹' + product.rate}</td>
-                    <td>{product.moq}</td>
-                    <td>
-                      <MDBInput
-                        type="number"
-                        min="0"
-                        value={quantities[`${activeOption}-${product.id}`]?.quantity || ""}
-                        onChange={(e) => handleQuantityChange(activeOption, product.id, e.target.value)}
-                        size="sm"
-                        style={{ minWidth: '80px' }}
-                      />
-                    </td>
-                    <td>
-                      <MDBInput
-                        disabled
-                        type="number"
-                        value={(quantities[`${activeOption}-${product.id}`]?.quantity || 0) * (product.rate || 0)}
-                        size="sm"
-                        style={{ minWidth: '80px' }}
-                      />
-                    </td>
-                  </tr>
-                ))}
-                </tbody>
-              </table>
+              {renderTableContent()}
             </div>
           </MDBCardBody>
         </MDBCard>

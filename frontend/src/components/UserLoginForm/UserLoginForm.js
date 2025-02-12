@@ -8,7 +8,7 @@ import UserDetailsForm from '../UserDetailsForm/UserDetailsForm';
 import { useDispatch } from 'react-redux'; // Import useDispatch
 import { setUser } from '../../redux/userSlice'; // Import setUser action
 import api from '../../utils/api';
-import loginImage from '../../login_theme.svg';
+import logo from '../../Glazia.png';
 
 const MobileLoginForm = ({ setUserRole }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -71,53 +71,81 @@ const MobileLoginForm = ({ setUserRole }) => {
 
   return (
     <MDBContainer fluid className="mdb-container">
-      <MDBRow>
-        <MDBCol md='7' className='text-center text-md-start d-flex flex-column justify-content-center'>
-            <img 
+      <MDBRow  className="login-main-wrapper" style={{gap: '20px', justifyContent: 'space-between'}}>
+        {/* Left Content Section */}
+        <MDBCol md="7" className='text-center text-md-start d-flex flex-column justify-content-center'>
+          <div className='logo-alignment d-flex align-items-center'>
+            <img className='glazia-logo' src={logo}/>
+            <h3 className="my-5 display-4 fw-bold ls-tight" style={{marginLeft: '20px'}}>
+              Glazia – The Future of Facade & Fenestration Procurement
+            </h3>
+          </div>
+
+          <p style={{color: 'hsl(217, 10%, 50.8%)'}}>
+            Your One-Stop Platform for Aluminium, Glass & Hardware
+          </p>
+
+          <p style={{color: 'hsl(217, 10%, 50.8%)'}}>
+            Glazia is a tech-enabled aggregator revolutionizing the facade and fenestration industry. We simplify raw material procurement by bringing Aluminium Profiles, Hardware, and Accessories onto a single platform—ensuring cost efficiency, faster deliveries, and superior quality for fabricators and businesses.
+          </p>
+
+          <h5>Why Glazia?</h5>
+          <ul className='why-glazia'>
+            <li>✔ Comprehensive Product Range – Order Aluminium Profiles with your preferred finish (Powder Coating, Anodizing, PVDF Coating), along with hardware, accessories, and glass—all in one place.</li>
+            <li>✔ Reduced Costs, Faster Delivery – Our streamlined supply chain eliminates inefficiencies, saving you time and money.</li>
+            <li>✔ Tech-Driven Convenience – A digital-first approach enables seamless order tracking, transparent pricing, and hassle-free procurement.</li>
+            <li>✔ Guaranteed Quality – We partner with top manufacturers to provide standardized, high-performance materials that meet global benchmarks.</li>
+          </ul>
+
+          <h5>Partner with Glazia Today!</h5>
+          <p>📞 Call Us: +91 9958053708</p>
+          <p>📍 Location: Manesar, Gurgaon</p>
+          <p>📩 Email: glazia.in@gmail.com</p>
+          <p>🚀 Glazia – Your Gateway to Faster, Smarter, and Cost-Effective Facade Solutions</p>
+        </MDBCol>
+
+        {/* Right Content (Login Form) Section */}
+        <MDBCol className='otp-login-system' md="4">
+            {/* <img 
               src={loginImage} 
               alt="Login Theme" 
               className="img-fluid mb-4 login-image align-items-center" 
               style={{ maxWidth: '100%', height: 'auto' }} 
-            />
-            <h1 className="my-5 display-3 fw-bold ls-tight px-3">
-            The best offer <br />
-            <span className="text-primary">for your business</span>
-            </h1>
-
-            <p className='px-3' style={{color: 'hsl(217, 10%, 50.8%)'}}>
-                Our platform connects you directly with trusted suppliers, ensuring you get the raw materials you need, when you need them. With our easy-to-use system, manufacturers can efficiently manage orders, track deliveries, and optimize their supply chain—all in one place.
-            </p>
-
-        </MDBCol>
-        {!showUserDetailsForm ? (
-          <MDBCol className='otp-login-system' md="5">
-          <MDBCard className="my-5">
-          <MDBCardBody>
-                  <h2 className="mb-4">Please login to proceed</h2>
-                  {isOtpSent ? (
-                    <OTPInput verifyOtp={verifyOtp} />
-                  ) : (
-                    <>
-                      <MDBInput
-                        size="lg"
-                        wrapperClass="mb-4"
-                        label="Mobile Number"
-                        id="phoneNumberInput"
-                        type="text"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                      />
-                      <MDBBtn className="w-100 mb-46" size="lg" onClick={sendOtp}>
-                        Send OTP
-                      </MDBBtn>
-                    </>
-                  )}
+            /> */}
+          {!showUserDetailsForm ? (
+            <MDBCard className="login-card my-5">
+              
+              <MDBCardBody>
+                <h2 className="mb-4">Please login to proceed</h2>
+                {isOtpSent ? (
+                  <OTPInput verifyOtp={verifyOtp} sendOtp={sendOtp}/>
+                ) : (
+                  <>
+                    <MDBInput
+                      size="lg"
+                      wrapperClass="mb-4"
+                      label="Mobile Number"
+                      id="phoneNumberInput"
+                      type="text"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          sendOtp(); // Trigger OTP send on Enter key press
+                        }
+                      }}
+                    />
+                    <MDBBtn className="w-100 mb-46" size="lg" onClick={sendOtp}>
+                      Send OTP
+                    </MDBBtn>
+                  </>
+                )}
                 {errorMessage && <p className="text-danger">{errorMessage}</p>}
                 {message && <p className="text-success">{message}</p>}
               </MDBCardBody>
             </MDBCard>
-          </MDBCol>
-        ) : <UserDetailsForm receivedPhoneNumber={phoneNumber}/>}
+          ) : <UserDetailsForm receivedPhoneNumber={phoneNumber}/>}
+        </MDBCol>
       </MDBRow>
     </MDBContainer>
   );

@@ -19,10 +19,23 @@ const selectionSlice = createSlice({
       state.selectedOption = action.payload;
     },
     addSelectedProducts: (state, action) => {
-      const { option, products } = action.payload;
-      state.productsByOption[option] = [
-        ...products,
-      ];
+      const { option, product } = action.payload;
+      if(Array.isArray(product)) {
+        state.productsByOption[option] = [
+          ...product
+        ];
+      }
+      else {
+        state.productsByOption[option] = [
+          ...state.productsByOption[option],
+          product
+        ];
+      }
+
+    },
+    clearProduct: (state, action) => {
+      const {option, sapCode} = action.payload;
+      state.productsByOption[option] = state.productsByOption[option].filter(item => item.sapCode !== sapCode);
     },
     clearSelectedProducts: (state, action) => {
       const { option } = action.payload;
@@ -40,6 +53,7 @@ const selectionSlice = createSlice({
 export const {
   setSelectedOption,
   addSelectedProducts,
+  clearProduct,
   clearSelectedProducts,
   setActiveProfile,
   setActiveOption

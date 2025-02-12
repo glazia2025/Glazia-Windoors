@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Route, Routes, Link, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import AdminLoginForm from './components/AdminLoginForm/AdminLoginForm';
 import UserLoginForm from './components/UserLoginForm/UserLoginForm';
 import AdminDashboard from './components/AdminDashboard/AdminDashboard';
@@ -14,7 +14,6 @@ import Footer from './components/Footer';
 import './App.css';
 import SelectionContainer from './components/UserDashboard/SelectionContainer';
 import AdminForm from './components/AdminDashboard/AdminForm';
-import ExcelDataFetcher from './components/Excel';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Orders from './components/AdminDashboard/Orders/Orders';
@@ -26,6 +25,7 @@ function App() {
   const isLoading = useSelector((state) => state.loader.isLoading);
 
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const location = useLocation()
 
   useEffect(() => {
     const decoded = checkTokenExpiration();
@@ -144,7 +144,7 @@ function App() {
               <Route path='/profile' element={localStorage.getItem('userRole') === 'user' && isLoggedIn ? <UserProfile /> : <Navigate to="/" />} />
             </Routes>
           </div>
-        <Footer/>
+        {location.pathname !== '/' && <Footer/>}
       </div>
   );
 }
