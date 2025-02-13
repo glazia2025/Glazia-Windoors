@@ -19,7 +19,7 @@ const HardwareForm = () => {
     const fetchProducts = async () => {
       const token = localStorage.getItem('authToken');
       try {
-        const response = await api.get(`http://localhost:5000/api/admin/get-hardware-heirarchy`, {
+        const response = await api.get(`https://api.glazia.in/api/admin/get-hardware-heirarchy`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
