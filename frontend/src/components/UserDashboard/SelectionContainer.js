@@ -226,10 +226,10 @@ const SelectionContainer = () => {
 
   const sendMailInvoice = async (pdfData) => {
     const emailData = {
-      to: 'ceo.dot.in@gmail.com',
+      to: user.email,
       subject: 'Glazia Windoors Performa Invoice',
       text: `
-Dear Saurabh,
+Dear ${user.name},
 Thank you for choosing Glazia Windoors – your one-stop solution for all your aluminum needs!
     
 We are pleased to inform you that your perfora invoice is ready. Please find the attached PDF document for your reference. It contains the details of your order and other related information.
@@ -248,11 +248,11 @@ Glazia Windoors Pvt Ltd.
     
 
     try {
-      const response = await axios.post('http://localhost:5000/api/admin/send-email', emailData, {
+      const response = await axios.post('https://api.glazia.in/api/admin/send-email', emailData, {
         headers: { 'Content-Type': 'application/json' },
       });
     } catch (error) {
-      alert('Error sending email');
+      // alert('Error sending email');
     }
   }
 

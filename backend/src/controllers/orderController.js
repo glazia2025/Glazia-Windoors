@@ -81,18 +81,18 @@ const updateNalco = async (req, res) => {
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: 'saur222509@gmail.com',
-      pass: 'lpauzjdbyjkceuie',
+      user: 'glazia.in@gmail.com',
+      pass: 'qmatmebtwyepcmky',
     },
   });
 
 const sendEmail = async (req, res) => {
     const { to, subject, text, pdf } = req.body;
-
+    console.log("received");
     const pdfBuffer = Buffer.from(pdf, 'base64');
   
     const mailOptions = {
-      from: 'saur222509@gmail.com',
+      from: 'glazia.in@gmail.com',
       to,
       subject,
       text,
