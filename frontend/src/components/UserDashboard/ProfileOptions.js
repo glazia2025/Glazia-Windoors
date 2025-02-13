@@ -249,6 +249,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedProfiles, onRemo
           profile,
           option,
           quantity,
+          powderCoating: powderCoating,
           rate: profileData[activeProfile].rate[activeOption],
           amount: (quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity || 0) * 
                  (profileData[activeProfile]?.rate[activeOption] || 0)
@@ -263,6 +264,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, selectedProfiles, onRemo
       ...product,
       profile: activeProfile,
       option: activeOption,
+      powderCoating: powderCoating[key]?.powderCoating ?? '',
       id: product.id,
       quantity: quantities[key]?.quantity || 0,
       rate: profileData[activeProfile].rate[activeOption],

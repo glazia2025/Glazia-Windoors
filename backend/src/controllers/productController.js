@@ -315,7 +315,7 @@ const getTechSheet = async (req, res) => {
 
 async function updateDocument() {
   try {
-    const newProducts =  [
+    const newProducts = [
       {
         id: 1,
         sapCode: "H-01-02-23",

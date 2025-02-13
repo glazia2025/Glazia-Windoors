@@ -287,7 +287,7 @@ const createProformaInvoice = () => {
   doc.text("Supplier's Ref: N.A", 15, 70);
   doc.text("Destination: Gurgaon", 15, 90);
   doc.text("Terms of Delivery: N.A", 15, 100);
-
+  console.log("selectedProducts", selectedProducts)
   // Add table with selected products
   doc.autoTable({
     startY: 110,
@@ -297,7 +297,7 @@ const createProformaInvoice = () => {
     ],
     body: selectedProducts.map((product, index) => [
       index + 1,
-      product.description || product.perticular,
+      product.description + ' ' + `${product.powderCoating ? '(' + product.powderCoating + ')' : ''}` || product.perticular,
       product.sapCode,
       product.quantity,
       product.rate,

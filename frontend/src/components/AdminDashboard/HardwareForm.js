@@ -19,13 +19,13 @@ const HardwareForm = () => {
     const fetchProducts = async () => {
       const token = localStorage.getItem('authToken');
       try {
-        const response = await api.get('https://api.glazia.in/api/admin/getHardwares', {
+        const response = await api.get(`http://localhost:5000/api/admin/get-hardware-heirarchy`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        console.log(response.data.options);
-        setProfileOptions(response.data.options);
+        console.log(response.data.products);
+        setProfileOptions(response.data.products);
       } catch (err) {
         console.error('Failed to fetch products', err);
       }

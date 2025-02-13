@@ -25,18 +25,26 @@ const HardwareTable = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [profileData, setProfileData] = useState({});
   const [editableProduct, setEditableProduct] = useState(null);
+  const { hardwareHeirarchy } = useSelector((state) => state.heirarchy);
+  const { products: hardwareData } = useSelector((state) => state.hardwares);
 
   const productsToDisplay = searchResults.length > 0
     ? searchResults
     : profileOptions?.products?.[activeOption];
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if(hardwareHeirarchy.includes(activeOption) && !hardwareData?.[activeOption]) {
+      fetchProducts(activeOption);
+    }
+  }, [activeOption]);
 
-  const fetchProducts = async () => {
+  useEffect(() => {
+    dispatch(setActiveOption(hardwareHeirarchy[0]));
+  }, [hardwareHeirarchy]);
+
+  const fetchProducts = async (reqOption) => {
     try {
-      const response = await api.get('https://api.glazia.in/api/admin/getHardwares');
+      const response = await api.get(`https://api.glazia.in/api/admin/getHardwares?reqOption=${encodeURIComponent(reqOption)}`);
       setProfileData(response.data);
     } catch (err) {
       console.error("Error fetching products", err);
@@ -109,7 +117,7 @@ const HardwareTable = () => {
           },
         }
       );
-      fetchProducts(); // Refresh product list
+      fetchProducts(activeOption); // Refresh product list
       setEditableProduct(null); // Exit edit mode
     } catch (err) {
       console.error("Error saving product", err);
@@ -124,7 +132,7 @@ const HardwareTable = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      fetchProducts();
+      fetchProducts(activeOption);
       // Update state after deletion
       setProfileOptions((prevOptions) => {
         const updatedProducts = prevOptions.products[activeOption].filter(

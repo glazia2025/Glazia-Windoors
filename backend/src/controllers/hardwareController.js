@@ -39,6 +39,7 @@ const addHardware = async (req, res) => {
       }
   
       // Step 4: Add the product to the option
+      res.status(200).json({ message: 'Product added successfully', hardwareOptions });
       const productsArray = hardwareOptions.products.get(option);
       productsArray.push(product);
       hardwareOptions.products.set(option, productsArray);
@@ -49,7 +50,6 @@ const addHardware = async (req, res) => {
       await hardwareOptions.save();
       console.log("Hardware options updated successfully.");
   
-      res.status(200).json({ message: 'Product added successfully', hardwareOptions });
     } catch (error) {
       console.error("Error occurred while adding product:", error);
       res.status(500).json({ message: 'Error updating the product' });
@@ -81,8 +81,6 @@ const getHardwares = async (req, res) => {
     res.status(500).json({ message: 'Error fetching hardware options' });
   }
 };
-
-
 
 const addAllProducts = async (req, res) => {
   try {
