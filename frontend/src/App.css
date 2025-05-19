@@ -5,8 +5,8 @@
 .app-container {
   display: flex;
   flex-direction: column;
-  min-height: 80vh;
-  margin-top: 120px;
+  min-height: calc(98vh - 80px);
+  margin-top: 80px;
 }
 
 .App-logo {

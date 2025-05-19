@@ -1,6 +1,6 @@
 import { MDBRow, MDBCol, MDBBtn, MDBInput, MDBCard, MDBCardBody, MDBCardHeader, MDBFile } from 'mdb-react-ui-kit';
 import { useEffect, useState } from 'react';
-import api from '../../utils/api';
+import api, { BASE_API_URL } from '../../utils/api';
 
 const HardwareForm = () => {
   const [profileOptions, setProfileOptions] = useState([]);
@@ -19,7 +19,7 @@ const HardwareForm = () => {
     const fetchProducts = async () => {
       const token = localStorage.getItem('authToken');
       try {
-        const response = await api.get(`https://api.glazia.in/api/admin/get-hardware-heirarchy`, {
+        const response = await api.get(`${BASE_API_URL}/user/get-hardware-heirarchy`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -79,7 +79,7 @@ const HardwareForm = () => {
       try {
         const token = localStorage.getItem('authToken');
         const response = await api.post(
-          "https://api.glazia.in/api/admin/add-hardware",
+          `${BASE_API_URL}/admin/add-hardware`,
           productData,
           {
             headers: {

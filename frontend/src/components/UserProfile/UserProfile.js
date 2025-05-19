@@ -60,7 +60,7 @@ const UserProfile = () => {
     try {
       const token = localStorage.getItem('authToken');
       await api.put(
-        '/admin/updateUser',
+        '/user/updateUser',
         { ...editableUser },
         { headers: { Authorization: `Bearer ${token}` } }
       );

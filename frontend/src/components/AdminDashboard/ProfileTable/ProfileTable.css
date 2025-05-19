@@ -1,31 +1,32 @@
 .table-responsive {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.w5 {
+  width: 5%;
+}
+
+.w10 {
+  width: 10%;
+}
+
+.w15 {
+  width: 15%;
+}
+
+@media (max-width: 900px) {
+  .table-responsive {
+    -ms-overflow-style: none; /* IE 10+ */
+    scrollbar-width: none; /* Firefox */
   }
-  
-  .w5 {
-    width: 5%;
+  .table-responsive::-webkit-scrollbar {
+    display: none; /* Hide scrollbar in Webkit browsers */
   }
 
-  .w10 {
-    width: 10%;
-  }
-
+  .w5,
+  .w10,
   .w15 {
-    width: 15%;
+    width: 100% !important;
   }
-
-  @media (max-width: 900px) {
-    .table-responsive {
-      -ms-overflow-style: none;  /* IE 10+ */
-      scrollbar-width: none;  /* Firefox */
-    }
-    .table-responsive::-webkit-scrollbar {
-      display: none;  /* Hide scrollbar in Webkit browsers */
-    }
-
-    .w5, .w10,.w15 {
-        width: 100% !important;
-    }
-  }
-  
+}

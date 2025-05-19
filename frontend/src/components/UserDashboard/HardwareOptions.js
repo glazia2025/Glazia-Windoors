@@ -11,7 +11,7 @@ import {
   MDBTooltip,
   MDBBtn
 } from "mdb-react-ui-kit";
-import api from '../../utils/api';
+import api, { BASE_API_URL } from '../../utils/api';
 import { clearSelectedProducts, setActiveOption } from "../../redux/selectionSlice";
 import { useDispatch, useSelector } from "react-redux";
 import ImageZoom from "./ImageZoom";
@@ -46,7 +46,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, onRemoveProduct, selecte
     const token = localStorage.getItem("authToken");
     try {
       const response = await api.get(
-        `https://api.glazia.in/api/admin/getHardwares?reqOption=${encodeURIComponent(reqOption)}`,
+        `${BASE_API_URL}/admin/getHardwares?reqOption=${encodeURIComponent(reqOption)}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -98,8 +98,12 @@ const ProfileSelection = forwardRef(({ onProductSelect, onRemoveProduct, selecte
     }
     
     try {
-      const response = await api.get('https://api.glazia.in/api/admin/search-hardware', {
+      const token = localStorage.getItem("authToken");
+      const response = await api.get(`${BASE_API_URL}/admin/search-hardware`, {
         params: { sapCode: query, perticular: query, option: activeOption },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       setSearchResults(response.data.products);
     } catch (error) {
@@ -284,7 +288,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, onRemoveProduct, selecte
           </MDBTabsItem>
         ))}
       </MDBTabs>
-      <hr/>
+      {/* <hr/> */}
 
       {activeOption && (
         <MDBCard className="mt-4">
@@ -302,7 +306,7 @@ const ProfileSelection = forwardRef(({ onProductSelect, onRemoveProduct, selecte
                 </MDBTypography>
                 <Search 
                   searchQuery={searchQuery} 
-                  setQuery={(value) => {
+                  setSearchQuery={(value) => {
                     if (value === '') {
                       setSearchResults([]);
                       setSearchQuery('');

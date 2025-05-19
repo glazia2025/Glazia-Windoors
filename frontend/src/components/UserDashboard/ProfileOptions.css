@@ -1,25 +1,192 @@
 @media screen and (max-width: 768px) {
-    .table-controller {
-        flex-direction: column;
-        align-items: flex-start !important;
-    }
+  .table-controller {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
 
-    .action-wrapper {
-        width: 100%;
-        display: flex;
-    }
+  .action-wrapper {
+    width: 100%;
+    display: flex;
+  }
 
-    .scroll-right {
-        display: block !important;
-    }
+  .scroll-right {
+    display: block !important;
+  }
 }
 
 .scroll-right {
-    display: none;
+  display: none;
 }
 
 .no-results-message {
-    margin-top: 20px;
-    font-size: 24px;
-    display: flex;
+  margin-top: 20px;
+  font-size: 24px;
+  display: flex;
+}
+
+.hide-spin-buttons::-webkit-outer-spin-button,
+.hide-spin-buttons::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.hide-spin-buttons {
+  -moz-appearance: textfield; /* Firefox */
+}
+
+.sticky-left {
+  position: sticky;
+  left: 0;
+  z-index: 2; /* Ensures it stays on top of other content */
+  background-color: white; /* Adjust to match your table background if needed */
+}
+
+.sticky-right {
+  position: sticky;
+  right: 0;
+  z-index: 2; /* Ensures it stays on top of other content */
+  background-color: white; /* Adjust to match your table background if needed */
+}
+
+/* .table-custom {
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 10px;
+} */
+/* Consistent Row Heights and Vertical Alignment */
+.table-custom thead tr,
+.table-custom tbody tr {
+  height: 85px; /* Or your desired consistent row height */
+  border-radius: 10px;
+}
+/* Consistent Row Heights and Vertical Alignment */
+.table-custom.small-height-table thead tr,
+.table-custom.small-height-table tbody tr {
+  height: 65px; /* Or your desired consistent row height */
+  border-radius: 10px;
+}
+
+.table-custom thead th,
+.table-custom tbody td {
+  vertical-align: middle !important;
+  overflow: hidden; /* Prevent content from expanding cell */
+  text-overflow: ellipsis; /* Show ... for overflowed content */
+}
+.table-custom.small-height-table thead th,
+.table-custom.small-height-table tbody td {
+  /* padding: 0; */
+  vertical-align: middle !important;
+  overflow: hidden; /* Prevent content from expanding cell */
+  text-overflow: ellipsis; /* Show ... for overflowed content */
+}
+
+/* Default for header cells: no wrap, truncate */
+.table-custom thead th {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.table-custom.small-height-table thead th {
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+/* Default for data cells: prevent wrapping for most, then apply specific rules */
+.table-custom tbody td {
+  white-space: nowrap; /* Prevent wrapping for most cells */
+  vertical-align: middle !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Description Cell Specific Styling */
+th.description-cell {
+  max-width: 230px;
+  min-width: 180px;
+}
+
+/* td.description-cell will now be a standard table cell */
+td.description-cell {
+  /* vertical-align: middle !important; will be inherited from .table-custom tbody td */
+  /* min-width and max-width can stay here or move to .description-content */
+  min-width: 180px;
+  max-width: 230px;
+}
+
+.description-content {
+  /* Apply clamping to the inner div */
+  white-space: normal;
+  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  /* max-width: 100%; */ /* Ensure it doesn't overflow its parent td's width constraints if any */
+}
+
+/* Column width classes (Applied to TH elements for minimums) */
+.col-sno {
+  min-width: 60px;
+  width: auto;
+}
+.col-image {
+  min-width: 100px;
+  width: auto;
+}
+.col-sap-code {
+  min-width: 120px;
+  width: auto;
+}
+/* .col-description is handled by .description-cell min-width */
+.col-rate {
+  min-width: 90px;
+  width: auto;
+}
+.col-per {
+  min-width: 70px;
+  width: auto;
+}
+.col-kgm {
+  min-width: 90px;
+  width: auto;
+}
+.col-length {
+  min-width: 100px;
+  width: auto;
+}
+.col-quantity {
+  min-width: 150px;
+  width: auto;
+}
+.col-powder-coating {
+  min-width: 180px;
+  width: auto;
+}
+.col-amount {
+  min-width: 200px;
+  min-height: 85px;
+  width: auto;
+}
+.amount-value {
+  min-width: 100px;
+  width: auto;
+  text-align: left;
+}
+
+/* Ensure sticky headers/cells also adhere to general rules */
+.sticky-left thead th,
+.sticky-right thead th,
+.sticky-left tbody td,
+.sticky-right tbody td {
+  vertical-align: middle !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sticky-left thead th {
+  white-space: nowrap;
+}
+.sticky-right thead th {
+  white-space: nowrap;
 }

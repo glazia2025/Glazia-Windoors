@@ -13,7 +13,7 @@ import {
   MDBInput,
 } from "mdb-react-ui-kit";
 import "./UserProducts.css";
-import api from '../../utils/api';
+import api, { BASE_API_URL } from '../../utils/api';
 
 const UserProducts = () => {
   const [products, setProducts] = useState([]);
@@ -24,7 +24,7 @@ const UserProducts = () => {
     const fetchProducts = async () => {
         const token = localStorage.getItem('authToken'); 
         try {
-            const response = await api.get('https://api.glazia.in/api/admin/getProducts', {
+            const response = await api.get(`${BASE_API_URL}/admin/getProducts`, {
                 headers: {
                   Authorization: `Bearer ${token}`, // Include token for authentication
                 },

@@ -6,7 +6,7 @@ import {
   MDBCardHeader,
   MDBIcon
 } from 'mdb-react-ui-kit';
-import api from '../../../utils/api';
+import api, { BASE_API_URL } from '../../../utils/api';
 
 const Nalco = () => {
   const [ nalco, setNalco ] = useState(0);
@@ -20,7 +20,7 @@ const Nalco = () => {
   const fetchNalcoPrice = async () => {
     const token = localStorage.getItem('authToken');
     try {
-      const response = await api.get('https://api.glazia.in/api/admin/get-nalco', {
+      const response = await api.get(`${BASE_API_URL}/admin/get-nalco`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

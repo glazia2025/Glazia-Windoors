@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { Nalco } = require('../models/Order');
+require('dotenv').config();
 
 // Secret for JWT (you should store this in your .env file)
 const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key'; // Replace with a more secure secret

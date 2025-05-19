@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ExcelJS from 'exceljs';
 import { Upload, FileText, Image as ImageIcon } from 'lucide-react';
+import { BASE_API_URL } from '../utils/api';
 
 const ExcelUploader = () => {
   const [logs, setLogs] = useState([]);
@@ -12,10 +13,12 @@ const ExcelUploader = () => {
 
   const saveProductImages = async (data) => {
     try {
+      const token = localStorage.getItem("authToken");
       setSaveStatus('saving');
-      const response = await fetch('https://api.glazia.in/api/admin/save-product-images', {
+      const response = await fetch(`${BASE_API_URL}/admin/save-product-images`, {
         method: 'POST',
         headers: {
+          headers: { Authorization: `Bearer ${token}` },
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data)

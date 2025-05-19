@@ -11,18 +11,23 @@ import {
   MDBRow,
   MDBTypography,
 } from "mdb-react-ui-kit";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchOrders } from "../../../redux/orderSlice.js";
+import { DEFAULT_ORDER_LIST_QUERY_PARAMS } from "../../../enums/constants.js";
 
 const Orders = () => {
   const dispatch = useDispatch();
   const { orders, loading, error } = useSelector((state) => state.orders);
 
+  const [queryParams, setQueryParams] = useState(
+    DEFAULT_ORDER_LIST_QUERY_PARAMS
+  );
+
   useEffect(() => {
-    dispatch(fetchOrders());
+    dispatch(fetchOrders(queryParams));
     console.log("ord", orders);
-  }, []);
+  }, [queryParams]);
 
   return (
     <section
@@ -39,7 +44,6 @@ const Orders = () => {
                 </MDBTypography>
               </MDBCardHeader>
               <MDBCardBody className="p-4">
-
                 {/* Render orders */}
                 {orders?.length > 0 &&
                   orders.map((order) => (
@@ -48,11 +52,15 @@ const Orders = () => {
                         {order.products.map((product) => (
                           <MDBRow key={product._id}>
                             <MDBCol className="d-flex align-items-center">
-                              <p className="text-muted mb-0">{product.productId}</p>
+                              <p className="text-muted mb-0">
+                                {product.productId}
+                              </p>
                             </MDBCol>
                             <MDBCol className="d-flex align-items-center">
                               <p className="text-muted mb-0 small">
-                                {product.description || product.perticular || 'N.A'}
+                                {product.description ||
+                                  product.perticular ||
+                                  "N.A"}
                               </p>
                             </MDBCol>
                             <MDBCol className="d-flex align-items-center">
@@ -73,14 +81,25 @@ const Orders = () => {
                         />
                         <MDBRow className="align-items-center">
                           <MDBCol>
-                            <p className="mb-0 small" style={{color: '#386bc0'}}>{order.user.name}</p>
+                            <p
+                              className="mb-0 small"
+                              style={{ color: "#386bc0" }}
+                            >
+                              {order.user.name}
+                            </p>
                           </MDBCol>
                           <MDBCol>
                             <div className="d-flex justify-content-around mb-1">
-                              <p className="mt-1 mb-0 small" style={{color: '#386bc0'}}>
+                              <p
+                                className="mt-1 mb-0 small"
+                                style={{ color: "#386bc0" }}
+                              >
                                 Contact - {order.user.phoneNumber}
                               </p>
-                              <p className="mt-1 mb-0 small" style={{color: '#386bc0'}}>
+                              <p
+                                className="mt-1 mb-0 small"
+                                style={{ color: "#386bc0" }}
+                              >
                                 {order.user.city}
                               </p>
                             </div>

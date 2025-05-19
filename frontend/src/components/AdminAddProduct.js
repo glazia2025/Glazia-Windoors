@@ -10,7 +10,7 @@ const AdminAddProduct = () => {
   const [message, setMessage] = useState('');
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    typeof e?.preventDefault === "function" && e?.preventDefault();
 
     try {
       const token = localStorage.getItem('authToken'); // Fetch token from localStorage

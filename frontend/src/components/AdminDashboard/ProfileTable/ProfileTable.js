@@ -9,36 +9,46 @@ import {
   MDBBtn,
   MDBInput,
   MDBIcon,
-  MDBFile
+  MDBFile,
 } from "mdb-react-ui-kit";
-import { useDispatch, useSelector } from 'react-redux';
-import { setActiveOption, setActiveProfile } from "../../../redux/selectionSlice";
-import api from '../../../utils/api';
-import Search from '../../Search';
+import { useDispatch, useSelector } from "react-redux";
+import {
+  setActiveOption,
+  setActiveProfile,
+} from "../../../redux/selectionSlice";
+import api, { BASE_API_URL } from "../../../utils/api";
+import Search from "../../Search";
 import ImageZoom from "../../UserDashboard/ImageZoom";
-import './ProfileTable.css';
+import "./ProfileTable.css";
 
 const ProfileTable = () => {
   const dispatch = useDispatch();
-  const { activeProfile, activeOption } = useSelector((state) => state.selection);
+  const { activeProfile, activeOption } = useSelector(
+    (state) => state.selection
+  );
   const [profileOptions, setProfileOptions] = useState({});
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [profileData, setProfileData] = useState({});
   const [editableProduct, setEditableProduct] = useState(null);
 
-  const productsToDisplay = searchResults.length > 0
-    ? searchResults
-    : profileOptions[activeProfile]?.products[activeOption];
+  const productsToDisplay =
+    searchResults.length > 0
+      ? searchResults
+      : profileOptions[activeProfile]?.products[activeOption];
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
   const fetchProducts = async () => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem("authToken");
     try {
-      const response = await api.get('https://api.glazia.in/api/admin/getProducts');
+      const response = await api.get(`${BASE_API_URL}/admin/getProducts`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setProfileData(response.data.categories);
     } catch (err) {
       console.error("Error fetching products", err);
@@ -55,21 +65,30 @@ const ProfileTable = () => {
   }, [profileData]);
 
   const handleSearch = async (e) => {
-    e.preventDefault();
+    typeof e?.preventDefault === "function" && e?.preventDefault();
     try {
-      const response = await api.get('https://api.glazia.in/api/admin/search-product', {
-        params: { sapCode: searchQuery, description: searchQuery, profile: activeProfile, option: activeOption },
+      const token = localStorage.getItem("authToken");
+      const response = await api.get(`${BASE_API_URL}/admin/search-product`, {
+        params: {
+          sapCode: searchQuery,
+          description: searchQuery,
+          profile: activeProfile,
+          option: activeOption,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       setSearchResults(response.data.products);
     } catch (error) {
-      console.error('Error searching products:', error);
+      console.error("Error searching products:", error);
     }
   };
 
   const searchProduct = (value) => {
     setSearchResults([]);
     setSearchQuery(value);
-  }
+  };
 
   const handleEditClick = (product) => {
     setEditableProduct({ ...product });
@@ -77,11 +96,11 @@ const ProfileTable = () => {
 
   const handleInputChange = (e) => {
     const { name, files } = e.target;
-  
+
     if (name === "image" && files.length > 0) {
       const file = files[0];
       const reader = new FileReader();
-  
+
       reader.onload = (event) => {
         const base64Image = event.target.result;
         setEditableProduct((prevState) => ({
@@ -89,7 +108,7 @@ const ProfileTable = () => {
           [name]: base64Image,
         }));
       };
-  
+
       reader.readAsDataURL(file);
     } else {
       const { value } = e.target;
@@ -101,10 +120,10 @@ const ProfileTable = () => {
   };
 
   const handleSave = async () => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem("authToken");
     try {
       const response = await api.put(
-        `https://api.glazia.in/api/admin/edit-product/${activeProfile}/${activeOption}/${editableProduct._id}`,
+        `${BASE_API_URL}/admin/edit-product/${activeProfile}/${activeOption}/${editableProduct._id}`,
         editableProduct,
         {
           headers: {
@@ -120,28 +139,31 @@ const ProfileTable = () => {
   };
 
   const handleDelete = async (productId) => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem("authToken");
     try {
-      await api.delete(`https://api.glazia.in/api/admin/delete-product/${activeProfile}/${activeOption}/${productId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await api.delete(
+        `${BASE_API_URL}/admin/delete-product/${activeProfile}/${activeOption}/${productId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       fetchProducts();
       // Remove product from the state after successful deletion
       setProfileOptions((prevOptions) => {
-        const updatedProducts = prevOptions[activeProfile]?.products[activeOption].filter(
-          (product) => product.id !== productId
-        );
+        const updatedProducts = prevOptions[activeProfile]?.products[
+          activeOption
+        ].filter((product) => product.id !== productId);
         return {
           ...prevOptions,
           [activeProfile]: {
             ...prevOptions[activeProfile],
             products: {
               ...prevOptions[activeProfile].products,
-              [activeOption]: updatedProducts
-            }
-          }
+              [activeOption]: updatedProducts,
+            },
+          },
         };
       });
     } catch (err) {
@@ -151,10 +173,11 @@ const ProfileTable = () => {
 
   return (
     <>
-      <MDBTabs className="mb-4">
+      <MDBTabs className="mb-4 d-flex align-items-center gap-2">
         {Object.keys(profileOptions).map((profile) => (
           <MDBTabsItem key={profile}>
             <MDBTabsLink
+              className="rounded-2"
               active={activeProfile === profile}
               onClick={() => {
                 dispatch(setActiveProfile(profile));
@@ -166,12 +189,13 @@ const ProfileTable = () => {
           </MDBTabsItem>
         ))}
       </MDBTabs>
-      <hr />
+      {/* <hr /> */}
       {activeProfile && (
-        <MDBTabs className="mb-4">
+        <MDBTabs className="mb-4 d-flex align-items-center gap-2">
           {profileOptions[activeProfile]?.options.map((option) => (
             <MDBTabsItem key={option}>
               <MDBTabsLink
+                className="rounded-2"
                 active={activeOption === option}
                 onClick={() => dispatch(setActiveOption(option))}
               >
@@ -185,16 +209,27 @@ const ProfileTable = () => {
       {activeOption && (
         <MDBCard className="mt-4">
           <MDBCardBody>
-            <div className="d-flex justify-content-between align-items-center mb-3 sticky-top bg-white p-3" style={{ top: "0", zIndex: 1 }}>
+            <div
+              className="d-flex justify-content-between align-items-center mb-3 sticky-top bg-white p-3"
+              style={{ top: "0", zIndex: 1 }}
+            >
               <div className="d-flex align-items-center">
-                <MDBTypography tag="h4" className="mb-0" style={{ marginRight: '20px' }}>
+                <MDBTypography
+                  tag="h4"
+                  className="mb-0"
+                  style={{ marginRight: "20px" }}
+                >
                   Products
                 </MDBTypography>
               </div>
-              <Search searchQuery={searchQuery} setSearchQuery={searchProduct} handleSearch={handleSearch} />
+              <Search
+                searchQuery={searchQuery}
+                setSearchQuery={searchProduct}
+                handleSearch={handleSearch}
+              />
             </div>
             <div className="table-responsive">
-              <table className="table table-bordered"  style={{ width: '100%' }}>
+              <table className="table table-bordered" style={{ width: "100%" }}>
                 <thead>
                   <tr>
                     <th className="w5">S No.</th>
@@ -214,30 +249,119 @@ const ProfileTable = () => {
                   {productsToDisplay?.map((product, index) => (
                     <tr key={product.id}>
                       <td>{index + 1}</td>
-                      <td>{editableProduct?.id === product.id ? <MDBFile name="image" size='sm' onChange={handleInputChange} id='formFileSm' /> : product.image ? <ImageZoom productImage={product.image} /> : 'N.A'}</td>
+                      <td>
+                        {editableProduct?.id === product.id ? (
+                          <MDBFile
+                            name="image"
+                            size="sm"
+                            onChange={handleInputChange}
+                            id="formFileSm"
+                          />
+                        ) : product.image ? (
+                          <ImageZoom productImage={product.image} />
+                        ) : (
+                          "N.A"
+                        )}
+                      </td>
                       <td>{product.sapCode}</td>
-                      <td>{editableProduct?.id === product.id ? <MDBInput name="part" value={editableProduct.part} onChange={handleInputChange} /> : product.part || 'N.A'}</td>
-                      <td>{editableProduct?.id === product.id ? <MDBInput name="description" value={editableProduct.description} onChange={handleInputChange} /> : product.description || 'N.A'}</td>
+                      <td>
+                        {editableProduct?.id === product.id ? (
+                          <MDBInput
+                            name="part"
+                            value={editableProduct.part}
+                            onChange={handleInputChange}
+                          />
+                        ) : (
+                          product.part || "N.A"
+                        )}
+                      </td>
+                      <td>
+                        {editableProduct?.id === product.id ? (
+                          <MDBInput
+                            name="description"
+                            value={editableProduct.description}
+                            onChange={handleInputChange}
+                          />
+                        ) : (
+                          product.description || "N.A"
+                        )}
+                      </td>
                       <td>{product.degree}</td>
-                      <td>{profileOptions[activeProfile].rate[activeOption]}</td>
-                      <td>{editableProduct?.id === product.id ? <MDBInput name="per" value={editableProduct.per} onChange={handleInputChange} /> : product.per}</td>
-                      <td>{editableProduct?.id === product.id ? <MDBInput name="kgm" value={editableProduct.kgm} onChange={handleInputChange} /> : product.kgm}</td>
-                      <td>{editableProduct?.id === product.id ? <MDBInput name="length" value={editableProduct.length} onChange={handleInputChange} /> : product.length}</td>
+                      <td>
+                        {profileOptions[activeProfile].rate[activeOption]}
+                      </td>
+                      <td>
+                        {editableProduct?.id === product.id ? (
+                          <MDBInput
+                            name="per"
+                            value={editableProduct.per}
+                            onChange={handleInputChange}
+                          />
+                        ) : (
+                          product.per
+                        )}
+                      </td>
+                      <td>
+                        {editableProduct?.id === product.id ? (
+                          <MDBInput
+                            name="kgm"
+                            value={editableProduct.kgm}
+                            onChange={handleInputChange}
+                          />
+                        ) : (
+                          product.kgm
+                        )}
+                      </td>
+                      <td>
+                        {editableProduct?.id === product.id ? (
+                          <MDBInput
+                            name="length"
+                            value={editableProduct.length}
+                            onChange={handleInputChange}
+                          />
+                        ) : (
+                          product.length
+                        )}
+                      </td>
                       <td className="d-flex">
                         {editableProduct?.id === product.id ? (
                           <>
-                            <MDBBtn color="success" size="sm" className="m-1" onClick={handleSave}><MDBIcon far icon="save" /></MDBBtn>
-                            <MDBBtn color="secondary" size="sm" className="m-1" onClick={() => setEditableProduct(null)}>
+                            <MDBBtn
+                              color="success"
+                              size="sm"
+                              className="m-1"
+                              onClick={handleSave}
+                            >
+                              <MDBIcon far icon="save" />
+                            </MDBBtn>
+                            <MDBBtn
+                              color="secondary"
+                              size="sm"
+                              className="m-1"
+                              onClick={() => setEditableProduct(null)}
+                            >
                               <MDBIcon fas icon="times" />
                             </MDBBtn>
                           </>
                         ) : (
-                          <MDBBtn color="warning" size="sm" className="m-1" onClick={() => handleEditClick(product)}>
-                            <MDBIcon fas icon="pen" />&nbsp;
+                          <MDBBtn
+                            color="warning"
+                            size="sm"
+                            className="m-1"
+                            onClick={() => handleEditClick(product)}
+                          >
+                            <MDBIcon fas icon="pen" />
+                            &nbsp;
                           </MDBBtn>
                         )}
-                        <MDBBtn color="danger" size="sm" className="m-1" onClick={() => handleDelete(product._id)}>
-                          <MDBIcon fas icon="trash" />&nbsp;
+                        <MDBBtn
+                          color="danger"
+                          size="sm"
+                          className="m-1"
+                          onClick={() => handleDelete(product._id)}
+                        >
+                          <MDBIcon fas icon="trash" />
+                          &nbsp;
                         </MDBBtn>
                       </td>
                     </tr>

@@ -28,6 +28,7 @@ import ProfileTable from "../ProfileTable/ProfileTable";
 import HardwareOptions from "../../UserDashboard/HardwareOptions";
 import AccessoriesOptions from "../../UserDashboard/AcessoriesOptions";
 import { addSelectedProducts } from "../../../redux/selectionSlice";
+import { BASE_API_URL } from "../../../utils/api";
 
 
 const Sidenav = () => {
@@ -49,7 +50,7 @@ const Sidenav = () => {
     const fetchProducts = async () => {
         const token = localStorage.getItem('authToken'); 
         try {
-            const response = await api.get('https://api.glazia.in/api/admin/getProducts', {
+            const response = await api.get(`${BASE_API_URL}/admin/getProducts`, {
                 headers: {
                   Authorization: `Bearer ${token}`,
                 },

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MDBBtn, MDBIcon } from 'mdb-react-ui-kit';
 import './Search.css';
 
-const Search = ({ searchQuery, setQuery, handleSearch }) => {
+const Search = ({ searchQuery, setSearchQuery, handleSearch }) => {
   const [localQuery, setLocalQuery] = useState('');
 
   useEffect(() => {
@@ -10,7 +10,7 @@ const Search = ({ searchQuery, setQuery, handleSearch }) => {
   }, [searchQuery]);
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    typeof e?.preventDefault === "function" && e?.preventDefault();
     handleSearch(localQuery);
   };
 
@@ -19,8 +19,8 @@ const Search = ({ searchQuery, setQuery, handleSearch }) => {
     setLocalQuery(value);
     
     // Clear results if input is empty
-    if (!value.trim()) {
-      setQuery('');
+    if (!value.trim() && typeof setSearchQuery === "function") {
+      setSearchQuery('');
     }
   };
 

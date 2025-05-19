@@ -6,7 +6,7 @@ import ProfileOptions from "./ProfileTable/ProfileTable";
 import HardwareOptions from "./HardwareTable/HardwareTable";
 import AccessoriesOptions from "../UserDashboard/AcessoriesOptions";
 import { setActiveOption, setActiveProfile } from "../../redux/selectionSlice";
-import api from '../../utils/api';
+import api, { BASE_API_URL } from '../../utils/api';
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
@@ -41,7 +41,7 @@ const AdminDashboard = () => {
   const updateNalco = async () => {
     const token = localStorage.getItem('authToken'); 
     try {
-        const response = await api.post('https://api.glazia.in/api/admin/update-nalco', {nalcoPrice}, {
+        const response = await api.post(`${BASE_API_URL}/admin/update-nalco`, {nalcoPrice}, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -63,7 +63,7 @@ const AdminDashboard = () => {
   const fetchNalcoPrice = async () => {
     const token = localStorage.getItem('authToken');
     try {
-      const response = await api.get('https://api.glazia.in/api/admin/get-nalco', {
+      const response = await api.get(`${BASE_API_URL}/admin/get-nalco`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -80,13 +80,13 @@ const AdminDashboard = () => {
   }, []);
 
   return (
-    <MDBRow className="pdf-row-wrapper">
+    <MDBRow className="pdf-row-wrapper mt-5">
       <MDBCol className="admin-dashboard" style={{ flex: "1 1 auto" }}>
         <MDBRow className="d-flex justify-content-between align-items-center">
           <h4 style={{ width: "max-content" }}>
             Admin Panel <MDBIcon fas icon="tools" />
           </h4>
-          <div className="d-flex align-items-center" style={{width: 'max-content'}}>
+          <div className="d-flex align-items-center gap-2" style={{width: 'max-content'}}>
             <MDBBtn style={{width: 'max-content'}}
               color="success"
               onClick={() => setBasicModal(true)}
@@ -98,7 +98,7 @@ const AdminDashboard = () => {
             </span>
           </div>
         </MDBRow>
-        <MDBRow className="d-flex" style={{ marginTop: "20px" }}>
+        <MDBRow className="d-flex" style={{ marginTop: "20px", maxWidth: "600px" }}>
           <MDBCol md="auto" className="mb-3" style={{ flex: "1 1 auto" }}>
             <MDBBtn
               style={{ width: "100%" }}

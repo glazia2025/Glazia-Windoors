@@ -1,17 +1,20 @@
 const express = require('express');
 const { getProducts, getProfileHierarchy } = require('../controllers/productController');
 const { createUser, getUser, updateUser } = require('../controllers/userController');
-const { createOrder, getOrders, sendEmail } = require('../controllers/orderController');
+const { createOrder, getOrders, sendEmail, createPayment, uploadPaymentProof } = require('../controllers/orderController');
 const { getHardwareHeirarchy } = require('../controllers/hardwareController');
+const isUser = require('../middleware/userMiddleware');
 const router = express.Router();
 
 router.post('/register', createUser);
-router.get('/getUser', getUser);
-router.put('/updateUser', updateUser);
-router.post('/pi-generate', createOrder);
-router.get('/getOrders', getOrders);
-router.get('/get-profile-heirarchy', getProfileHierarchy);
-router.get('/get-hardware-heirarchy', getHardwareHeirarchy);
-router.post('/send-email', sendEmail)
+router.get('/getUser', isUser, getUser);
+router.put('/updateUser', isUser, updateUser);
+router.post('/pi-generate', isUser, express.json({ limit: "50mb" }), createOrder);
+router.post('/add-payment', isUser, express.json({ limit: "50mb" }), createPayment);
+router.get('/getOrders', isUser, getOrders);
+router.get('/get-profile-heirarchy', isUser, getProfileHierarchy);
+router.get('/get-hardware-heirarchy', isUser, getHardwareHeirarchy);
+router.post('/send-email', isUser, sendEmail);
+router.post('/upload-payment-proof', isUser, express.json({ limit: "50mb" }), uploadPaymentProof)
 
 module.exports = router;

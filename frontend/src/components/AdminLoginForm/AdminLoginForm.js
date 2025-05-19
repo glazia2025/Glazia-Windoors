@@ -35,7 +35,7 @@ const AdminLoginForm = ({ setUserRole, setIsLoggedIn }) => {
       if (decoded.role === 'admin') {
         navigate('/admin/dashboard');
       } else {
-        navigate('/user/orders');
+        navigate('/user/home');
       }
     } catch (error) {
       setMessage(error.response ? error.response.data.message : 'An error occurred');

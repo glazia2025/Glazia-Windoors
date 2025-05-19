@@ -1,8 +1,15 @@
 import React, { useState } from "react";
-import { MDBRow, MDBCol, MDBInput, MDBBtn, MDBCard, MDBCardBody } from "mdb-react-ui-kit";
-import api from "../../../utils/api";
+import {
+  MDBRow,
+  MDBCol,
+  MDBInput,
+  MDBBtn,
+  MDBCard,
+  MDBCardBody,
+} from "mdb-react-ui-kit";
+import api, { BASE_API_URL } from "../../../utils/api";
 
-const TechnicalSheetForm = ({ category ,subCategory }) => {
+const TechnicalSheetForm = ({ category, subCategory }) => {
   const [formData, setFormData] = useState({
     shutterHeight: null,
     shutterWidth: null,
@@ -14,24 +21,30 @@ const TechnicalSheetForm = ({ category ,subCategory }) => {
 
   const fetchTechSheet = async () => {
     try {
-      const response = await api.get(`https://api.glazia.in/api/admin/get-tech-sheet?main=profile&category=${category}&subCategory=${subCategory}`);
-      console.log(response)
+      const token = localStorage.getItem("authToken");
+      const response = await api.get(
+        `${BASE_API_URL}/admin/add-product/admin/get-tech-sheet?main=profile&category=${category}&subCategory=${subCategory}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      console.log(response);
       setFormData({
         shutterHeight: response.data.shutterHeight || null,
         shutterWidth: response.data.shutterWidth || null,
-        lockingMechanism: response.data.lockingMechanism || '',
-        glassSize: response.data.glassSize || '',
-        alloy: response.data.alloy || '',
+        lockingMechanism: response.data.lockingMechanism || "",
+        glassSize: response.data.glassSize || "",
+        alloy: response.data.alloy || "",
         interlock: response.data.interlock || null,
       });
     } catch (err) {
       console.error("Error fetching products", err);
     }
-  }
+  };
 
   useState(() => {
     fetchTechSheet();
-  }, [])
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,93 +56,93 @@ const TechnicalSheetForm = ({ category ,subCategory }) => {
       ...formData,
       category,
       subCategory,
-      main: 'profile'
-    }
+      main: "profile",
+    };
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem("authToken");
       const response = await api.post(
-        "https://api.glazia.in/api/admin/update-tech-sheet",
+        `${BASE_API_URL}/admin/add-product/admin/update-tech-sheet`,
         techData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }
       );
       console.log(response);
     } catch (error) {
-      console.error('Error adding product:', error);
+      console.error("Error adding product:", error);
     }
   };
 
   return (
     <MDBCard className="mb-6">
-        <MDBCardBody>
+      <MDBCardBody>
         <p className="h4 text-center mb-4">Technical Sheet</p>
         <MDBRow>
-            {/* Left Column */}
-            <MDBCol md="6">
+          {/* Left Column */}
+          <MDBCol md="6">
             <MDBInput
-                label="Max Shutter Height (mm)"
-                type="number"
-                name="shutterHeight"
-                value={formData.shutterHeight}
-                onChange={handleChange}
-                className="mb-4"
+              label="Max Shutter Height (mm)"
+              type="number"
+              name="shutterHeight"
+              value={formData.shutterHeight}
+              onChange={handleChange}
+              className="mb-4"
             />
             <MDBInput
-                label="Max Shutter Width (mm)"
-                type="number"
-                name="shutterWidth"
-                value={formData.shutterWidth}
-                onChange={handleChange}
-                className="mb-4"
+              label="Max Shutter Width (mm)"
+              type="number"
+              name="shutterWidth"
+              value={formData.shutterWidth}
+              onChange={handleChange}
+              className="mb-4"
             />
             <MDBInput
-                label="Locking Mechanism"
-                type="text"
-                name="lockingMechanism"
-                value={formData.lockingMechanism}
-                onChange={handleChange}
-                className="mb-4"
+              label="Locking Mechanism"
+              type="text"
+              name="lockingMechanism"
+              value={formData.lockingMechanism}
+              onChange={handleChange}
+              className="mb-4"
             />
-            </MDBCol>
+          </MDBCol>
 
-            {/* Right Column */}
-            <MDBCol md="6">
+          {/* Right Column */}
+          <MDBCol md="6">
             <MDBInput
-                label="Glass Size (mm)"
-                type="text"
-                name="glassSize"
-                value={formData.glassSize}
-                onChange={handleChange}
-                className="mb-4"
+              label="Glass Size (mm)"
+              type="text"
+              name="glassSize"
+              value={formData.glassSize}
+              onChange={handleChange}
+              className="mb-4"
             />
             <MDBInput
-                label="Alloy"
-                type="text"
-                name="alloy"
-                value={formData.alloy}
-                onChange={handleChange}
-                className="mb-4"
+              label="Alloy"
+              type="text"
+              name="alloy"
+              value={formData.alloy}
+              onChange={handleChange}
+              className="mb-4"
             />
             <MDBInput
-                label="Interlock (mm)"
-                type="number"
-                name="interlock"
-                value={formData.interlock}
-                onChange={handleChange}
-                className="mb-4"
+              label="Interlock (mm)"
+              type="number"
+              name="interlock"
+              value={formData.interlock}
+              onChange={handleChange}
+              className="mb-4"
             />
-            </MDBCol>
+          </MDBCol>
         </MDBRow>
         <div className="text-center">
-            <MDBBtn color="primary" onClick={handleSubmit}>
-              Update Sheet
-            </MDBBtn>
+          <MDBBtn color="primary" onClick={handleSubmit}>
+            Update Sheet
+          </MDBBtn>
         </div>
-        </MDBCardBody>
+      </MDBCardBody>
     </MDBCard>
   );
 };

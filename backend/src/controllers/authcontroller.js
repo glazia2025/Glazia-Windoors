@@ -32,12 +32,14 @@ const sendWhatsAppOTP = async (req, res) => {
   const { phoneNumber } = req.body;
   const otp = generateOtp();
 
+  console.log("otp", otp);
+
   try {
-    const message = await client.messages.create({
-      body: `Welcome to Glazia, Your OTP is ${otp}`,  // Simple SMS body
-      from: process.env.TWILIO_SMS_NUMBER,  // Your Twilio SMS number
-      to: `+91${phoneNumber}`
-    });
+    // const message = await client.messages.create({
+    //   body: `Welcome to Glazia, Your OTP is ${otp}`,  // Simple SMS body
+    //   from: process.env.TWILIO_SMS_NUMBER,  // Your Twilio SMS number
+    //   to: `+91${phoneNumber}`
+    // });
 
     await Otp.findOneAndUpdate(
       { phone: phoneNumber },
@@ -66,7 +68,7 @@ const verifyOTP = async (req, res) => {
         const token = jwt.sign(
           { phoneNumber, userId: existingUser._id, role: 'user' },
           process.env.JWT_SECRET || 'secret',
-          { expiresIn: '1h' }
+          { expiresIn: '120d' }
         );
 
         return res.status(200).json({
@@ -107,7 +109,7 @@ const adminLogin = async (req, res) => {
 
     // Create JWT token with role as 'admin'
     console.log("debugge", process.env.JWT_SECRET)
-    const token = jwt.sign({ username, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ username, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '120d' });
 
     // Send token as response
     res.status(200).json({ message: 'Login successful', token });

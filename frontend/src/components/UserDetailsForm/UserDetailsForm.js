@@ -44,7 +44,7 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
   
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    typeof e?.preventDefault === "function" && e?.preventDefault();
 
     // Simple validation
     if (!userName || !email || !gstNumber || !pincode || !city || !state || !completeAddress) {
@@ -54,7 +54,7 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
 
     try {
       // Make API call to save user details
-      const response = await api.post('/admin/register', {
+      const response = await api.post('/user/register', {
         name: userName,
         email,
         gstNumber,
@@ -67,7 +67,7 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
       localStorage.setItem('authToken', response.data.token);
       setMessage('User details saved successfully!');
       console.log("from form");
-      navigate('/user/orders');  // Redirect to the user's orders page or another page
+      navigate('/user/home');  // Redirect to the user's orders page or another page
     } catch (error) {
       setMessage('');
       setErrorMessage('Failed to save details. Please try again.');

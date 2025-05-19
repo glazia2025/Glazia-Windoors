@@ -1,5 +1,5 @@
 body {
-  background-color: hsl(0, 0%, 96%);
+  /* background-color: hsl(0, 0%, 96%); */
 }
 .mdb-container {
   /* height: 100vh; */
@@ -53,7 +53,7 @@ body {
   background-color: #f8f9fa; /* Light background */
   padding: 40px 20px;
   text-align: center; /* Center the text */
-  font-family: Arial, sans-serif;
+  font-family: "Nunito Sans", Arial, sans-serif;
   border-top: 2px solid #ddd; /* Add a top border */
 }
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
-import api from '../utils/api';
+import api, { BASE_API_URL } from '../utils/api';
 
 const ExcelDataFetcher = () => {
   const [data, setData] = useState([]);
@@ -46,7 +46,7 @@ const ExcelDataFetcher = () => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await api.post(
-        "https://api.glazia.in/api/admin/add-all",
+        `${BASE_API_URL}/admin/add-all`,
         formattedData,
         {
           headers: {

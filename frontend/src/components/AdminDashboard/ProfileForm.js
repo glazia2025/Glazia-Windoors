@@ -1,6 +1,6 @@
 import { MDBContainer, MDBRow, MDBCol, MDBBtn, MDBInput, MDBCard, MDBCardBody, MDBCardHeader, MDBFile } from 'mdb-react-ui-kit';
 import { useEffect, useState } from 'react';
-import api from '../../utils/api';
+import api, { BASE_API_URL } from '../../utils/api';
 import TechnicalSheetForm from './AddTechSheet/AddTechSheet';
 
 const ProfileForm = () => {
@@ -27,7 +27,7 @@ const ProfileForm = () => {
     const fetchProducts = async () => {
         const token = localStorage.getItem('authToken');
         try {
-            const response = await api.get('https://api.glazia.in/api/admin/getProducts', {
+            const response = await api.get(`${BASE_API_URL}/admin/getProducts`, {
                 headers: {
                   Authorization: `Bearer ${token}`,
                 },
@@ -145,7 +145,7 @@ const ProfileForm = () => {
         const token = localStorage.getItem('authToken');
         
         const response = await api.post(
-          "https://api.glazia.in/api/admin/add-product",
+          `${BASE_API_URL}/admin/add-product`,
           productData,
           {
             headers: {

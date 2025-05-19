@@ -28,9 +28,10 @@ canvas {
 .main-selectors {
   max-width: 90%;
   flex: 1 1 auto !important; 
-  margin-left: 5% !important;  
+  margin: 5% !important;  
+  /* margin-left: 5% !important;  
   margin-right: 5% !important;  
-  margin-bottom: 5% !important;  
+  margin-bottom: 5% !important;   */
 }
 
 .slider {
@@ -56,7 +57,7 @@ canvas {
   color: #fff;
   background: #3b71ca;
   border: 1px solid #e0e0e0;
-  transform: translateX(-30%) rotate(-90deg);
+  transform: translateX(-20%) rotate(-90deg);
   transform-origin: left top;
   text-align: left;
   padding: 0px 50px;
