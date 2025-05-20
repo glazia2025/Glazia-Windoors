@@ -32,14 +32,14 @@ const sendWhatsAppOTP = async (req, res) => {
   const { phoneNumber } = req.body;
   const otp = generateOtp();
 
-  console.log("otp", otp);
+  // console.log("otp", otp);
 
   try {
-    // const message = await client.messages.create({
-    //   body: `Welcome to Glazia, Your OTP is ${otp}`,  // Simple SMS body
-    //   from: process.env.TWILIO_SMS_NUMBER,  // Your Twilio SMS number
-    //   to: `+91${phoneNumber}`
-    // });
+    const message = await client.messages.create({
+      body: `Welcome to Glazia, Your OTP is ${otp}`,  // Simple SMS body
+      from: process.env.TWILIO_SMS_NUMBER,  // Your Twilio SMS number
+      to: `+91${phoneNumber}`
+    });
 
     await Otp.findOneAndUpdate(
       { phone: phoneNumber },

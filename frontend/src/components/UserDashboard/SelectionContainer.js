@@ -290,15 +290,15 @@ const SelectionContainer = () => {
     }
   };
 
-  const sendMailInvoice = async (pdfData) => {
+  const sendMailOrderProcessing = async (pdfData) => {
     const emailData = {
       to: user.email,
-      subject: "Glazia Windoors Performa Invoice",
+      subject: "Glazia Windoors Order In Process",
       text: `
 Dear ${user.name},
 Thank you for choosing Glazia Windoors – your one-stop solution for all your aluminum needs!
     
-We are pleased to inform you that your perfora invoice is ready. Please find the attached PDF document for your reference. It contains the details of your order and other related information.
+We are pleased to inform you that we are processing your order. Please find the attached PDF document of the Proforma Invoice for your reference. It contains the details of your order and other related information.
     
 If you have any questions or need further assistance, feel free to reach out to us. Our team is here to provide you with the best service for all your aluminum requirements.
     
@@ -328,6 +328,85 @@ Glazia Windoors Pvt Ltd.
       // alert('Error sending email');
     }
   };
+
+  const sendMailOrderConfirmed = async () => {
+    const emailData = {
+      to: user.email,
+      subject: "Glazia Windoors Order Is Confirmed",
+      text: `
+Dear ${user.name},
+Thank you for choosing Glazia Windoors – your one-stop solution for all your aluminum needs!
+    
+We are pleased to inform you that your order is confirmed. Please wait for the final payment date.
+    
+If you have any questions or need further assistance, feel free to reach out to us. Our team is here to provide you with the best service for all your aluminum requirements.
+    
+Thank you once again for choosing us. We look forward to serving you.
+    
+Best regards,  
+Glazia Windoors Pvt Ltd.   
+[www.glazia.in]  
+[+91 9958053708]
+      `,
+    };
+
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await axios.post(
+        `${BASE_API_URL}/user/send-email`,
+        emailData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    } catch (error) {
+      // alert('Error sending email');
+    }
+  };
+
+
+  const sendMailOrderComplete = async (pdfData) => {
+    const emailData = {
+      to: user.email,
+      subject: "Glazia Windoors Order Is Complete",
+      text: `
+Dear ${user.name},
+Thank you for choosing Glazia Windoors – your one-stop solution for all your aluminum needs!
+    
+We are pleased to inform you that your order has been completed. Please check out the documents related to your order delivery on the app.
+    
+If you have any questions or need further assistance, feel free to reach out to us. Our team is here to provide you with the best service for all your aluminum requirements.
+    
+Thank you once again for choosing us. We look forward to serving you.
+    
+Best regards,  
+Glazia Windoors Pvt Ltd.   
+[www.glazia.in]  
+[+91 9958053708]
+      `,
+      pdf: pdfData,
+    };
+
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await axios.post(
+        `${BASE_API_URL}/user/send-email`,
+        emailData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    } catch (error) {
+      // alert('Error sending email');
+    }
+  };
+
 
   const generatePDF = () => {
     const doc = createProformaInvoice();
