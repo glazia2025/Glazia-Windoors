@@ -228,7 +228,7 @@ const PaymentProofModal = (props) => {
     });
   };
 
-  if (!userRole || !payment || !payment.proof) return <></>;
+  if (!userRole || !payment || !payment.proofAdded) return <></>;
 
   return (
     <MDBModal open={isOpen} onClose={doOnClose} tabIndex="-1">

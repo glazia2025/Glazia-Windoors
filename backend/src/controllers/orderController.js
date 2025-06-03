@@ -29,6 +29,7 @@ const createOrder = async (req, res) => {
         {
           amount: payment.amount,
           proof: payment.proof,
+          proofAdded: true,
           cycle: 1,
           isApproved: false,
         },
@@ -158,6 +159,7 @@ const createPayment = async (req, res) => {
     order.payments.push({
       amount,
       proof,
+      proofAdded: true,
       cycle: latestPayment.cycle + 1,
       isApproved: false,
     });
@@ -228,6 +230,7 @@ const approvePayment = async (req, res) => {
       order.payments.push({
         amount: order.payments[0].amount,
         cycle: 2,
+        proofAdded: false,
         isApproved: false,
         dueDate: finalPaymentDueDate,
       });
@@ -457,6 +460,7 @@ const uploadPaymentProof = async (req, res) => {
     }
 
     payment.proof = proof;
+    payment.proofAdded = true;
     payment.isApproved = false;
     payment.proofAddedAt = new Date();
 

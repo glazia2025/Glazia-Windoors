@@ -28,7 +28,7 @@ export const checkOrderSecondPaymentPending = (orderDetails) => {
     orderDetails &&
     orderDetails.payments &&
     orderDetails.payments.length === 2 &&
-    !orderDetails.payments[1].proof &&
+    !orderDetails.payments[1].proofAdded &&
     new Date(orderDetails.payments[1].dueDate).getTime() > new Date().getTime()
   );
 };
@@ -38,7 +38,7 @@ export const checkOrderSecondPaymentOverdue = (orderDetails) => {
     orderDetails &&
     orderDetails.payments &&
     orderDetails.payments.length === 2 &&
-    !orderDetails.payments[1].proof &&
+    !orderDetails.payments[1].proofAdded &&
     new Date(orderDetails.payments[1].dueDate).getTime() <= new Date().getTime()
   );
 };
@@ -48,7 +48,7 @@ export const checkOrderSecondApprovalPending = (orderDetails) => {
     orderDetails &&
     orderDetails.payments &&
     orderDetails.payments.length === 2 &&
-    orderDetails.payments[1].proof &&
+    orderDetails.payments[1].proofAdded &&
     !orderDetails.payments[1].isApproved
   );
 };
@@ -58,7 +58,7 @@ export const checkOrderDispatchPending = (orderDetails) => {
     orderDetails &&
     orderDetails.payments &&
     orderDetails.payments.length === 2 &&
-    orderDetails.payments[1].proof &&
+    orderDetails.payments[1].proofAdded &&
     orderDetails.payments[1].isApproved &&
     !orderDetails.isComplete
   );

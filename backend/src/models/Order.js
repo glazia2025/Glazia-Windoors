@@ -21,6 +21,7 @@ const paymentSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   cycle: { type: Number, required: true },
   proof: { type: String, required: false },
+  proofAdded: { type: Boolean, required: false },
   proofAddedAt: { type: Date, required: false },
   isApproved: { type: Boolean, default: false },
   dueDate: { type: Date },

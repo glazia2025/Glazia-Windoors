@@ -116,7 +116,7 @@ const OrderDetails = () => {
       orderDetails &&
       orderDetails.payments &&
       orderDetails.payments.length === 2 &&
-      !orderDetails.payments[1].proof &&
+      !orderDetails.payments[1].proofAdded &&
       new Date(orderDetails.payments[1].dueDate).getTime() >
         new Date().getTime()
     );
@@ -127,7 +127,7 @@ const OrderDetails = () => {
       orderDetails &&
       orderDetails.payments &&
       orderDetails.payments.length === 2 &&
-      !orderDetails.payments[1].proof &&
+      !orderDetails.payments[1].proofAdded &&
       new Date(orderDetails.payments[1].dueDate).getTime() <=
         new Date().getTime()
     );
@@ -138,7 +138,7 @@ const OrderDetails = () => {
       orderDetails &&
       orderDetails.payments &&
       orderDetails.payments.length === 2 &&
-      orderDetails.payments[1].proof &&
+      orderDetails.payments[1].proofAdded &&
       !orderDetails.payments[1].isApproved
     );
   };
@@ -148,7 +148,7 @@ const OrderDetails = () => {
       orderDetails &&
       orderDetails.payments &&
       orderDetails.payments.length === 2 &&
-      orderDetails.payments[1].proof &&
+      orderDetails.payments[1].proofAdded &&
       orderDetails.payments[1].isApproved &&
       !orderDetails.isComplete
     );
@@ -229,7 +229,7 @@ const OrderDetails = () => {
   const checkPaymentProofPending = (payment) => {
     return (
       payment &&
-      !payment.proof &&
+      !payment.proofAdded &&
       new Date(payment.dueDate).getTime() > new Date().getTime()
     );
   };
@@ -237,17 +237,17 @@ const OrderDetails = () => {
   const checkPaymentProofOverdue = (payment) => {
     return (
       payment &&
-      !payment.proof &&
+      !payment.proofAdded &&
       new Date(payment.dueDate).getTime() <= new Date().getTime()
     );
   };
 
   const checkPaymentApprovalPending = (payment) => {
-    return payment && payment.proof && !payment.isApproved;
+    return payment && payment.proofAdded && !payment.isApproved;
   };
 
   const checkPaymentHasDueDate = (payment) => {
-    return payment && !payment.proof && !!payment.dueDate;
+    return payment && !payment.proofAdded && !!payment.dueDate;
   };
 
   const getPaymentStatus = (payment) => {
@@ -964,7 +964,7 @@ const OrderDetails = () => {
                               </MDBTypography>
                             </td>
                             <td className="">
-                              {!payment.proof ? (
+                              {!payment.proofAdded ? (
                                 <div className="d-flex">
                                   <MDBTypography
                                     tag="p"
