@@ -49,14 +49,13 @@ const createOrder = async (req, res) => {
 
 const getOrders = async (req, res) => {
   try {
-    let queryParams = req.query;
     const user = req.user;
 
     if (!user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    console.log("req.query", JSON.stringify(queryParams, null, 2));
+    console.log("req.query", JSON.stringify(req.query, null, 2));
     console.log("req.user", JSON.stringify(user, null, 2));
     let { page, limit, filters, sortObj } = extractQueryParams(req.query);
 
@@ -98,14 +97,27 @@ const getOrders = async (req, res) => {
       query["_id"] = filters.orderId;
     }
 
+    let project = {};
+
+    if (req.query && req.query.needDocuments) {
+    } else {
+      project = {
+        biltyDoc: 0,
+        eWayBill: 0,
+        taxInvoice: 0,
+        "payments.proof": 0,
+      };
+    }
+
     console.log("query", JSON.stringify(query, null, 2));
     console.log("page", page);
     console.log("skip", skip);
     console.log("limit", limit);
     console.log("filters", JSON.stringify(filters, null, 2));
     console.log("sortObj", JSON.stringify(sortObj, null, 2));
+    console.log("project", JSON.stringify(project, null, 2));
 
-    const orders = await UserOrder.find(query)
+    const orders = await UserOrder.find(query, project)
       .sort(sortObj)
       .skip(skip)
       .limit(limit);
