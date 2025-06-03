@@ -64,6 +64,7 @@ const OrderDetails = () => {
         sortOrder: "desc",
         sortKey: "createdAt",
         filters: { orderId: orderId },
+        needDocuments: true
       };
       const response = await api.get("/user/getOrders", {
         headers: {
