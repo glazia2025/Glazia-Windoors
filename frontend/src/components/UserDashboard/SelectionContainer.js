@@ -19,7 +19,11 @@ import ProfileOptions from "./ProfileOptions";
 import HardwareOptions from "./HardwareOptions";
 import AccessoriesOptions from "./AcessoriesOptions";
 import logo from "./glazia_logo.png";
-import { addSelectedProducts, clearProduct } from "../../redux/selectionSlice";
+import {
+  addSelectedProducts,
+  clearProduct,
+  clearSelectedProducts,
+} from "../../redux/selectionSlice";
 import { setUser } from "../../redux/userSlice";
 import api, { BASE_API_URL } from "../../utils/api";
 
@@ -27,6 +31,8 @@ import "./SelectionContainer.css";
 import Nalco from "./Nalco/Nalco";
 import axios from "axios";
 import { convertFileToBase64 } from "../../utils/common";
+import ImageZoom from "./ImageZoom";
+import { toast } from "react-toastify";
 
 // Initialize pdf.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -278,9 +284,9 @@ const SelectionContainer = () => {
         );
 
         console.log("Order created successfully.");
+        clearCart();
 
         navigate(`/user/orders/${data.order._id}`);
-        clearCurrentPdfView();
       } catch (error) {
         console.error(
           "Error creating order:",
@@ -367,7 +373,6 @@ Glazia Windoors Pvt Ltd.
     }
   };
 
-
   const sendMailOrderComplete = async (pdfData) => {
     const emailData = {
       to: user.email,
@@ -406,7 +411,6 @@ Glazia Windoors Pvt Ltd.
       // alert('Error sending email');
     }
   };
-
 
   const generatePDF = () => {
     const doc = createProformaInvoice();
@@ -525,8 +529,23 @@ Glazia Windoors Pvt Ltd.
     setIsMakingPayment(false);
   };
 
+  const clearCart = () => {
+    dispatch(clearSelectedProducts({ option: selectedOption }));
+
+    setSubTotal(0);
+    setTotal(0);
+    setPaymentProofFile(null);
+
+    clearCurrentPdfView();
+  };
+
   const handlePaymentProofChange = (e) => {
     setPaymentProofFile(e.target.files[0]);
+  };
+
+  const copyUpiId = () => {
+    navigator.clipboard.writeText("navdeepkamboj08-3@okhdfcbank");
+    toast.success("UPI ID copied to clipboard");
   };
 
   return (
@@ -743,35 +762,8 @@ Glazia Windoors Pvt Ltd.
               Almost there! Let's confirm your order..
             </h3>
 
-            <MDBRow className="" center middle>
-              <MDBCol className="stretch-height">
-                <MDBTypography className="mt-4 mb-0 fw-medium text-muted">
-                  Steps
-                </MDBTypography>
-                <MDBTypography
-                  tag="h6"
-                  className="mt-0 mb-2 fw-normal bg-white p-3 rounded-5"
-                >
-                  Make a payment of <strong>₹{(total / 2).toFixed(2)}</strong>{" "}
-                  (50% of the total amount) to the account details or UPI ID.
-                </MDBTypography>
-
-                <MDBTypography
-                  tag="h6"
-                  className="mt-2 mb-2 fw-normal bg-white p-3 rounded-5"
-                >
-                  After making the payment, please upload the proof of payment.
-                </MDBTypography>
-
-                <MDBTypography
-                  tag="h6"
-                  className="mt-2 mb-4 fw-normal bg-white p-3 rounded-5"
-                >
-                  Upon approval, we will proceed with the order.
-                </MDBTypography>
-              </MDBCol>
-
-              <MDBCol className="p-0" center>
+            <MDBRow className="gap-2">
+              <MDBCol className="p-0 mt-5">
                 <div className="rounded-5 shadow-3-strong bg-white min-h-100 ">
                   {" "}
                   {/* Increased py, added shadow */}
@@ -868,42 +860,103 @@ Glazia Windoors Pvt Ltd.
                     </MDBRow>
                   </div>
                 </div>
+
+                <div className="rounded-5 shadow-3-strong bg-white min-h-100 mt-4">
+                  <MDBTypography
+                    tag="h5"
+                    className="px-3 py-3 bg-primary text-white mb-0 text-left fw-medium"
+                    style={{
+                      borderTopLeftRadius: "10px",
+                      borderTopRightRadius: "10px",
+                    }}
+                  >
+                    UPI Details
+                  </MDBTypography>
+                  <div className="px-3 py-3 d-flex flex-column gap-2">
+                    <MDBTypography tag="p" className="text-dark mb-0">
+                      <strong className="me-1">UPI ID</strong>
+                    </MDBTypography>
+
+                    <MDBBtn
+                      outline
+                      color="primary"
+                      onClick={copyUpiId}
+                      className="flex flex-row w-100 align-items-center justify-content-between mb-2 lowercase"
+                      style={{ textTransform: "lowercase" }}
+                    >
+                      <span>navdeepkamboj08-3@okhdfcbank</span>{" "}
+                      <MDBIcon fas icon="copy" />
+                    </MDBBtn>
+
+                    <ImageZoom
+                      productImage={"/Assets/Images/upi.jpeg"}
+                      imageWidth="100%"
+                    />
+                  </div>
+                </div>
+              </MDBCol>
+
+              <MDBCol className="stretch-height">
+                <MDBTypography className="mt-4 mb-0 fw-medium text-muted">
+                  Steps
+                </MDBTypography>
+                <MDBTypography
+                  tag="h6"
+                  className="mt-0 mb-2 fw-normal bg-white p-3 rounded-5"
+                >
+                  Make a payment of <strong>₹{(total / 2).toFixed(2)}</strong>{" "}
+                  (50% of the total amount) to the account details or UPI ID.
+                </MDBTypography>
+
+                <MDBTypography
+                  tag="h6"
+                  className="mt-2 mb-2 fw-normal bg-white p-3 rounded-5"
+                >
+                  After making the payment, please upload the proof of payment.
+                </MDBTypography>
+
+                <MDBTypography
+                  tag="h6"
+                  className="mt-2 mb-4 fw-normal bg-white p-3 rounded-5"
+                >
+                  Upon approval, we will proceed with the order.
+                </MDBTypography>
+
+                <hr className="mt-4" />
+
+                <MDBTypography tag="h5" className="mt-4 mb-1 fw-semibold">
+                  Upload Payment Proof
+                </MDBTypography>
+
+                <MDBTypography tag="h6" className="mb-3">
+                  Accepts PDFs or images (max 10MB)
+                </MDBTypography>
+                <MDBFile
+                  id="paymentProofUpload"
+                  onChange={handlePaymentProofChange}
+                  className="mb-2" // Added margin bottom
+                  style={{ maxWidth: "400px" }}
+                />
+                {paymentProofFile && (
+                  <MDBTypography small className="text-muted">
+                    {paymentProofFile.name} (
+                    {(paymentProofFile.size / 1024).toFixed(2)} KB)
+                  </MDBTypography>
+                )}
+
+                <p></p>
+
+                <MDBBtn
+                  onClick={confirmOrder}
+                  className="mt-4"
+                  color="primary"
+                  size="lg"
+                >
+                  <MDBIcon fas icon="check" />
+                  &nbsp; Confirm Order
+                </MDBBtn>
               </MDBCol>
             </MDBRow>
-
-            <hr className="mt-4" />
-
-            <MDBTypography tag="h5" className="mt-4 mb-1 fw-semibold">
-              Upload Payment Proof
-            </MDBTypography>
-
-            <MDBTypography tag="h6" className="mb-3">
-              Accepts PDFs or images (max 10MB)
-            </MDBTypography>
-            <MDBFile
-              id="paymentProofUpload"
-              onChange={handlePaymentProofChange}
-              className="mb-2" // Added margin bottom
-              style={{ maxWidth: "400px" }}
-            />
-            {paymentProofFile && (
-              <MDBTypography small className="text-muted">
-                {paymentProofFile.name} (
-                {(paymentProofFile.size / 1024).toFixed(2)} KB)
-              </MDBTypography>
-            )}
-
-            <p></p>
-
-            <MDBBtn
-              onClick={confirmOrder}
-              className="mt-4"
-              color="primary"
-              size="lg"
-            >
-              <MDBIcon fas icon="check" />
-              &nbsp; Confirm Order
-            </MDBBtn>
           </MDBContainer>
           {/* {isMakingPayment ? (
           ) : (

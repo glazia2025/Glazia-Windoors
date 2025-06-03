@@ -70,7 +70,7 @@ const getOrders = async (req, res) => {
     }
 
     if (filters.orderType && filters.orderType === "ongoing") {
-      query["payments.isApproved"] = false;
+      query["isComplete"] = false;
     }
 
     if (filters.orderType && filters.orderType === "completed") {
@@ -164,7 +164,7 @@ const createPayment = async (req, res) => {
 };
 
 const approvePayment = async (req, res) => {
-  const { orderId, paymentId, finalPaymentDueDate, driverInfo, eWayBill, taxInvoice } = req.body;
+  const { orderId, paymentId, finalPaymentDueDate } = req.body;
 
   if (!orderId || !paymentId) {
     return res
@@ -184,7 +184,9 @@ const approvePayment = async (req, res) => {
       });
     }
 
-    const payment = order.payments.find((el) => el._id.toString() === paymentId.toString());
+    const payment = order.payments.find(
+      (el) => el._id.toString() === paymentId.toString()
+    );
 
     if (!payment) {
       return res.status(400).json({
@@ -198,9 +200,9 @@ const approvePayment = async (req, res) => {
       });
     }
 
-    if (payment.cycle === 2 && (!driverInfo || !eWayBill || !taxInvoice)) {
+    if (payment.cycle === 2 && payment.isApproved) {
       return res.status(400).json({
-        message: "Driver information, EWay Bill, and Tax Invoice are required.",
+        message: "Final payment already approved. Complete Order instead.",
       });
     }
 
@@ -219,19 +221,11 @@ const approvePayment = async (req, res) => {
       });
     }
 
-    if (payment.cycle === 2) {
-      order.driverInfo = driverInfo;
-      order.eWayBill = eWayBill;
-      order.taxInvoice = taxInvoice;
-      order.isComplete = true;
-      order.completedAt = new Date();
-    }
-
     order.updatedAt = new Date();
 
     const updatedOrder = await order.save();
 
-    if(updatedOrder.isComplete) {
+    if (updatedOrder.isComplete) {
       return res.status(200).json({
         message: "Order completed successfully.",
         order: updatedOrder,
@@ -248,13 +242,68 @@ const approvePayment = async (req, res) => {
   }
 };
 
-const completeOrder = async (req, res) => {
-  const { orderId, eWayBill, driverInfo, taxInvoice } = req.body;
+const updatePaymentDueDate = async (req, res) => {
+  const { orderId, paymentId, dueDate } = req.body;
 
-  if (!orderId || !eWayBill || !driverInfo || !taxInvoice) {
+  if (!orderId || !paymentId || !dueDate) {
     return res
       .status(400)
-      .json({ message: "Please select order and payment." });
+      .json({ message: "Please select order, payment and due date." });
+  }
+
+  try {
+    const order = await UserOrder.findOne({
+      _id: orderId,
+      "payments._id": paymentId,
+    });
+
+    if (!order) {
+      return res.status(400).json({
+        message: "Order cannot be found.",
+      });
+    }
+
+    const payment = order.payments.find(
+      (el) => el._id.toString() === paymentId.toString()
+    );
+
+    if (!payment) {
+      return res.status(400).json({
+        message: "Payment cannot be found.",
+      });
+    }
+
+    if (payment.cycle !== 2) {
+      return res.status(400).json({
+        message: "Only final payment due date can be changed.",
+      });
+    }
+
+    order.payments = order.payments.map((el) =>
+      el._id.toString() === paymentId.toString() ? { ...el, dueDate } : el
+    );
+
+    order.updatedAt = new Date();
+
+    const updatedOrder = await order.save();
+
+    return res.status(200).json({
+      message: "Due date updated successfully.",
+      order: updatedOrder,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error", error });
+  }
+};
+
+const completeOrder = async (req, res) => {
+  const { orderId, biltyDoc, eWayBill, driverInfo, taxInvoice } = req.body;
+
+  if (!orderId || !biltyDoc || !eWayBill || !driverInfo || !taxInvoice) {
+    return res
+      .status(400)
+      .json({ message: "Please add all required documents." });
   }
 
   try {
@@ -268,11 +317,11 @@ const completeOrder = async (req, res) => {
       });
     }
 
+    order.biltyDoc = biltyDoc;
     order.eWayBill = eWayBill;
     order.driverInfo = {
       name: driverInfo.name,
       phone: driverInfo.phone,
-      description: driverInfo.description,
     };
     order.taxInvoice = taxInvoice;
     order.isComplete = true;
@@ -369,7 +418,9 @@ const uploadPaymentProof = async (req, res) => {
   const { orderId, paymentId, proof } = req.body;
 
   if (!orderId || !paymentId || !proof) {
-    return res.status(400).json({ message: "Please select order and payment." });
+    return res
+      .status(400)
+      .json({ message: "Please select order and payment." });
   }
 
   try {
@@ -383,7 +434,9 @@ const uploadPaymentProof = async (req, res) => {
       });
     }
 
-    const payment = order.payments.find((el) => el._id.toString() === paymentId.toString());
+    const payment = order.payments.find(
+      (el) => el._id.toString() === paymentId.toString()
+    );
 
     if (!payment) {
       return res.status(400).json({
@@ -411,6 +464,7 @@ module.exports = {
   getOrders,
   createPayment,
   approvePayment,
+  updatePaymentDueDate,
   completeOrder,
   updateNalco,
   sendEmail,

@@ -18,7 +18,7 @@ const {
   searchHardware,
   saveProductImage,
 } = require("../controllers/hardwareController");
-const { updateNalco, approvePayment, completeOrder } = require("../controllers/orderController");
+const { updateNalco, approvePayment, completeOrder, updatePaymentDueDate } = require("../controllers/orderController");
 const { getNalco } = require("../controllers/userController");
 const isUser = require("../middleware/userMiddleware");
 const router = express.Router();
@@ -54,6 +54,7 @@ router.delete("/delete-hardware/:option/:productId", isAdmin, deleteHardware);
 router.post("/update-nalco", isAdmin, updateNalco);
 router.get("/get-tech-sheet", isUser, getTechSheet);
 router.post("/approve-payment", isAdmin, approvePayment);
+router.post("/update-payment-due-date", isAdmin, updatePaymentDueDate);
 router.post("/complete-order", isAdmin, express.json({ limit: "50mb" }), completeOrder);
 
 module.exports = router;

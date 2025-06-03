@@ -29,6 +29,7 @@ import {
 import api from "../../utils/api";
 import { toast } from "react-toastify";
 import { convertFileToBase64 } from "../../utils/common";
+import PDFViewer from "../PDFViewer/PDFViewer";
 
 const PaymentProofModal = (props) => {
   const { isOpen, title, message, payment, onConfirm, onClose } = props;
@@ -83,12 +84,12 @@ const PaymentProofModal = (props) => {
       return;
     }
 
-    if (payment.cycle === 2 && !onCompletionStep) {
+    if (payment.cycle === 2 && payment.isApproved && !onCompletionStep) {
       setOnCompletionStep(true);
       return;
     }
 
-    if (payment.cycle === 2 && onCompletionStep) {
+    if (payment.cycle === 2 && payment.isApproved && onCompletionStep) {
       let hasErrors = false;
       if (!driverInfo) {
         handleErrors(
@@ -146,7 +147,7 @@ const PaymentProofModal = (props) => {
       let eWayBillBase64 = null;
       let taxInvoiceBase64 = null;
 
-      if (payment.cycle === 2) {
+      if (payment.cycle === 2 && payment.isApproved) {
         try {
           if (eWayBill) {
             eWayBillBase64 = await convertFileToBase64(eWayBill);
@@ -177,6 +178,44 @@ const PaymentProofModal = (props) => {
     } else {
       handleErrors("confirm_action", "Check this box to proceed");
     }
+  };
+
+  const renderPdfOrImage = (proof) => {
+    if (!proof || !proof.length)
+      return (
+        <div
+          className="p-3 rounded-5 d-flex align-items-center"
+          style={{
+            borderLeft: "8px solid #a02040",
+            background: "#a0204020",
+            color: "#902040",
+            fontWeight: "600",
+          }}
+        >
+          Failed to render invalid payment proof
+        </div>
+      );
+
+    if (proof.startsWith("data:image")) {
+      return (
+        <img className="w-100 rounded-5" src={proof} alt="Payment Proof" />
+      );
+    } else if (proof.startsWith("data:application/pdf")) {
+      return <PDFViewer base64Pdf={proof} />;
+    }
+    return (
+      <div
+        className="p-3 rounded-5 d-flex align-items-center"
+        style={{
+          borderLeft: "8px solid #a02040",
+          background: "#a0204020",
+          color: "#902040",
+          fontWeight: "600",
+        }}
+      >
+        Failed to render invalid payment proof
+      </div>
+    );
   };
 
   const handleErrors = (key, val) => {
@@ -415,11 +454,7 @@ const PaymentProofModal = (props) => {
                     </div>
                   )}
 
-                  <img
-                    className="w-100 rounded-5"
-                    src={payment.proof}
-                    alt="Payment Proof"
-                  />
+                  {renderPdfOrImage(payment.proof)}
                 </>
               )}
             </div>
@@ -443,9 +478,7 @@ const PaymentProofModal = (props) => {
                   className="fw-bold"
                   size="lg"
                 >
-                  {payment.cycle === 2 && onCompletionStep
-                    ? "Complete Order"
-                    : "Approve Payment"}
+                  Approve Payment
                 </MDBBtn>
               )
             ) : (

@@ -6,16 +6,17 @@ import {
   MDBDropdownItem,
   MDBDropdownMenu,
   MDBDropdownToggle,
-  MDBIcon,
   MDBInput,
+  MDBRipple,
   MDBRow,
-  MDBSpinner,
+  MDBTooltip,
   MDBTypography,
 } from "mdb-react-ui-kit";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import { formatPrice } from "../utils/common";
 import { MIN_SEARCH_TIME, SORT_KEY_OPTIONS } from "../enums/constants";
+import { getOrderStatusColor, getOrderStatusLabel } from "../utils/order";
 
 const OrderList = ({ selectedStatus }) => {
   const navigate = useNavigate();
@@ -95,10 +96,9 @@ const OrderList = ({ selectedStatus }) => {
     if (endReached || !filters || !sortOrder || !sortKey || !page || !limit)
       return;
 
-    
     try {
       setLoading(true);
-  
+
       if (page === 1) {
         setOrders([]);
       }
@@ -111,6 +111,8 @@ const OrderList = ({ selectedStatus }) => {
         sortKey: sortKey,
         filters: { ...filters },
       };
+
+      if (params.filters.orderType) delete params.filters.orderType;
 
       if (selectedStatus && selectedStatus !== "all") {
         params.filters.orderType = selectedStatus;
@@ -152,6 +154,27 @@ const OrderList = ({ selectedStatus }) => {
     } else {
       navigate(`/user/orders/${orderId}`);
     }
+  };
+
+  const renderOrderStatusSmallPill = (order) => {
+    return (
+      <MDBCol className="px-0 d-flex">
+        <MDBTooltip
+          tag="span"
+          wrapperClass="d-inline-block"
+          placement="bottom"
+          title={getOrderStatusLabel(order)}
+        >
+          <MDBRipple
+            className={`${getOrderStatusColor(
+              order
+            )} rounded-5 px-2 small fw-bold text-transform-none lowercase`}
+          >
+            {getOrderStatusLabel(order)}
+          </MDBRipple>
+        </MDBTooltip>
+      </MDBCol>
+    );
   };
 
   return (
@@ -199,8 +222,9 @@ const OrderList = ({ selectedStatus }) => {
                     <span className="fw-semibold me-2">Sort by</span>
                   </MDBDropdownToggle>
                   <MDBDropdownMenu className="p-0" responsive="end">
-                    {SORT_KEY_OPTIONS.map((option) => (
+                    {SORT_KEY_OPTIONS.map((option, optionIndex) => (
                       <MDBDropdownItem
+                        key={optionIndex}
                         className="py-0 px-0 fw-bold"
                         link
                         onClick={() => handleSort(option.value)}
@@ -215,95 +239,101 @@ const OrderList = ({ selectedStatus }) => {
           </MDBCol>
         </MDBRow>
 
-        {orders && orders.length ? (
-          <MDBRow className="row-cols-1 row-cols-1 g-2">
-            <MDBCol>
-              <MDBRow className="align-items-center justify-content-between w-100 px-3 fw-bold mb-1">
-                <MDBCol className="col-1">
-                  <span className="text-muted small">Order ID</span>
-                </MDBCol>
-                <MDBCol className="col-4">
-                  <span className="text-muted small">Items</span>
-                </MDBCol>
-                <MDBCol className="col-2">
-                  <span className="text-muted small">Order Date</span>
-                </MDBCol>
-                <MDBCol className="col-2">
-                  <span className="text-muted small">Order Amount</span>
-                </MDBCol>
-                <MDBCol className="col-1">
-                  <span className="text-muted small">Status</span>
-                </MDBCol>
-                <MDBCol className="col-1">
-                  <span className="text-muted small">Actions</span>
-                </MDBCol>
-              </MDBRow>
-            </MDBCol>
-          </MDBRow>
-        ) : (
-          <></>
-        )}
-
-        <MDBRow className="row-cols-1 row-cols-1 g-2">
+        <div className="table-responsive">
           {orders && orders.length > 0 ? (
-            orders.map((order) => (
-              <MDBCol key={order._id}>
-                <MDBRow className="align-items-center justify-content-between w-100 bg-white p-3 rounded-3 shadow-2">
-                  <MDBCol className="col-1">
-                    <MDBTypography tag="p" className="mb-0 small">
-                      #{order._id.slice(0, 4)}...{order._id.slice(-4)}
-                    </MDBTypography>
-                  </MDBCol>
-                  <MDBCol className="col-4">
-                    <MDBTypography tag="p" className="mb-0 fs-6 fw-semibold">
-                      {order.products[0].description}
-                      {order.products.length > 1 &&
-                        ` + ${order.products.length - 1} more`}
-                    </MDBTypography>
-                  </MDBCol>
-
-                  <MDBCol className="col-2">
-                    <MDBTypography tag="p" className="mb-0 small fw-normal">
-                      {new Date(order.createdAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </MDBTypography>
-                  </MDBCol>
-                  <MDBCol className="col-2">
-                    <MDBTypography tag="p" className="mb-0 small fw-semibold">
-                      {formatPrice(
-                        order.totalAmount ||
-                          order.products.reduce(
-                            (acc, product) => acc + product.amount,
-                            0
-                          ) * 1.18
-                      )}
-                    </MDBTypography>
-                  </MDBCol>
-                  <MDBCol className="col-1 d-flex align-items-center justify-content-start">
-                    {order.isComplete ? (
-                      <div className="bg-success text-white px-2 rounded-3 small fw-semibold">
-                        Completed
-                      </div>
-                    ) : (
-                      <div className="bg-warning text-white px-2  rounded-3 small fw-semibold">
-                        Pending
-                      </div>
-                    )}
-                  </MDBCol>
-                  <MDBCol
-                    onClick={() => handleViewOrder(order._id)}
-                    className="col-1"
+            <table
+              className="table table-custom small-height-table"
+              style={{ maxWidth: "100%" }}
+            >
+              <thead className="row-cols-1 row-cols-1 g-2">
+                <tr className="align-items-center justify-content-between w-100 px-3 fw-bold mb-1">
+                  <td className="">
+                    <span className="text-muted small">Order ID</span>
+                  </td>
+                  <td className="">
+                    <span className="text-muted small">Items</span>
+                  </td>
+                  <td className="">
+                    <span className="text-muted small">Status</span>
+                  </td>
+                  <td className="">
+                    <span className="text-muted small">Order Date</span>
+                  </td>
+                  <td className="">
+                    <span className="text-muted small">Order Amount</span>
+                  </td>
+                  <td className="">
+                    <span className="text-muted small">Actions</span>
+                  </td>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((orderDetails, orderIndex) => (
+                  <tr
+                    key={orderIndex}
+                    className={`align-items-center justify-content-between bg-light`}
                   >
-                    <MDBBtn>View</MDBBtn>
-                  </MDBCol>
-                </MDBRow>
-              </MDBCol>
-            ))
+                    <td className="">
+                      <MDBTypography tag="p" className="mb-0 small">
+                        #{orderDetails._id.slice(0, 4)}...
+                        {orderDetails._id.slice(-4)}
+                      </MDBTypography>
+                    </td>
+                    <td className="">
+                      <MDBTypography
+                        tag="p"
+                        className="mb-0 fs-6 fw-semibold text-dark"
+                      >
+                        {orderDetails.products[0].description}
+                        {orderDetails.products.length > 1 &&
+                          ` + ${orderDetails.products.length - 1} more`}
+                      </MDBTypography>
+                    </td>
+
+                    <td className="">
+                      {renderOrderStatusSmallPill(orderDetails)}
+                    </td>
+
+                    <td className="">
+                      <MDBTypography tag="p" className="mb-0 small fw-normal">
+                        {new Date(orderDetails.createdAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )}
+                      </MDBTypography>
+                    </td>
+                    <td className="">
+                      <MDBTypography
+                        tag="p"
+                        className="mb-0 small fw-bold text-dark"
+                      >
+                        {formatPrice(
+                          orderDetails.totalAmount ||
+                            orderDetails.products.reduce(
+                              (acc, product) => acc + product.amount,
+                              0
+                            ) * 1.18
+                        )}
+                      </MDBTypography>
+                    </td>
+                    <td className="">
+                      <MDBBtn onClick={() => handleViewOrder(orderDetails._id)}>
+                        View
+                      </MDBBtn>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           ) : loading ? (
-            <MDBCol className="align-items-center justify-content-center w-100 bg-white px-3 py-4 rounded-3 shadow-2">
+            <MDBCol
+              className="d-flex align-items-center justify-content-center w-100 bg-white px-3 py-4 rounded-3 shadow-2"
+              style={{ minHeight: "100px" }}
+            >
               <MDBTypography
                 tag="p"
                 className="mb-0 fs-6 text-muted text-center"
@@ -347,7 +377,7 @@ const OrderList = ({ selectedStatus }) => {
           ) : (
             <></>
           )}
-        </MDBRow>
+        </div>
       </MDBCol>
     </MDBRow>
   );

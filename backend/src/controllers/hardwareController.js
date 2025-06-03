@@ -190,7 +190,7 @@ const deleteHardware = async (req, res) => {
 const searchHardware = async (req, res) => {
   const { sapCode, perticular, option } = req.query;
 
-  if (!sapCode && !perticular && !option) {
+  if ((!sapCode || !sapCode.trim()) && (!perticular || !perticular.trim()) && !option) {
     return res.status(400).json({ message: 'Provide sapCode, perticular or option to search' });
   }
 
@@ -203,7 +203,14 @@ const searchHardware = async (req, res) => {
 
     const matchedProducts = [];
     hardwareOptions.products.get(option).forEach(product => {
-      if((sapCode && product.sapCode === sapCode) || perticular && product.perticular.match(new RegExp(perticular, 'i'))) {
+      if (
+        (sapCode &&
+          sapCode.trim() &&
+          product.sapCode.match(new RegExp(sapCode.trim(), "i"))) ||
+        (perticular &&
+          perticular.trim() &&
+          product.perticular.match(new RegExp(perticular.trim(), "i")))
+      ) {
         matchedProducts.push(product);
       }
     });

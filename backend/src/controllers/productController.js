@@ -1,6 +1,7 @@
 const { default: mongoose } = require('mongoose');
 const ProfileOptions = require('../models/ProfileOptions');
 const TechnicalSheet = require('../models/TechSheet');
+const { escapeRegExp } = require('../utils/common');
 
 const addProduct = async (req, res) => {
   const { category, option, product, rate } = req.body;
@@ -198,7 +199,7 @@ const searchProduct = async (req, res) => {
   console.log("Cioehjkhjdhf", req.query)
   const { sapCode, description, profile, option } = req.query;
 
-  if (!sapCode && !description && !profile && !option) {
+  if ((!sapCode || !sapCode.trim()) && (!description || !description.trim()) && !profile && !option) {
     return res.status(400).json({ message: 'Provide sapCode, description, profile, or option to search' });
   }
 
@@ -209,7 +210,14 @@ const searchProduct = async (req, res) => {
     }
     const matchedProducts = [];
     profileOptions.categories.get(profile).products.get(option).forEach(product => {
-      if((sapCode && product.sapCode === sapCode) || description && product.description.match(new RegExp(description, 'i'))) {
+      if (
+        (sapCode && sapCode.trim() &&
+          product.sapCode.match(new RegExp(escapeRegExp(sapCode.trim()), "i"))) ||
+        (description && description.trim() &&
+          product.description.match(
+            new RegExp(escapeRegExp(description.trim()), "i")
+          ))
+      ) {
         matchedProducts.push(product);
       }
     });

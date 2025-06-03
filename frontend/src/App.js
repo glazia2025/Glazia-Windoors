@@ -48,7 +48,7 @@ function App() {
       if (isInitialLoad) {
         console.log("culrp");
         if (decoded.role === "admin") {
-          navigate("/admin/dashboard");
+          navigate("/admin/dashboard/orders");
         } else {
           navigate("/user/home");
         }

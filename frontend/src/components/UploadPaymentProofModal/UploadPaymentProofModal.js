@@ -28,6 +28,7 @@ import {
 import api from "../../utils/api";
 import { toast } from "react-toastify";
 import { convertFileToBase64 } from "../../utils/common";
+import PDFViewer from "../PDFViewer/PDFViewer";
 
 const UploadPaymentProofModal = (props) => {
   const { isOpen, title, message, payment, onConfirm, onClose } = props;
@@ -88,6 +89,24 @@ const UploadPaymentProofModal = (props) => {
     });
   };
 
+  const renderPdfOrImage = (proof) => {
+    if (!proof || !proof.type) return <></>;
+
+    if (proof.type.startsWith("image")) {
+      return (
+        <img
+          className="w-100 rounded-5"
+          src={URL.createObjectURL(proof)}
+          alt="Payment Proof"
+        />
+      );
+    } else if (proof.type.startsWith("application/pdf")) {
+      return <PDFViewer file={proof} />;
+    }
+
+    return <></>;
+  };
+
   // if (!userRole || !payment) return <></>;
 
   return (
@@ -138,13 +157,7 @@ const UploadPaymentProofModal = (props) => {
                     </p>
                   )}
 
-                  {proof && (
-                    <img
-                      className="w-100 rounded-5"
-                      src={URL.createObjectURL(proof)}
-                      alt="Payment Proof"
-                    />
-                  )}
+                  {proof && renderPdfOrImage(proof)}
                 </div>
 
                 <label className="form-label text-dark fw-bold fs-6">

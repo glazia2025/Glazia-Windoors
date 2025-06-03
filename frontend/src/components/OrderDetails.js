@@ -15,6 +15,7 @@ import api from "../utils/api";
 import { toast } from "react-toastify";
 import { formatPrice } from "../utils/common";
 import {
+  ORDER_DOCUMENT_OPTIONS,
   ORDER_STATUS,
   ORDER_STATUS_COLORS,
   ORDER_STATUS_LABELS,
@@ -27,6 +28,8 @@ import {
 import ConfirmActionModal from "./ConfirmActionModal/ConfirmActionModal";
 import PaymentProofModal from "./PaymentProofModal/PaymentProofModal";
 import UploadPaymentProofModal from "./UploadPaymentProofModal/UploadPaymentProofModal";
+import EditPaymentDueDateModal from "./EditPaymentDueDateModal/EditPaymentDueDateModal";
+import CompleteOrderModal from "./CompleteOrderModal/CompleteOrderModal";
 
 const OrderDetails = () => {
   const [userRole, setUserRole] = useState(null);
@@ -37,7 +40,11 @@ const OrderDetails = () => {
   const [showConfirmActionModal, setShowConfirmActionModal] =
     useState(undefined);
   const [showPaymentProofModal, setShowPaymentProofModal] = useState(undefined);
+  const [showEditPaymentDueDateModal, setShowEditPaymentDueDateModal] =
+    useState(undefined);
   const [showUploadPaymentProofModal, setShowUploadPaymentProofModal] =
+    useState(undefined);
+  const [showCompleteOrderModal, setShowCompleteOrderModal] =
     useState(undefined);
   useEffect(() => {
     setUserRole(localStorage.getItem("userRole"));
@@ -135,6 +142,18 @@ const OrderDetails = () => {
       !orderDetails.payments[1].isApproved
     );
   };
+
+  const checkOrderDispatchPending = () => {
+    return (
+      orderDetails &&
+      orderDetails.payments &&
+      orderDetails.payments.length === 2 &&
+      orderDetails.payments[1].proof &&
+      orderDetails.payments[1].isApproved &&
+      !orderDetails.isComplete
+    );
+  };
+
   const getOrderStatus = () => {
     if (!orderDetails) {
       return ORDER_STATUS.LOADING;
@@ -150,6 +169,9 @@ const OrderDetails = () => {
     }
     if (checkOrderSecondApprovalPending()) {
       return ORDER_STATUS.SECOND_APPROVAL_PENDING;
+    }
+    if (checkOrderDispatchPending()) {
+      return ORDER_STATUS.DISPATCH_PENDING;
     }
     return ORDER_STATUS.COMPLETED;
   };
@@ -222,6 +244,10 @@ const OrderDetails = () => {
 
   const checkPaymentApprovalPending = (payment) => {
     return payment && payment.proof && !payment.isApproved;
+  };
+
+  const checkPaymentHasDueDate = (payment) => {
+    return payment && !payment.proof && !!payment.dueDate;
   };
 
   const getPaymentStatus = (payment) => {
@@ -314,13 +340,13 @@ const OrderDetails = () => {
       toast.error("Payment ID not found");
       return;
     }
-    if(data.payment.cycle === 1) {
+    if (data.payment.cycle === 1) {
       if (!data.finalPaymentDueDate) {
         toast.error("Final payment due date not found");
         return;
       }
     }
-    if (data.payment.cycle === 2) {
+    if (data.payment.cycle === 2 && data.payment.isApproved) {
       if (!data.driverInfo) {
         toast.error("Driver information not found");
         return;
@@ -378,6 +404,61 @@ const OrderDetails = () => {
     }
   };
 
+  const updatePaymentDueDate = async (paymentId, data, cb) => {
+    if (!orderDetails || !orderDetails._id) {
+      toast.error("Order not found");
+      return;
+    }
+    if (!paymentId) {
+      toast.error("Payment ID not found");
+      return;
+    }
+
+    if (!data.dueDate) {
+      toast.error("Payment new due date not found");
+      return;
+    }
+
+    if (!userRole || userRole !== "admin") {
+      toast.error("You are not authorized to approve payments");
+      return;
+    }
+    if (orderDetails.isComplete) {
+      toast.error("Order is already completed");
+      return;
+    }
+    if (orderDetails.payments.length === 0) {
+      toast.error("Order has no payments");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("authToken");
+
+      const response = await api.post(
+        `/admin/update-payment-due-date`,
+        {
+          orderId: orderDetails._id,
+          paymentId: paymentId,
+          dueDate: data.dueDate,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log("response", response);
+
+      fetchOrderDetails();
+      cb && cb();
+
+      setShowEditPaymentDueDateModal(undefined);
+    } catch (error) {
+      console.error("Error approving payment:", error);
+    }
+  };
+
   const openPaymentProofModal = (payment) => {
     setShowPaymentProofModal({
       payment,
@@ -400,6 +481,25 @@ const OrderDetails = () => {
     });
   };
 
+  const openEditPaymentDueDateModal = (payment) => {
+    setShowEditPaymentDueDateModal({
+      payment,
+      title: "Edit Due Date",
+      message: (
+        <span>
+          {"Due on " +
+            new Date(payment.dueDate).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+        </span>
+      ),
+      onClose: () => setShowEditPaymentDueDateModal(undefined),
+      onConfirm: (data, cb) => updatePaymentDueDate(payment._id, data, cb),
+    });
+  };
+
   const openUploadPaymentProofModal = (payment) => {
     setShowUploadPaymentProofModal({
       payment,
@@ -412,6 +512,16 @@ const OrderDetails = () => {
       ),
       onClose: () => setShowUploadPaymentProofModal(undefined),
       onConfirm: (data, cb) => uploadPaymentProof(payment._id, data, cb),
+    });
+  };
+
+  const openCompleteOrderModal = () => {
+    setShowCompleteOrderModal({
+      order: orderDetails,
+      title: "Complete Order",
+      message: <span>Upload all final documents to complete the order.</span>,
+      onClose: () => setShowCompleteOrderModal(undefined),
+      onConfirm: (data, cb) => completeOrder(data, cb),
     });
   };
 
@@ -440,6 +550,73 @@ const OrderDetails = () => {
       console.error("Error uploading payment proof:", error);
     }
   };
+
+  const completeOrder = async (data, cb) => {
+    if (!orderDetails || !orderDetails._id) {
+      toast.error("Order not found");
+      return;
+    }
+
+    if (!data.driverInfo) {
+      toast.error("Driver information not found");
+      return;
+    }
+    if (!data.biltyDoc) {
+      toast.error("Bilty Document not found");
+      return;
+    }
+    if (!data.eWayBill) {
+      toast.error("EWay Bill not found");
+      return;
+    }
+    if (!data.taxInvoice) {
+      toast.error("Tax Invoice not found");
+      return;
+    }
+
+    if (!userRole || userRole !== "admin") {
+      toast.error("You are not authorized to approve payments");
+      return;
+    }
+    if (orderDetails.isComplete) {
+      toast.error("Order is already completed");
+      return;
+    }
+    if (orderDetails.payments.length === 0) {
+      toast.error("Order has no payments");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("authToken");
+
+      const response = await api.post(
+        `/admin/complete-order`,
+        {
+          orderId: orderDetails._id,
+          driverInfo: data.driverInfo,
+          biltyDoc: data.biltyDoc,
+          eWayBill: data.eWayBill,
+          taxInvoice: data.taxInvoice,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log("response", response);
+
+      fetchOrderDetails();
+      cb && cb();
+
+      setShowCompleteOrderModal(undefined);
+    } catch (error) {
+      console.error("Error completing order:", error);
+    }
+  };
+
+  const openViewDocumentModal = () => {};
 
   const goBack = () => {
     if (userRole === "admin") {
@@ -530,12 +707,31 @@ const OrderDetails = () => {
 
           {activeTab === "orderInfo" && (
             <MDBCol>
-              <MDBTypography tag="h5" className="mt-4 mb-2 fw-semibold">
-                Order Status
-              </MDBTypography>
-              {/* add pills for order status */}
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                  <MDBTypography tag="h5" className="mb-2 fw-semibold">
+                    Order Status
+                  </MDBTypography>
+                  {/* add pills for order status */}
 
-              {renderOrderStatusPills()}
+                  {renderOrderStatusPills()}
+                </div>
+
+                {userRole === "admin" && checkOrderDispatchPending() ? (
+                  <div>
+                    <MDBBtn
+                      onClick={openCompleteOrderModal}
+                      size={"lg"}
+                      className="fw-semibold fs-6"
+                    >
+                      <MDBIcon fas icon="check-circle" className="me-2" />
+                      Complete Order
+                    </MDBBtn>
+                  </div>
+                ) : (
+                  <></>
+                )}
+              </div>
 
               <MDBCol className="px-0 mb-4">
                 <MDBTypography tag="p" className="mb-3 text-muted small mt-3">
@@ -635,14 +831,33 @@ const OrderDetails = () => {
             orderDetails.payments &&
             orderDetails.payments.length > 0 && (
               <MDBCol>
-                <MDBTypography tag="h5" className="mt-4 mb-2 fw-semibold">
-                  Payment Status
-                </MDBTypography>
-                {/* add pills for order status */}
+                <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                  <div>
+                    <MDBTypography tag="h5" className="mb-2 fw-semibold">
+                      Payment Status
+                    </MDBTypography>
+                    {/* add pills for order status */}
 
-                {renderPaymentStatusPills(
-                  orderDetails.payments[orderDetails.payments.length - 1]
-                )}
+                    {renderPaymentStatusPills(
+                      orderDetails.payments[orderDetails.payments.length - 1]
+                    )}
+                  </div>
+
+                  {userRole === "admin" && checkOrderDispatchPending() ? (
+                    <div>
+                      <MDBBtn
+                        onClick={openCompleteOrderModal}
+                        size={"lg"}
+                        className="fw-semibold fs-6"
+                      >
+                        <MDBIcon fas icon="check-circle" className="me-2" />
+                        Complete Order
+                      </MDBBtn>
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                </div>
 
                 <MDBCol className="px-0 mb-4">
                   <MDBTypography tag="p" className="mb-3 text-muted small mt-3">
@@ -784,6 +999,16 @@ const OrderDetails = () => {
                                   >
                                     Approve
                                   </MDBBtn>
+                                ) : checkPaymentHasDueDate(payment) ? (
+                                  <MDBBtn
+                                    color="primary"
+                                    size="sm"
+                                    onClick={() =>
+                                      openEditPaymentDueDateModal(payment)
+                                    }
+                                  >
+                                    Edit Due Date
+                                  </MDBBtn>
                                 ) : (
                                   <MDBTypography
                                     tag="p"
@@ -832,179 +1057,131 @@ const OrderDetails = () => {
                     </tbody>
                   </table>
                 </div>
+              </MDBCol>
+            )}
 
-                {/* <MDBRow className="row-cols-1 row-cols-1 g-2">
-                  <MDBCol>
-                    <MDBRow className="align-items-center justify-content-between w-100 px-3 fw-bold mb-1">
-                      <MDBCol className="col-1">
-                        <span className="text-muted small">Payment ID</span>
-                      </MDBCol>
-                      <MDBCol className="col-2">
-                        <span className="text-muted small">Info</span>
-                      </MDBCol>
-                      <MDBCol className="col-2">
-                        <span className="text-muted small">Status</span>
-                      </MDBCol>
-                      <MDBCol className="col-1">
-                        <span className="text-muted small">Date</span>
-                      </MDBCol>
-                      <MDBCol className="col-1">
-                        <span className="text-muted small">Due Date</span>
-                      </MDBCol>
-                      <MDBCol className="col-1">
-                        <span className="text-muted small">Amount</span>
-                      </MDBCol>
-                      <MDBCol className="col-1">
-                        <span className="text-muted small">Proof</span>
-                      </MDBCol>
-                      <MDBCol className="col-1">
-                        <span className="text-muted small">Actions</span>
-                      </MDBCol>
-                    </MDBRow>
-                  </MDBCol>
-                </MDBRow>
+          {activeTab === "documents" &&
+            orderDetails &&
+            orderDetails.isComplete && (
+              <MDBCol>
+                <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                  <div>
+                    <MDBTypography
+                      tag="p"
+                      className="mb-2 fw-semibold fs-6 text-muted"
+                    >
+                      Driver Info
+                    </MDBTypography>
 
-                <MDBRow className="row-cols-1 row-cols-1 g-2">
-                  {orderDetails &&
-                  orderDetails.payments &&
-                  orderDetails.payments.length > 0 ? (
-                    orderDetails.payments.map((payment) => (
-                      <MDBCol key={payment._id}>
-                        <MDBRow className="align-items-center justify-content-between w-100 bg-white p-3 rounded-3 shadow-2">
-                          <MDBCol className="col-1">
-                            <MDBTypography tag="p" className="mb-0 small">
-                              #{payment._id.slice(0, 4)}...
-                              {payment._id.slice(-4)}
-                            </MDBTypography>
-                          </MDBCol>
-                          <MDBCol className="col-2">
-                            <MDBTypography
-                              tag="p"
-                              className="mb-0 fs-6 fw-semibold text-dark"
-                            >
-                              {getPaymentInfo(payment)}
-                            </MDBTypography>
-                          </MDBCol>
+                    <MDBTypography tag="h4" className="mb-2 fw-bold">
+                      {orderDetails.driverInfo.name}
+                    </MDBTypography>
 
-                          <MDBCol className="col-2 d-flex align-items-center justify-content-start">
-                            {renderPaymentStatusSmallPill(payment)}
-                          </MDBCol>
+                    <MDBTypography
+                      tag="p"
+                      className="mb-2 fw-bold d-flex align-items-center rounded-5 border border-primary text-primary px-2"
+                    >
+                      <span className="fw-light text-muted small border-end border-primary pe-2 me-2">
+                        Phone
+                      </span>{" "}
+                      {orderDetails.driverInfo.phone}
+                    </MDBTypography>
+                    {/* add pills for order status */}
+                  </div>
+                </div>
 
-                          <MDBCol className="col-1">
-                            <MDBTypography
-                              tag="p"
-                              className="mb-0 small fw-normal"
-                            >
-                              {new Date(
-                                payment.createdAt || orderDetails.createdAt
-                              ).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                            </MDBTypography>
-                          </MDBCol>
-                          <MDBCol className="col-1">
-                            <MDBTypography
-                              tag="p"
-                              className="mb-0 small fw-normal"
-                            >
-                              {new Date(
-                                payment.dueDate || orderDetails.createdAt
-                              ).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                            </MDBTypography>
-                          </MDBCol>
-                          <MDBCol className="col-1">
-                            <MDBTypography
-                              tag="p"
-                              className="mb-0 small fw-bold text-dark"
-                            >
-                              {formatPrice(payment.amount)}
-                            </MDBTypography>
-                          </MDBCol>
-                          <MDBCol className="col-1">
-                            {!payment.proof ? (
-                              <div className="d-flex">
-                                <MDBTypography
-                                  tag="p"
-                                  className="mb-0 small fw-normal border-bottom border-dotted border-muted"
-                                >
-                                  No Proof
-                                </MDBTypography>
-                              </div>
-                            ) : (
-                              <div className="d-flex">
-                                <MDBTypography
-                                  tag="p"
-                                  onClick={() => openPaymentProofModal(payment)}
-                                  className="cursor-pointer mb-0 small fw-normal border-bottom border-dotted border-primary"
-                                >
-                                  View Proof
-                                </MDBTypography>
-                              </div>
-                            )}
-                          </MDBCol>
-                          <MDBCol className="col-1">
-                            {userRole === "admin" ? (
-                              checkPaymentApprovalPending(payment) ? (
+                <MDBCol className="px-0 mb-4">
+                  <MDBTypography tag="p" className="mb-3 text-muted small mt-3">
+                    {"Here are the final documents for this order."}
+                  </MDBTypography>
+                </MDBCol>
+
+                <div className="table-responsive">
+                  <table
+                    className="table table-custom small-height-table"
+                    style={{ maxWidth: "100%" }}
+                  >
+                    <thead>
+                      <tr>
+                        <th>
+                          <span className="text-muted small">
+                            Document Name
+                          </span>
+                        </th>
+                        <th>
+                          <span className="text-muted small">Type</span>
+                        </th>
+                        <th>
+                          <span className="text-muted small">Size</span>
+                        </th>
+                        <th>
+                          <div className="d-flex justify-content-end">
+                            <span className="text-muted small">Actions</span>
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {orderDetails && orderDetails.isComplete ? (
+                        ORDER_DOCUMENT_OPTIONS.map((doc, index) => (
+                          <tr
+                            key={index}
+                            className={`align-items-center justify-content-between ${
+                              index % 2 === 0 ? "bg-light" : "bg-transparent"
+                            }`}
+                          >
+                            <td className="">
+                              <MDBTypography
+                                tag="p"
+                                className="mb-0 fs-6 fw-semibold text-dark"
+                              >
+                                {doc.label}
+                              </MDBTypography>
+                            </td>
+
+                            <td className="">
+                              <MDBTypography
+                                tag="p"
+                                className="mb-0 small fw-normal"
+                              >
+                                {orderDetails[doc.value].startsWith(
+                                  "data:image"
+                                )
+                                  ? "Image"
+                                  : "PDF"}
+                              </MDBTypography>
+                            </td>
+                            <td className="">
+                              <MDBTypography
+                                tag="p"
+                                className="mb-0 small fw-bold text-dark"
+                              >
+                                {(
+                                  orderDetails[doc.value].length / 1024
+                                ).toFixed(2)}{" "}
+                                KB
+                              </MDBTypography>
+                            </td>
+                            <td className="">
+                              <div className="d-flex justify-content-end">
                                 <MDBBtn
                                   color="primary"
                                   size="sm"
-                                  onClick={() => openPaymentProofModal(payment)}
+                                  onClick={() => openViewDocumentModal(doc)}
                                 >
-                                  Approve
+                                  View
                                 </MDBBtn>
-                              ) : (
-                                <MDBTypography
-                                  tag="p"
-                                  className="mb-0 small fw-normal text-muted"
-                                >
-                                  No actions
-                                </MDBTypography>
-                              )
-                            ) : userRole === "user" ? (
-                              checkPaymentProofOverdue(payment) ? (
-                                <MDBBtn
-                                  color="primary"
-                                  size="sm"
-                                  onClick={() =>
-                                    openUploadPaymentProofModal(payment)
-                                  }
-                                >
-                                  Upload Proof
-                                </MDBBtn>
-                              ) : checkPaymentProofPending(payment) ? (
-                                <MDBTypography
-                                  tag="p"
-                                  className="mb-0 small fw-normal text-muted"
-                                >
-                                  Not due yet
-                                </MDBTypography>
-                              ) : (
-                                <div className="d-flex">
-                                  <MDBTypography
-                                    tag="p"
-                                    className="mb-0 small fw-normal text-muted"
-                                  >
-                                    No actions
-                                  </MDBTypography>
-                                </div>
-                              )
-                            ) : (
-                              <></>
-                            )}
-                          </MDBCol>
-                        </MDBRow>
-                      </MDBCol>
-                    ))
-                  ) : (
-                    <></>
-                  )}
-                </MDBRow> */}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <></>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </MDBCol>
             )}
         </MDBCol>
@@ -1027,6 +1204,15 @@ const OrderDetails = () => {
         onConfirm={showPaymentProofModal?.onConfirm}
       />
 
+      <EditPaymentDueDateModal
+        isOpen={!!showEditPaymentDueDateModal}
+        title={showEditPaymentDueDateModal?.title}
+        message={showEditPaymentDueDateModal?.message}
+        payment={showEditPaymentDueDateModal?.payment}
+        onClose={showEditPaymentDueDateModal?.onClose}
+        onConfirm={showEditPaymentDueDateModal?.onConfirm}
+      />
+
       <UploadPaymentProofModal
         isOpen={!!showUploadPaymentProofModal}
         title={showUploadPaymentProofModal?.title}
@@ -1034,6 +1220,15 @@ const OrderDetails = () => {
         payment={showUploadPaymentProofModal?.payment}
         onClose={showUploadPaymentProofModal?.onClose}
         onConfirm={showUploadPaymentProofModal?.onConfirm}
+      />
+
+      <CompleteOrderModal
+        isOpen={!!showCompleteOrderModal}
+        title={showCompleteOrderModal?.title}
+        message={showCompleteOrderModal?.message}
+        order={showCompleteOrderModal?.order}
+        onClose={showCompleteOrderModal?.onClose}
+        onConfirm={showCompleteOrderModal?.onConfirm}
       />
     </>
   );

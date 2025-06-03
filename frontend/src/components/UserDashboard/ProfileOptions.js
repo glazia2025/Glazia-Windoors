@@ -378,7 +378,7 @@ const ProfileSelection = forwardRef(
                 <th className="col-kgm">Kg/m</th>
                 <th className="col-length">Length (mm)</th>
                 <th className="col-quantity">Quantity</th>
-                <th className="col-powder-coating">Powder Coating</th>
+                {/* <th className="col-powder-coating">Powder Coating</th> */}
               </tr>
             </thead>
             <tbody>
@@ -456,7 +456,7 @@ const ProfileSelection = forwardRef(
                       </MDBBtn>
                     </div>
                   </td>
-                  <td>
+                  {/* <td>
                     <MDBDropdown>
                       <MDBDropdownToggle color="secondary">
                         {powderCoating[
@@ -530,7 +530,7 @@ const ProfileSelection = forwardRef(
                         ))}
                       </MDBDropdownMenu>
                     </MDBDropdown>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>
