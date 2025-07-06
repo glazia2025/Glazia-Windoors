@@ -29,12 +29,18 @@ import {
   setSelectedOption,
 } from "../../redux/selectionSlice";
 
-const Header = ({ isLoggedIn, onLogout }) => {
+const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
   const { user } = useSelector((state) => state.user);
   const [openBasic, setOpenBasic] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const { hardwareHeirarchy } = useSelector((state) => state.heirarchy);
   const { profileHeirarchy } = useSelector((state) => state.heirarchy);
+
+  const { selectedOption, productsByOption } = useSelector(
+      (state) => state.selection
+    );
+
+    const selectedProducts = Object.values(productsByOption).flat();
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -43,7 +49,7 @@ const Header = ({ isLoggedIn, onLogout }) => {
     const token = localStorage.getItem("authToken");
     try {
       const [profileResponse, hardwareResponse] = await Promise.all([
-        api.get(`${BASE_API_URL}/user/get-profile-heirarchy`, {
+        api.get(`${BASE_API_URL}/${window.location.pathname.includes('admin') ? 'admin' : 'user'}/get-profile-heirarchy`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -287,7 +293,7 @@ const Header = ({ isLoggedIn, onLogout }) => {
           </MDBNavbarNav>
 
           {isLoggedIn && (
-            <div className="d-flex align-items-center">
+            <div className="d-flex align-items-center" style={{gap: '24px'}}>
               {/* Connect with Us Dropdown */}
               {userRole !== "admin" && (
                 <MDBDropdown className="me-3 web-connector">
@@ -335,6 +341,17 @@ const Header = ({ isLoggedIn, onLogout }) => {
                   </MDBDropdownMenu>
                 </MDBDropdown>
               )}
+
+              <div className="cart-container" onClick={() => {
+                if(selectedProducts.length > 0) {
+                  setIsSliderOpen(true);
+                }
+              }}>
+                {selectedProducts.length > 0 && <div className="cart-items-clip">{selectedProducts.length}</div>}
+                <MDBIcon fas icon="shopping-cart" size="lg" />
+              </div>
+                
+
 
               {/* User Profile Dropdown */}
               {isLoggedIn && (

@@ -156,6 +156,19 @@ const OrderList = ({ selectedStatus }) => {
     }
   };
 
+  const deliveryTypeLabel = (deliveryType) => {
+    switch (deliveryType) {
+      case "SELF":
+        return <MDBTypography tag="p" className="mb-0 small">Self Pickup</MDBTypography>;
+      case "FULL":
+        return <MDBTypography tag="p" className="mb-0 small">Full Truck</MDBTypography>;
+      case "PART":
+        return <MDBTypography tag="p" className="mb-0 small">Part Truck</MDBTypography>;
+      default:
+        return null;
+    }
+  };
+
   const renderOrderStatusSmallPill = (order) => {
     return (
       <MDBCol className="px-0 d-flex">
@@ -254,6 +267,9 @@ const OrderList = ({ selectedStatus }) => {
                     <span className="text-muted small">Items</span>
                   </td>
                   <td className="">
+                    <span className="text-muted small">Delivery Type</span>
+                  </td>
+                  <td className="">
                     <span className="text-muted small">Status</span>
                   </td>
                   <td className="">
@@ -288,6 +304,9 @@ const OrderList = ({ selectedStatus }) => {
                         {orderDetails.products.length > 1 &&
                           ` + ${orderDetails.products.length - 1} more`}
                       </MDBTypography>
+                    </td>
+                    <td className="">
+                      {deliveryTypeLabel(orderDetails.deliveryType)}
                     </td>
 
                     <td className="">

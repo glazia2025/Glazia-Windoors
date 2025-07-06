@@ -28,9 +28,15 @@ import Orders from "./components/AdminDashboard/Orders/Orders";
 import ExcelDataFetcher from "./components/Excel";
 import OrderDetails from "./components/OrderDetails";
 import Squares from "./components/ui/Squares/Squares";
+import AboutUsPage from "./components/AboutUs/AboutUs";
+import ProductsServicesPage from "./components/ProductAndServices/ProductsAndServices";
+import ContactUsPage from "./components/ContactUs/ContactUs";
+import BlogPage from "./components/Blogs/Blogs";
+import BlogDetailPage from "./components/BlogDetail/BlogDetail";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isSliderOpen, setIsSliderOpen] = useState(false);
 
   const navigate = useNavigate();
   const isLoading = useSelector((state) => state.loader.isLoading);
@@ -131,40 +137,8 @@ function App() {
         {/* Your app content */}
       </>
       {isLoggedIn && localStorage.getItem("userRole") && (
-        <Header isLoggedIn={isLoggedIn} onLogout={onLogout} />
+        <Header isLoggedIn={isLoggedIn} onLogout={onLogout} isSliderOpen={isSliderOpen} setIsSliderOpen={setIsSliderOpen} />
       )}
-      <div
-        className="bg-transparent"
-        style={{
-          position: "fixed",
-          top: 0,
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 0,
-          transform: "rotate(5deg)",
-        }}
-      >
-        <div
-          className="w-100 h-100 position-absolute top-0 right-0 bottom-0 left-0"
-          style={{
-            background: "linear-gradient(to bottom, #fff0, #f0f0f0)",
-            transform: "rotate(-5deg)",
-          }}
-        ></div>
-        <Squares
-          speed={0.2}
-          hoverFillColor="#e8e8e8"
-          borderColor="#e8e8e8"
-          // its streching out the squares vertically
-          style={{
-            // transform: "scaleY(0.15)",
-            transformOrigin: "center",
-            transform: "translate(50%, 50%) rotate(45deg)",
-            zIndex: 0,
-          }}
-        />
-      </div>
       <div className="app-container position-relative">
         <Routes>
           {/* Admin Login Route */}
@@ -182,6 +156,26 @@ function App() {
               <Route
                 path="/"
                 element={<UserLoginForm setUserRole={setUserRole} />}
+              />
+              <Route
+                path="/about"
+                element={<AboutUsPage setUserRole={setUserRole} />}
+              />
+               <Route
+                path="/products_and_services"
+                element={<ProductsServicesPage setUserRole={setUserRole} />}
+              />
+              <Route
+                path="/blogs"
+                element={<BlogPage setUserRole={setUserRole} />}
+              />
+              <Route
+                path="/blogs/:id"
+                element={<BlogDetailPage setUserRole={setUserRole} />}
+              />
+              <Route
+                path="/contact"
+                element={<ContactUsPage setUserRole={setUserRole} />}
               />
             </>
           )}
@@ -234,7 +228,7 @@ function App() {
             path="/user/home"
             element={
               localStorage.getItem("userRole") === "user" && isLoggedIn ? (
-                <SelectionContainer />
+                <SelectionContainer isSliderOpen={isSliderOpen} setIsSliderOpen={setIsSliderOpen} />
               ) : (
                 <Navigate to="/" />
               )

@@ -8,7 +8,7 @@ import { MDBBtn, MDBTypography } from "mdb-react-ui-kit";
 // Configure the worker for PDF.js
 // Ensure this path or the unpkg URL is correct for your pdfjs-dist version
 // The .mjs extension is specific, make sure it matches what your pdfjs-dist version provides.
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 function PDFViewer({ base64Pdf, file }) {
   const [numPages, setNumPages] = useState(null);

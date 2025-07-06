@@ -1,5 +1,5 @@
 const express = require('express');
-const { getProducts, getProfileHierarchy } = require('../controllers/productController');
+const { getProducts, getProfileHierarchy, testRun } = require('../controllers/productController');
 const { createUser, getUser, updateUser } = require('../controllers/userController');
 const { createOrder, getOrders, sendEmail, createPayment, uploadPaymentProof } = require('../controllers/orderController');
 const { getHardwareHeirarchy } = require('../controllers/hardwareController');
@@ -16,5 +16,6 @@ router.get('/get-profile-heirarchy', isUser, getProfileHierarchy);
 router.get('/get-hardware-heirarchy', isUser, getHardwareHeirarchy);
 router.post('/send-email', isUser, sendEmail);
 router.post('/upload-payment-proof', isUser, express.json({ limit: "50mb" }), uploadPaymentProof)
+router.get('/getProducts', isUser, getProducts);
 
 module.exports = router;

@@ -98,10 +98,36 @@ const addProduct = async (req, res) => {
 
 const getProducts = async (req, res) => {
   try {
-    const profileOptions = await ProfileOptions.findOne({});
+    let profileOptions = await ProfileOptions.findOne({});
+    
     if (!profileOptions) {
       return res.status(404).json({ message: 'Profile options not found' });
     }
+    if (req.originalUrl.includes('user')) {
+      const categories = profileOptions.categories; // This is a Map
+
+      
+
+      for (const [categoryKey, categoryValue] of categories.entries()) {
+        const productsMap = categoryValue.products; // Also a Map
+
+        const enabledMap = categoryValue.enabled || {};
+
+
+        const enabledOptions = categoryValue.options.filter(option => enabledMap.get(option));
+        
+        categoryValue.options = enabledOptions; // Update the options to only include enabled ones
+
+        if (!productsMap) continue;
+
+        for (const [optionKey, productArray] of productsMap.entries()) {
+          const enabledProducts = productArray.filter(p => p.isEnabled);
+          productsMap.set(optionKey, enabledProducts); // update filtered list
+        }
+      }
+
+    }
+
     res.status(200).json(profileOptions);
   } catch (error) {
     console.error("Error fetching profile options:", error);
@@ -109,12 +135,49 @@ const getProducts = async (req, res) => {
   }
 };
 
+const toggleProfileAvailability = async (req, res) => {
+  try {
+    const { category, enabled } = req.body;
+
+    if (!category || typeof enabled !== 'object') {
+      return res.status(400).json({ message: 'Missing or invalid input' });
+    }
+
+    const profileOptions = await ProfileOptions.findOne({});
+    if (!profileOptions) {
+      return res.status(404).json({ message: 'ProfileOptions not found' });
+    }
+
+    const categoryMap = profileOptions.categories.get(category);
+    if (!categoryMap) {
+      return res.status(404).json({ message: `Category '${category}' not found` });
+    }
+
+    // Update or create the enabled map
+    categoryMap.enabled = categoryMap.enabled || {};
+    for (const [option, isEnabled] of Object.entries(enabled)) {
+      categoryMap.enabled.set(option, isEnabled);
+    }
+
+    profileOptions.categories.set(category, categoryMap); // Update the category in the main map
+
+    // Save changes
+    await profileOptions.save();
+
+    res.status(200).json({ message: 'Enabled map updated successfully' });
+  } catch (error) {
+    console.error('Error updating enabled map:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
+
 const editProduct = async (req, res) => {
   const { category, productType, productId } = req.params;
   const updatedData = req.body;
 
   // Define mandatory fields
-  const mandatoryFields = ["sapCode", "part", "description", "degree", "per", "kgm", "length"];
+  const mandatoryFields = ["sapCode", "part", "description", "degree", "per", "kgm", "length", "isEnabled"];
 
   // Check if any mandatory field is missing
   const missingFields = mandatoryFields.filter(field => !(field in updatedData));
@@ -234,17 +297,41 @@ const getProfileHierarchy = async (req, res) => {
     if (!profileOptions) {
       return res.status(404).json({ message: 'No profile found' });
     }
-    const finalObject = Array.from(profileOptions.categories.keys()).map(profile => {
-      return {
-        profile,
-        options: profileOptions.categories.get(profile).options // Corrected here to use get()
-      };
-    });
-    res.status(200).json({ products: finalObject });
+
+    if (req.originalUrl.includes('user')) {
+      const finalObject = Array.from(profileOptions.categories.keys()).map(profile => {
+        const category = profileOptions.categories.get(profile);
+        const allOptions = category.options || [];
+        const enabledMap = category.enabled || {};
+
+        const enabledOptions = allOptions.filter(option => enabledMap.get(option));
+
+        return {
+          profile,
+          options: enabledOptions
+        };
+      });
+
+
+
+      return res.status(200).json({ products: finalObject });
+    } else {
+        const finalObject = Array.from(profileOptions.categories.keys()).map(profile => {
+        return {
+          profile,
+          options: profileOptions.categories.get(profile).options // Corrected here to use get()
+        };
+      });
+      return res.status(200).json({ products: finalObject });
+    }
+
+    
   } catch (error) {
+    console.error("Error getting profiles:", error);
     res.status(500).json({ message: 'Error getting profiles' });
   }
-}
+};
+
 
 const updateTechSheet = async (req, res) => {
   const { main, category, subCategory, shutterHeight, shutterWidth, lockingMechanism, glassSize, alloy, interlock } = req.body;
@@ -450,4 +537,14 @@ async function updateDocument() {
 
 // updateDocument();
 
-module.exports = { addProduct, getProducts, editProduct, deleteProduct, searchProduct, getProfileHierarchy, updateTechSheet, getTechSheet };
+module.exports = { 
+  addProduct, 
+  getProducts, 
+  editProduct, 
+  deleteProduct, 
+  searchProduct, 
+  getProfileHierarchy, 
+  updateTechSheet, 
+  getTechSheet,
+  toggleProfileAvailability
+ };

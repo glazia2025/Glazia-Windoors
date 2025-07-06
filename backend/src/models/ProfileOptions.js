@@ -11,6 +11,7 @@ const productSchema = new mongoose.Schema({
   kgm: { type: Number, required: true },
   length: { type: String, required: true },
   image: { type: String, required: false },
+  isEnabled: { type: Boolean, default: true },
 });
 
 // Define the profile options schema with dynamic categories
@@ -22,6 +23,7 @@ const profileOptionsSchema = new mongoose.Schema(
       of: new mongoose.Schema({
         options: { type: [String], required: true },
         rate: { type: Map, of: String, required: true },
+        enabled: { type: Map, of: Boolean, required: true },
         products: {
           type: Map,
           of: [productSchema],

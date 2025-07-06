@@ -5,15 +5,19 @@ import {
   MDBBtn,
   MDBIcon,
   MDBTooltip,
+  MDBModal,
   MDBContainer,
+  MDBModalDialog,
+  MDBModalContent,
   MDBTypography,
   MDBFile,
+  MDBRadio
 } from "mdb-react-ui-kit";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import * as pdfjs from "pdfjs-dist";
+import { pdfjs } from "react-pdf";
 
 import ProfileOptions from "./ProfileOptions";
 import HardwareOptions from "./HardwareOptions";
@@ -34,10 +38,11 @@ import { convertFileToBase64 } from "../../utils/common";
 import ImageZoom from "./ImageZoom";
 import { toast } from "react-toastify";
 
-// Initialize pdf.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-const SelectionContainer = () => {
+// Initialize pdf.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+
+const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -48,12 +53,14 @@ const SelectionContainer = () => {
   const { selectedOption, productsByOption } = useSelector(
     (state) => state.selection
   );
-  const [isSliderOpen, setIsSliderOpen] = useState(false); // State for slider visibility
   const [isMakingPayment, setIsMakingPayment] = useState(false);
   const [wrapperHeight, setWrapperHeight] = useState("calc(100vh -80px)");
   const [subTotal, setSubTotal] = useState(0);
   const [total, setTotal] = useState(0);
   const [paymentProofFile, setPaymentProofFile] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [deliveryType, setDeliveryType] = useState('');
+  const [paymentSlider, setPaymentSlider] = useState(false);
 
   // Aggregate products from all options
   const selectedProducts = Object.values(productsByOption).flat();
@@ -93,21 +100,9 @@ const SelectionContainer = () => {
     };
   }, [isSliderOpen]);
 
-  useEffect(() => {
-    if (!selectedProducts?.length) {
-      generatePDFPreview();
-    }
-  }, [selectedProducts]);
+  
 
-  useEffect(() => {
-    if (
-      selectedProducts.length > 0 &&
-      selectedProducts.length !== prevSelectedProducts.current.length
-    ) {
-      generatePDFPreview();
-    }
-    prevSelectedProducts.current = selectedProducts;
-  }, [selectedProducts]);
+ 
 
   useEffect(() => {
     if (!user) authenticateUser();
@@ -180,67 +175,43 @@ const SelectionContainer = () => {
     if (isMakingPayment) return;
 
     setIsMakingPayment(true);
-    setSlider();
+    setIsSliderOpen(false);
+    setPaymentSlider(true);
   };
 
-  const generatePDFPreview = (isExpand) => {
+  const generatePDFPreview = () => {
     const doc = createProformaInvoice();
     const pdfOutput = doc.output("datauristring");
-    renderPDF(pdfOutput, isExpand);
+    renderPDF(pdfOutput);
   };
 
   const currentRenderTask = useRef(null);
 
-  const renderPDF = async (pdfData, isExpand) => {
-    const loadingTask = pdfjs.getDocument(pdfData);
-    try {
-      const pdf = await loadingTask.promise;
-      const numPages = pdf.numPages;
-      let container = "";
-      if (!isExpand) {
-        container = document.querySelector(".canva-container");
-      } else {
-        container = document.querySelector(".canva2-container");
-      }
+  const renderPDF = async (pdfData) => {
+  try {
+    // Fetch the PDF data if it's a URL or Uint8Array
+    let pdfBlob;
 
-      if (!container) return;
-      container.innerHTML = "";
-
-      const renderTasks = new Map();
-
-      for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const canvas = document.createElement("canvas");
-        container.appendChild(canvas);
-
-        const context = canvas.getContext("2d");
-        const containerWidth = container.clientWidth;
-        const viewport = page.getViewport({
-          scale: containerWidth / page.getViewport({ scale: 1 }).width,
-        });
-
-        // Set full width for the canvas
-        canvas.style.width = "100%";
-        canvas.style.height = "auto"; // Maintain aspect ratio
-
-        // Ensure proper rendering size
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-
-        // Cancel previous render task for this specific page
-        if (renderTasks.has(pageNum)) {
-          renderTasks.get(pageNum).cancel();
-        }
-
-        const renderTask = page.render({ canvasContext: context, viewport });
-        renderTasks.set(pageNum, renderTask);
-
-        await renderTask.promise;
-      }
-    } catch (error) {
-      console.error("Error rendering PDF:", error);
+    if (typeof pdfData === "string") {
+      // Assuming it's a URL
+      const response = await fetch(pdfData);
+      const arrayBuffer = await response.arrayBuffer();
+      pdfBlob = new Blob([arrayBuffer], { type: "application/pdf" });
+    } else if (pdfData instanceof Uint8Array || pdfData instanceof ArrayBuffer) {
+      pdfBlob = new Blob([pdfData], { type: "application/pdf" });
+    } else {
+      console.error("Unsupported pdfData type");
+      return;
     }
-  };
+
+    // Create a blob URL and open it in a new tab
+    const pdfURL = URL.createObjectURL(pdfBlob);
+    window.open(pdfURL, "_blank");
+  } catch (error) {
+    console.error("Error opening PDF in new tab:", error);
+  }
+};
+
 
   const confirmOrder = async () => {
     let paymentProofBase64 = null;
@@ -266,6 +237,7 @@ const SelectionContainer = () => {
             proof: paymentProofBase64,
           },
           totalAmount: Number(total.toFixed(2)),
+          deliveryType
         };
 
         const token = localStorage.getItem("authToken");
@@ -514,18 +486,13 @@ Glazia Windoors Pvt Ltd.
 
   const setSlider = () => {
     setIsSliderOpen(true);
-
-    if (selectedProducts.length > 0) {
-      // currentRenderTask.current.cancel();
-      generatePDFPreview(true);
-    }
   };
 
   const clearCurrentPdfView = () => {
     if (currentRenderTask.current) {
       currentRenderTask.current.cancel();
     }
-    setIsSliderOpen(false);
+    setPaymentSlider(false);
     setIsMakingPayment(false);
   };
 
@@ -549,8 +516,9 @@ Glazia Windoors Pvt Ltd.
   };
 
   return (
+    <>
     <MDBRow className="pdf-row-wrapper">
-      <MDBCol className="main-selectors" style={{ minWidth: "70%" }}>
+      <MDBCol className="main-selectors" style={{ minWidth: "65%" }}>
         <MDBRow className="d-flex justify-content-between align-items-end">
           <MDBCol className="btns-container w-100 justify-content-between">
             <MDBRow>
@@ -579,20 +547,6 @@ Glazia Windoors Pvt Ltd.
                   >
                     <MDBIcon fas icon="cloud-download-alt" />
                     &nbsp; Download pdf
-                  </MDBBtn>
-                </MDBTooltip>
-                <MDBTooltip
-                  tag="span"
-                  wrapperClass="d-inline-block"
-                  title="Please add products"
-                >
-                  <MDBBtn
-                    disabled={selectedProducts.length === 0}
-                    style={{ width: "max-content" }}
-                    onClick={setSlider}
-                  >
-                    <MDBIcon fas icon="expand" />
-                    &nbsp; Expand PI
                   </MDBBtn>
                 </MDBTooltip>
               </div>
@@ -644,15 +598,21 @@ Glazia Windoors Pvt Ltd.
         </MDBRow>
       </MDBCol>
 
-      {selectedProducts.length > 0 && (
-        <MDBCol
+      {isSliderOpen && (
+        <>
+          <div className="overlay" onClick={() => setIsSliderOpen(false)} />
+          <MDBCol
           className="mt-0"
           style={{
-            flex: "1 1 auto",
-            width: "100%", // Ensure the column spans the full width
-            maxWidth: "100%", // Avoid limiting the maximum width
+            position: "fixed",
+            right: "0",
             borderLeft: "1px solid #ddd",
             paddingLeft: "0px",
+            bottom: "0",
+            height: '100vh',
+            backgroundColor: '#FFF',
+            zIndex: 10000,
+            width: "35vw",
           }}
         >
           <div className="canva-scroll-set">
@@ -660,42 +620,55 @@ Glazia Windoors Pvt Ltd.
               className="pdf-wrapper"
               style={{
                 height: "100%",
-                position: "fixed", // Fixed positioning might need adjustments
-                top: "80px",
                 maxHeight: wrapperHeight,
                 overflow: "scroll",
                 display: "flex",
                 flexDirection: "column",
-                justifyContent: "space-between",
+                justifyContent: "flex-start",
                 width: "-webkit-fill-available",
                 background: "#fff",
-                borderBottom: "2px solid #32a",
+                gap: "2rem",
+                padding: "1rem",
               }}
             >
-              <MDBBtn className="expand-btn" onClick={setSlider}>
-                <MDBIcon fas icon="angle-up" />
-              </MDBBtn>
+              <div className="d-flex align-items-center justify-content-center">
+                <h5 className="fw-bold text-center">Selected Products</h5>
+                <div style={{ cursor: "pointer", marginLeft: "auto" }} onClick={() => setIsSliderOpen(false)}>
+                  <MDBIcon fas icon="times" />
+                </div>
+              </div>
+              
+                  <table className="table table-striped table-bordered" style={{ width: "100%", marginTop: "1rem", tableLayout: 'auto' }}>
+                      <thead>
+                        <tr>
+                          <td>Name</td>
+                          <td>Rate</td>
+                          <td>Quantity</td>
+                          <td>Amount</td>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedProducts.map((product, index) => (
+                          <tr key={index}>
+                            <td>{product.description}</td>
+                            <td>₹ {product.rate}</td>
+                            <td>{product.quantity}</td>
+                            <td>₹ {product.amount}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
 
-              {/* <canvas
-              key={selectedProducts.length}
-              ref={canvasRef}
-              style={{
-                width: "100%", // Full width within its container
-                height: "auto", // Maintain aspect ratio
-                background: "#fff",
-                display: "block", // Prevent extra margin from inline elements
-              }}
-            /> */}
-              <div
-                className="canva-container"
-                style={{
-                  width: "100%", // Full width within its container
-                  height: "auto", // Maintain aspect ratio
-                  background: "#fff",
-                  display: "block", // Prevent extra margin from inline elements
-                }}
-              ></div>
-              <div className="total-pricing m-2 rounded-2">
+                    <MDBBtn
+                  className="mt-3"
+                  disabled={selectedProducts.length === 0}
+                  color={"secondary"}
+                  onClick={() => clearCart()}
+                  size={"lg"}
+                >
+                  Clear Cart
+                </MDBBtn>
+              <div className="total-pricing m-2 rounded-2" style={{ position: "absolute", bottom: "0rem", width: "95%", left: "0" }}>
                 <div className="price-control">
                   <div className="heading sub-price">Sub Total</div>
                   <div className="price sub-price">₹ {subTotal.toFixed(2)}</div>
@@ -715,6 +688,17 @@ Glazia Windoors Pvt Ltd.
                   className="mt-3"
                   disabled={selectedProducts.length === 0}
                   color={"secondary"}
+                  onClick={() => generatePDFPreview()}
+                  size={"lg"}
+                >
+                  <MDBIcon fas icon="receipt" />
+                  &nbsp; View Performa Invoice
+                </MDBBtn>
+
+                <MDBBtn
+                  className="mt-3"
+                  disabled={selectedProducts.length === 0}
+                  color={"secondary"}
                   onClick={goToPayment}
                   size={"lg"}
                 >
@@ -725,9 +709,10 @@ Glazia Windoors Pvt Ltd.
             </div>
           </div>
         </MDBCol>
+        </>
       )}
 
-      {isSliderOpen && (
+      {paymentSlider && (
         <div className="overlay-wrapper">
           {/* <MDBBtn
             className="download-pdf overlay-download"
@@ -747,13 +732,12 @@ Glazia Windoors Pvt Ltd.
               left: 0,
               background: "#efefef",
               width: "60%",
-              height: "calc(100vh - 80px)",
+              height: "100vh",
               zIndex: "999",
-              marginTop: "-1px",
               borderRight: "1px solid #ddd",
               paddingLeft: "5%",
               paddingRight: "5%",
-              paddingTop: "50px",
+              paddingTop: "100px",
               paddingBottom: "50px",
               overflowY: "auto",
             }}
@@ -924,30 +908,8 @@ Glazia Windoors Pvt Ltd.
 
                 <hr className="mt-4" />
 
-                <MDBTypography tag="h5" className="mt-4 mb-1 fw-semibold">
-                  Upload Payment Proof
-                </MDBTypography>
-
-                <MDBTypography tag="h6" className="mb-3">
-                  Accepts PDFs or images (max 10MB)
-                </MDBTypography>
-                <MDBFile
-                  id="paymentProofUpload"
-                  onChange={handlePaymentProofChange}
-                  className="mb-2" // Added margin bottom
-                  style={{ maxWidth: "400px" }}
-                />
-                {paymentProofFile && (
-                  <MDBTypography small className="text-muted">
-                    {paymentProofFile.name} (
-                    {(paymentProofFile.size / 1024).toFixed(2)} KB)
-                  </MDBTypography>
-                )}
-
-                <p></p>
-
                 <MDBBtn
-                  onClick={confirmOrder}
+                  onClick={() => setShowModal(true)}
                   className="mt-4"
                   color="primary"
                   size="lg"
@@ -966,45 +928,45 @@ Glazia Windoors Pvt Ltd.
       )}
 
       {/* Slider component */}
-      {isSliderOpen && (
+      {paymentSlider && (
         <div
           className="slider"
           style={{
-            transform: isSliderOpen ? "translateX(0)" : "translateX(100%)",
+            transform: paymentSlider ? "translateX(0)" : "translateX(100%)",
             padding: "0",
+            zIndex: 10000,
+            padding: "1rem",
           }}
         >
-          <button
-            onClick={() => clearCurrentPdfView()}
-            style={{
-              position: "absolute",
-              top: "12%",
-              right: "10px",
-              background: "transparent",
-              border: "none",
-              fontSize: "30px",
-            }}
-          >
-            ×
-          </button>
-          <div
-            className="canva2-container"
-            style={{
-              maxHeight: "100vh",
-              width: "100%", // Full width within its container
-              height: "auto", // Maintain aspect ratio
-              background: "#fff",
-              display: "block",
-              overflowY: "scroll",
-            }}
-          >
-            {/* <div>
-              <canvas ref={canvasRef} style={{ width: '100%', backgroundColor: 'white', marginTop: '100px' }} />
-            </div> */}
+          <div className="d-flex align-items-center justify-content-center">
+            <h5 className="fw-bold text-center">Selected Products</h5>
+            <div style={{ cursor: "pointer", marginLeft: "auto" }} onClick={() => clearCurrentPdfView()}>
+              <MDBIcon fas icon="times" />
+            </div>
           </div>
+          <table className="table table-striped table-bordered" style={{ width: "100%", marginTop: "1rem", tableLayout: 'auto' }}>
+            <thead>
+              <tr>
+                <td>Name</td>
+                <td>Rate</td>
+                <td>Quantity</td>
+                <td>Amount</td>
+              </tr>
+            </thead>
+            <tbody>
+              {selectedProducts.map((product, index) => (
+                <tr key={index}>
+                  <td>{product.description}</td>
+                  <td>₹ {product.rate}</td>
+                  <td>{product.quantity}</td>
+                  <td>₹ {product.amount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           <div
             className="total-pricing-slider w-100"
-            style={{ position: "fixed", bottom: "0" }}
+            style={{ position: "absolute", bottom: "0", left: "0", width: "95%" }}
           >
             <div className="price-control">
               <div className="heading sub-price slider-price">Sub Total</div>
@@ -1060,6 +1022,53 @@ Glazia Windoors Pvt Ltd.
         </div>
       )}
     </MDBRow>
+    <MDBModal className="bottom-sheet-modal" open={showModal} onClose={() => setShowModal(false)}>
+        <MDBModalDialog >
+          <MDBModalContent>
+<MDBTypography tag="h3" className="mt-3 mb-4 fw-semibold">
+            Upload Payment Proof
+          </MDBTypography>
+
+          <MDBTypography tag="h6" className="mb-3">
+            Accepts PDFs or images (max 10MB)
+          </MDBTypography>
+          {paymentProofFile && (
+            <MDBTypography small className="text-muted">
+              {paymentProofFile.name} (
+              {(paymentProofFile.size / 1024).toFixed(2)} KB)
+            </MDBTypography>
+          )}
+          <MDBFile
+            id="paymentProofUpload"
+            onChange={handlePaymentProofChange}
+            className="mb-2" // Added margin bottom
+            style={{ maxWidth: "400px" }}
+          />
+
+          <hr className="mt-4" />
+
+          <div>
+              <MDBTypography tag="h6" className="mb-2">Select Delivery Type</MDBTypography>
+              <MDBRadio name='deliveryType' id='flexRadioDefault1' label='Self Pickup' value="SELF" onChange={e => setDeliveryType(e.target.value)} />
+              <MDBRadio name='deliveryType' id='flexRadioDefault2' label='Full Truck' value="FULL" onChange={e => setDeliveryType(e.target.value)} />
+              <MDBRadio name='deliveryType' id='flexRadioDefault3' label='Part Truck' value="PART" onChange={e => setDeliveryType(e.target.value)} />
+            </div>
+
+          <MDBBtn
+            onClick={confirmOrder}
+            className="mt-4"
+            color="primary"
+            size="lg"
+            disabled={!paymentProofFile || deliveryType === ""}
+          > 
+            <MDBIcon fas icon="check" />
+            &nbsp; Confirm Order
+          </MDBBtn>
+          </MDBModalContent>
+        </MDBModalDialog>
+
+      </MDBModal>
+    </>
   );
 };
 

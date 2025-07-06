@@ -1,75 +1,155 @@
 body {
-  /* background-color: hsl(0, 0%, 96%); */
+    font-family: 'Inter', sans-serif;
+    background-color: #f8f9fa; /* Light gray background */
+    color: #333;
 }
-.mdb-container {
-  /* height: 100vh; */
-  max-width: 90vw;
+
+.logo {
+  height: 40px;
+  width: 40px;
+}
+
+/* Custom modal overlay and content styling */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+}
+.modal-dialog {
+    z-index: 1001;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    border-radius: 1rem; /* Rounded corners for modals */
+}
+.modal-content {
+    border-radius: 1rem; /* Consistent with dialog */
+}
+
+/* Custom button gradient and shadow */
+.btn-primary-glazia {
+    background-image: linear-gradient(to right, #4a90e2 0%, #007bff 100%);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+    border: none; /* Remove default MDB button border */
+}
+.btn-primary-glazia:hover {
+    background-position: right center;
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+    color: #fff; /* Ensure text color remains white on hover */
+}
+.btn-secondary-glazia {
+    border: 1px solid #6c757d;
+    transition: all 0.3s ease;
+    color: #0d6efd; /* MDB primary color */
+    background-color: transparent;
+}
+.btn-secondary-glazia:hover {
+    background-color: #e2e6ea;
+    color: #0d6efd; /* Ensure text color remains consistent on hover */
+}
+
+/* Fade in animation for modals (MDB has its own, but keeping for reference if needed) */
+.fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+.slide-up {
+    animation: slideUp 0.3s ease-out forwards;
+}
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Custom backgrounds for sections */
+.header-bg {
+    background-color: #ffffff;
+    box-shadow: 0 0.125rem 0.625rem rgba(0,0,0,0.05); /* MDB shadow-1 equivalent */
+    z-index: 999 !important;
+}
+.hero-section {
+    background-color: #e0f2fe;
+}
+.section-bg-light {
+    background-color: #ffffff;
+}
+.section-bg-dark {
+    background-color: #f0f8ff;
+}
+.testimonial-card {
+    background-color: #ffffff;
+    box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.08); /* MDB shadow-2 equivalent */
+}
+.footer-bg {
+    background-color: #343a40;
+}
+
+.desktop-navbar {
   display: flex;
+  flex-direction: row;
+  gap: 24px;
   align-items: center;
-  justify-content: center;
-  margin-top: -50px;
-  /* overflow-y: hidden; */
 }
 
-/* Initial padding for the label */
-.form-outline .form-control ~ .form-label {
-  /* padding: 1rem; */
-}
-/* 
-.login-image {
-  width: 60%;
-} */
+/* Responsive adjustments for header navigation */
+@media (max-width: 767.98px) {
 
-.why-glazia {
-  list-style-type: none; /* Remove dots */
-  padding-left: 0; /* Remove left padding */
-}
+  .desktop-navbar {
+    display: none;
+  }
 
-.glazia-logo {
-  width: 10rem;
-}
-
-@media screen and (max-width: 768px) {
-    .mdb-container {
-        max-width: 100vw;
-        margin-top: -25%;
+    .navbar-collapse {
+        background-color: #ffffff; /* White background for mobile menu */
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        box-shadow: 0 0.125rem 0.625rem rgba(0,0,0,0.05);
+        padding: 1rem 0;
     }
-/* 
-    .login-main-wrapper {
-      flex-direction: column-reverse;
-    } */
-
-    .logo-alignment {
-      flex-direction: column;
-      align-items: center;
+    .navbar-nav .nav-link {
+        padding: 0.5rem 1rem;
+        display: block;
     }
-
-    .logo-alignment > h3 {
-      margin-left: 0 !important;
+    .navbar-toggler:focus {
+        box-shadow: none; /* Remove blue outline on toggle button focus */
     }
 }
 
-.footer-section {
-  background-color: #f8f9fa; /* Light background */
-  padding: 40px 20px;
-  text-align: center; /* Center the text */
-  font-family: "Nunito Sans", Arial, sans-serif;
-  border-top: 2px solid #ddd; /* Add a top border */
+
+
+.bottom-sheet-modal .modal-dialog {
+  position: fixed;
+  bottom: 0;
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  transform: none;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
 }
 
-.footer-content h5 {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333; /* Dark color for the header */
-  margin-bottom: 20px;
+.bottom-sheet-modal .modal-content {
+  border-radius: 16px 16px 0 0;
+  padding: 1rem;
 }
 
-.footer-content p {
-  font-size: 1rem;
-  color: #666; /* Lighter color for the paragraph */
-  margin: 8px 0; /* Space between paragraphs */
-}
+/* Optional: restrict to small screens */
+@media (min-width: 768px) {
+  .bottom-sheet-modal .modal-dialog {
+    position: fixed;
+    transform: translate(-50%, -50%);
+    top: 50%;
+    left: 50%;
+    width: auto;
+    max-width: 500px;
+    border-radius: 8px;
+    box-shadow: none;
+    width: 400px;
+  }
 
-.footer-content p:first-child {
-  font-weight: bold; /* Make the first line (call us) bold */
+  .bottom-sheet-modal .modal-content {
+    border-radius: 8px;
+  }
 }

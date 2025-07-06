@@ -65,70 +65,6 @@ const ProfileSelection = forwardRef(
       ? searchResults
       : profileData[activeProfile]?.products[activeOption] || [];
 
-    const powderColors = [
-      {
-        name: "Metallic Shades",
-        colors: [
-          { name: "Matt Metro Gold", hex: "#989084" },
-          { name: "Satin RAL 9006", hex: "#A7A2A0" },
-          { name: "Matt Eco Grey", hex: "#9E9E94" },
-          { name: "Satin RAL 9007", hex: "#A19C9A" },
-          { name: "Fine Texture Sparkle Grey", hex: "#4C4F4E" },
-          { name: "Fine Texture 2900 MT Grey", hex: "#45403D" },
-          { name: "Fine Texture Noir 2200 Sable", hex: "#3A4244" },
-          { name: "Fine Texture 2500 MT Grey", hex: "#796A5A" },
-          { name: "Matt Anodic Bronze III", hex: "#41362F" },
-        ],
-      },
-      {
-        name: "Solid Shades",
-        colors: [
-          { name: "Satin RAL 9016", hex: "#FFFEF7" },
-          { name: "Satin RAL 9003", hex: "#FFFFFF" },
-          { name: "Satin RAL 9010", hex: "#F7FBF2" },
-          { name: "Satin RAL 9002", hex: "#D6D5C8" },
-          { name: "Matt Champagne", hex: "#ACA27D" },
-          { name: "Satin RAL 7035", hex: "#CDD3D1" },
-          { name: "Satin RAL 7032", hex: "#C0BEAC" },
-          { name: "Satin RAL 7037", hex: "#868A8C" },
-          { name: "Matt RAL 7043", hex: "#484F54" },
-          { name: "Matt RAL 7015", hex: "#46494E" },
-          { name: "Matt RAL 7024", hex: "#444A4A" },
-          { name: "Satin RAL 7022", hex: "#393A34" },
-          { name: "Satin RAL 7016", hex: "#3F4648" },
-          { name: "Fine Texture", hex: "#353536" },
-          { name: "Matt RAL 9005", hex: "#00181B" },
-          { name: "Fine Texture RAL 9005", hex: "#00181B" },
-          { name: "Satin RAL 8003", hex: "#7B4D28" },
-          { name: "Matt RAL 8016", hex: "#56382D" },
-        ],
-      },
-      {
-        name: "Bonded Metallic Shades",
-        colors: [
-          { name: "Matt Soft Silver", hex: "#B0B2A1" },
-          { name: "Matt Steel Blue Platinum", hex: "#5B6162" },
-          { name: "Matt Steel Blue Grey 715", hex: "#49484E" },
-          { name: "Matt Silver Champagne", hex: "#C3BEA7" },
-          { name: "Matt Gold Splendor", hex: "#B28637" },
-          { name: "Matt Steel Bronze-1", hex: "#7B6540" },
-          { name: "Matt Golden Beach", hex: "#A69982" },
-          { name: "Satin Golden Bronze", hex: "#977145" },
-          { name: "Satin (Dry Blended Metallic) RAL 9006", hex: "#A2A6A4" },
-        ],
-      },
-      {
-        name: "Solid Shades",
-        colors: [
-          { name: "Satin RAL 9016", hex: "#FFFEF7" },
-          { name: "Satin RAL 9003", hex: "#FFFFFF" },
-          { name: "Satin RAL 9010", hex: "#FFFEF7" },
-          { name: "Matt RAL 7035", hex: "#CDD3D1" },
-          { name: "Matt RAL 7043", hex: "#565C5B" },
-        ],
-      },
-    ];
-
     useEffect(() => {
       fetchProducts();
     }, [dispatch]);
@@ -141,7 +77,7 @@ const ProfileSelection = forwardRef(
       dispatch(fetchProductsStart());
       const token = localStorage.getItem("authToken");
       try {
-        const response = await api.get(`${BASE_API_URL}/admin/getProducts`, {
+        const response = await api.get(`${BASE_API_URL}/user/getProducts`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

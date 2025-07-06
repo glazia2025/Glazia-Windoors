@@ -8,6 +8,8 @@ const {
   searchProduct,
   updateTechSheet,
   getTechSheet,
+  toggleProfileAvailability,
+  getProfileHierarchy
 } = require("../controllers/productController");
 const {
   addHardware,
@@ -48,7 +50,7 @@ router.delete(
   isAdmin,
   deleteProduct
 );
-router.get("/getProducts", isUser, getProducts);
+router.get("/getProducts", isAdmin, getProducts);
 router.put("/edit-hardware/:option/:productId", isAdmin, editHardware);
 router.delete("/delete-hardware/:option/:productId", isAdmin, deleteHardware);
 router.post("/update-nalco", isAdmin, updateNalco);
@@ -56,5 +58,7 @@ router.get("/get-tech-sheet", isUser, getTechSheet);
 router.post("/approve-payment", isAdmin, approvePayment);
 router.post("/update-payment-due-date", isAdmin, updatePaymentDueDate);
 router.post("/complete-order", isAdmin, express.json({ limit: "50mb" }), completeOrder);
+router.post("/toggle-profile-availability", isAdmin, toggleProfileAvailability);
+router.get('/get-profile-heirarchy', isAdmin, getProfileHierarchy);
 
 module.exports = router;

@@ -294,7 +294,6 @@ const getHardwareHeirarchy = async (req, res) => {
     if (!hardwareOptions) {
       return res.status(404).json({ message: 'No profile found' });
     }
-    console.log("hardwareOptions", hardwareOptions)
     const finalObject = Array.from(hardwareOptions.options).map(profile => profile);
     res.status(200).json({ products: finalObject });
   } catch (error) {

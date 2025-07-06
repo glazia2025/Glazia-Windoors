@@ -44,6 +44,11 @@ const userOrderSchema = new mongoose.Schema(
     taxInvoice: { type: String },
     isComplete: { type: Boolean, default: false },
     completedAt: { type: Date },
+    deliveryType: {
+      type: String,
+      enum: ['SELF', 'FULL', 'PART'],
+      required: true,
+    },
   },
   { timestamps: true }
 );

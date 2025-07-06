@@ -10,6 +10,7 @@ import {
   MDBInput,
   MDBIcon,
   MDBFile,
+  MDBSwitch
 } from "mdb-react-ui-kit";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -138,6 +139,42 @@ const ProfileTable = () => {
     }
   };
 
+  const handleVisibility = async (product) => {
+    const token = localStorage.getItem("authToken");
+    try {
+      const response = await api.put(
+        `${BASE_API_URL}/admin/edit-product/${activeProfile}/${activeOption}/${product._id}`,
+        product,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      fetchProducts();// Exit editing mode
+    } catch (err) {
+      console.error("Error saving product", err);
+    }
+  };
+
+  const handleSubCatVisibility = async (product) => {
+    const token = localStorage.getItem("authToken");
+    try {
+      const response = await api.post(
+        `${BASE_API_URL}/admin/toggle-profile-availability`,
+        product,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      fetchProducts();// Exit editing mode
+    } catch (err) {
+      console.error("Error saving product", err);
+    }
+  };
+
   const handleDelete = async (productId) => {
     const token = localStorage.getItem("authToken");
     try {
@@ -191,19 +228,35 @@ const ProfileTable = () => {
       </MDBTabs>
       {/* <hr /> */}
       {activeProfile && (
-        <MDBTabs className="mb-4 d-flex align-items-center gap-2">
-          {profileOptions[activeProfile]?.options.map((option) => (
-            <MDBTabsItem key={option}>
-              <MDBTabsLink
-                className="rounded-2"
-                active={activeOption === option}
-                onClick={() => dispatch(setActiveOption(option))}
-              >
-                {option}
-              </MDBTabsLink>
-            </MDBTabsItem>
-          ))}
-        </MDBTabs>
+        <div className="d-flex flex-row align-items-center justify-content-between mb-4">
+          <MDBTabs className="d-flex align-items-center gap-2">
+            {profileOptions[activeProfile]?.options.map((option) => (
+              <MDBTabsItem key={option}>
+                <MDBTabsLink
+                  className="rounded-2"
+                  active={activeOption === option}
+                  onClick={() => dispatch(setActiveOption(option))}
+                >
+                  {option}
+                </MDBTabsLink>
+              </MDBTabsItem>
+            ))}
+          </MDBTabs>
+          <MDBSwitch
+            defaultChecked={profileOptions[activeProfile]?.enabled[activeOption]}
+            onChange={e => {
+              const updatedProduct = {
+                category: activeProfile,
+                enabled: {...profileOptions[activeProfile]?.enabled, [activeOption]: e.target.checked},
+              };
+              handleSubCatVisibility(updatedProduct);
+            }}
+            label="Enable/Disable Sub-Category"
+            className="mb-3"
+            id="enable-disable-switch"
+          />
+        </div>
+        
       )}
 
       {activeOption && (
@@ -323,7 +376,7 @@ const ProfileTable = () => {
                           product.length
                         )}
                       </td>
-                      <td className="d-flex">
+                      <td className="d-flex align-items-center">
                         {editableProduct?.id === product.id ? (
                           <>
                             <MDBBtn
@@ -363,6 +416,16 @@ const ProfileTable = () => {
                           <MDBIcon fas icon="trash" />
                           &nbsp;
                         </MDBBtn>
+                        <MDBSwitch
+                          defaultChecked={product.isEnabled}
+                          onChange={e => {
+                            const updatedProduct = {
+                              ...product,
+                              isEnabled: e.target.checked,
+                            };
+                            handleVisibility(updatedProduct);
+                          }}
+                        />
                       </td>
                     </tr>
                   ))}

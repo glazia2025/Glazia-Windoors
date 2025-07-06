@@ -5,7 +5,7 @@ const fs = require("fs");
 const { extractQueryParams, escapeRegExp } = require("../utils/common");
 
 const createOrder = async (req, res) => {
-  const { user, products, payment, totalAmount } = req.body;
+  const { user, products, payment, totalAmount, deliveryType } = req.body;
   if (
     !user ||
     !products ||
@@ -35,6 +35,7 @@ const createOrder = async (req, res) => {
         },
       ],
       totalAmount,
+      deliveryType
     });
     const savedOrder = await newOrder.save();
 
@@ -56,8 +57,6 @@ const getOrders = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    console.log("req.query", JSON.stringify(req.query, null, 2));
-    console.log("req.user", JSON.stringify(user, null, 2));
     let { page, limit, filters, sortObj } = extractQueryParams(req.query);
 
     let query = {
@@ -110,13 +109,6 @@ const getOrders = async (req, res) => {
       };
     }
 
-    console.log("query", JSON.stringify(query, null, 2));
-    console.log("page", page);
-    console.log("skip", skip);
-    console.log("limit", limit);
-    console.log("filters", JSON.stringify(filters, null, 2));
-    console.log("sortObj", JSON.stringify(sortObj, null, 2));
-    console.log("project", JSON.stringify(project, null, 2));
 
     const orders = await UserOrder.find(query, project)
       .sort(sortObj)
