@@ -134,7 +134,7 @@ const BlogPage = ({setUserRole}) => {
                             {/* Blog Post 1 */}
                             <div className="col">
                                 <div className="card blog-card h-100 rounded-4 shadow-1">
-                                    <img src="https://placehold.co/600x400/e0f2fe/007bff?text=Sustainable+Design" className="card-img-top rounded-top-4" alt="Sustainable Design" />
+                                    <img src="/Assets/landing/2.jpg" className="card-img-top rounded-top-4" alt="Sustainable Design" />
                                     <div className="card-body p-4">
                                         <h5 className="card-title fw-semibold text-dark mb-2">Embracing Sustainable Façade Design for a Greener Future</h5>
                                         <p className="card-text text-muted small">Learn about the latest innovations in eco-friendly materials and design principles that are shaping modern architecture.</p>
@@ -148,7 +148,7 @@ const BlogPage = ({setUserRole}) => {
                             {/* Blog Post 2 */}
                             <div className="col">
                                 <div className="card blog-card h-100 rounded-4 shadow-1">
-                                    <img src="https://placehold.co/600x400/e0f2fe/007bff?text=Material+Quality" className="card-img-top rounded-top-4" alt="Material Quality" />
+                                    <img src="/Assets/landing/4.jpg" className="card-img-top rounded-top-4" alt="Material Quality" />
                                     <div className="card-body p-4">
                                         <h5 className="card-title fw-semibold text-dark mb-2">The Importance of Quality Control in Fenestration Materials</h5>
                                         <p className="card-text text-muted small">Discover why rigorous quality checks are paramount for durability, performance, and long-term cost savings in your projects.</p>
@@ -162,7 +162,7 @@ const BlogPage = ({setUserRole}) => {
                             {/* Blog Post 3 */}
                             <div className="col">
                                 <div className="card blog-card h-100 rounded-4 shadow-1">
-                                    <img src="https://placehold.co/600x400/e0f2fe/007bff?text=Smart+Procurement" className="card-img-top rounded-top-4" alt="Smart Procurement" />
+                                    <img src="/Assets/landing/1.webp" className="card-img-top rounded-top-4" alt="Smart Procurement" />
                                     <div className="card-body p-4">
                                         <h5 className="card-title fw-semibold text-dark mb-2">How Digital Platforms are Revolutionizing Material Procurement</h5>
                                         <p className="card-text text-muted small">Explore the benefits of using online aggregators like Glazia to streamline your supply chain and reduce procurement hassles.</p>

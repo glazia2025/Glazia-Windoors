@@ -116,7 +116,7 @@ const AboutUsPage = ({setUserRole}) => {
                                 </p>
                             </div>
                             <div className="col-md-6 order-md-1">
-                                <img src="https://placehold.co/600x400/e0f2fe/007bff?text=Our+Story" alt="Our Story at Glazia" className="img-fluid rounded-4 shadow-3" />
+                                <img src="/Assets/landing/aboutus.jpeg" alt="Our Story at Glazia" className="img-fluid rounded-4 shadow-3" />
                             </div>
                         </div>
                     </div>

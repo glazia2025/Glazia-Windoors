@@ -18,7 +18,7 @@ const BlogDetailPage = ({ setUserRole }) => {
         'post1': {
             title: 'Embracing Sustainable Façade Design for a Greener Future',
             date: 'June 20, 2024',
-            image: 'https://placehold.co/800x450/e0f2fe/007bff?text=Sustainable+Design+Detail',
+            image: '/Assets/landing/2.jpg',
             content: `
                 <p>In an era where environmental consciousness is paramount, sustainable façade design has emerged as a cornerstone of modern architecture. This approach goes beyond mere aesthetics, focusing on optimizing building performance to reduce energy consumption, minimize environmental impact, and enhance occupant well-being.</p>
                 <p>Key elements of sustainable façade design include the selection of eco-friendly materials, integration of passive heating and cooling strategies, and utilization of renewable energy sources. Advanced materials like recycled aluminum, low-emissivity glass, and smart shading systems play a crucial role in achieving these goals. These materials contribute to improved insulation, reduced heat gain, and increased natural light penetration, all of which significantly lower the building's operational energy demands.</p>
@@ -29,7 +29,7 @@ const BlogDetailPage = ({ setUserRole }) => {
         'post2': {
             title: 'The Importance of Quality Control in Fenestration Materials',
             date: 'June 15, 2024',
-            image: 'https://placehold.co/800x450/e0f2fe/007bff?text=Quality+Control+Detail',
+            image: '/Assets/landing/4.jpg',
             content: `
                 <p>Quality control in fenestration materials is not merely a regulatory requirement; it's a critical factor determining the longevity, performance, and safety of a building's envelope. From the strength of aluminum profiles to the precision of hardware components, every element plays a vital role in the overall integrity of windows and doors.</p>
                 <p>Rigorous quality control processes ensure that materials meet specific industry standards and client expectations. This includes testing for durability against weather elements, structural integrity under various loads, thermal performance for energy efficiency, and operational smoothness of moving parts. Without these checks, even minor defects can lead to significant issues like air and water leakage, increased energy costs, security vulnerabilities, and premature material degradation.</p>
@@ -39,7 +39,7 @@ const BlogDetailPage = ({ setUserRole }) => {
         },
         'post3': {
             title: 'How Digital Platforms are Revolutionizing Material Procurement',
-            date: 'June 10, 2024',
+            date: '/Assets/landing/1.webp',
             image: 'https://placehold.co/800x450/e0f2fe/007bff?text=Digital+Procurement+Detail',
             content: `
                 <p>The traditional procurement landscape for construction materials has long been characterized by fragmentation, inefficiency, and a lack of transparency. However, the advent of digital platforms is rapidly transforming this scenario, bringing unprecedented efficiency and connectivity to the supply chain.</p>

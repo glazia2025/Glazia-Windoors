@@ -222,8 +222,8 @@ const MobileLoginForm = ({ setUserRole }) => {
                         <div className="testimonial-card p-4 p-md-5 rounded-4 h-100 d-flex flex-column justify-content-between">
                             <p className="text-muted fst-italic mb-4">"Glazia has transformed our procurement process. The quality of materials is exceptional, and their delivery times are unmatched. Highly recommended!"</p>
                             <div>
-                                <p className="fw-semibold text-primary mb-0">- Rajesh Kumar</p>
-                                <p className="text-sm text-muted">CEO, Apex Fabricators</p>
+                                <p className="fw-semibold text-primary mb-0">- SK Vashisht</p>
+                                <p className="text-sm text-muted">Founder of Exwindoors</p>
                             </div>
                         </div>
                     </div>
@@ -232,8 +232,8 @@ const MobileLoginForm = ({ setUserRole }) => {
                         <div className="testimonial-card p-4 p-md-5 rounded-4 h-100 d-flex flex-column justify-content-between">
                             <p className="text-muted fst-italic mb-4">"The ease of ordering and transparent tracking on Glazia's platform has saved us countless hours. Their tech-driven approach is a game-changer."</p>
                             <div>
-                                <p className="fw-semibold text-primary mb-0">- Priyanka Sharma</p>
-                                <p className="text-sm text-muted">Project Manager, Urban Designs</p>
+                                <p className="fw-semibold text-primary mb-0">- Varinder Sharma</p>
+                                <p className="text-sm text-muted">Director  - Shri Sai Projects Pvt. Ltd.</p>
                             </div>
                         </div>
                     </div>
@@ -242,8 +242,8 @@ const MobileLoginForm = ({ setUserRole }) => {
                         <div className="testimonial-card p-4 p-md-5 rounded-4 h-100 d-flex flex-column justify-content-between">
                             <p className="text-muted fst-italic mb-4">"We've found the best quality aluminium profiles and accessories through Glazia. Their customer support is also very responsive and helpful."</p>
                             <div>
-                                <p className="fw-semibold text-primary mb-0">- Amit Patel</p>
-                                <p className="text-sm text-muted">Procurement Head, Grand Constructions</p>
+                                <p className="fw-semibold text-primary mb-0">- Puneet Goel</p>
+                                <p className="text-sm text-muted">Director - Goel Glass</p>
                             </div>
                         </div>
                     </div>
@@ -262,51 +262,6 @@ const MobileLoginForm = ({ setUserRole }) => {
                 <button onClick={() => setShowModal(true)} className="btn btn-primary-glazia text-white px-5 py-3 rounded-3 fs-5 fw-semibold">
                     Get Started Today
                 </button>
-            </div>
-        </section>
-
-        {/* Future Blog & Resources Section */}
-        <section className="section-bg-light py-5 py-md-5">
-            <div className="container mx-auto px-4" style={{ maxWidth: '1300px' }}>
-                <h2 className="h2 fw-bold text-center text-dark mb-5">Insights & Resources (Our Blog)</h2>
-                <p className="fs-5 text-muted text-center mx-auto mb-5" style={{ maxWidth: '700px' }}>
-                    Stay informed with our latest articles, industry trends, and expert insights on façade and fenestration procurement.
-                    We're building a knowledge hub to empower your business.
-                </p>
-                <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                    {/* Placeholder Blog Post 1 */}
-                    <div className="col">
-                        <div className="bg-white p-4 rounded-4 shadow-1 h-100">
-                            <img src="https://placehold.co/400x250/e0f2fe/007bff?text=Blog+Image+1" alt="Placeholder blog image" className="img-fluid rounded-3 mb-3" style={{ height: '12rem', width: '100%', objectFit: 'cover' }} />
-                            <h3 className="h5 fw-semibold text-dark mb-2">The Future of Sustainable Facades</h3>
-                            <p className="text-muted text-sm">Discover how new materials and technologies are shaping eco-friendly building envelopes...</p>
-                            <a href="#" className="text-primary hover-underline mt-3 d-inline-block">Read More &rarr;</a>
-                        </div>
-                    </div>
-                    {/* Placeholder Blog Post 2 */}
-                    <div className="col">
-                        <div className="bg-white p-4 rounded-4 shadow-1 h-100">
-                            <img src="https://placehold.co/400x250/e0f2fe/007bff?text=Blog+Image+2" alt="Placeholder blog image" className="img-fluid rounded-3 mb-3" style={{ height: '12rem', width: '100%', objectFit: 'cover' }} />
-                            <h3 className="h5 fw-semibold text-dark mb-2">Navigating Aluminium Profile Standards</h3>
-                            <p className="text-muted text-sm">A comprehensive guide to understanding quality certifications and industry benchmarks...</p>
-                            <a href="#" className="text-primary hover-underline mt-3 d-inline-block">Read More &rarr;</a>
-                        </div>
-                    </div>
-                    {/* Placeholder Blog Post 3 */}
-                    <div className="col">
-                        <div className="bg-white p-4 rounded-4 shadow-1 h-100">
-                            <img src="https://placehold.co/400x250/e0f2fe/007bff?text=Blog+Image+3" alt="Placeholder blog image" className="img-fluid rounded-3 mb-3" style={{ height: '12rem', width: '100%', objectFit: 'cover' }} />
-                            <h3 className="h5 fw-semibold text-dark mb-2">Expert Tips for Efficient Hardware Sourcing</h3>
-                            <p className="text-muted text-sm">Learn strategies to optimize your procurement of essential facade hardware...</p>
-                            <a href="#" className="text-primary hover-underline mt-3 d-inline-block">Read More &rarr;</a>
-                        </div>
-                    </div>
-                </div>
-                <div className="text-center mt-5">
-                    <button className="btn btn-secondary-glazia px-5 py-3 rounded-3 fs-5 fw-semibold">
-                        View All Articles
-                    </button>
-                </div>
             </div>
         </section>
     </main>

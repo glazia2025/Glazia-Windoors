@@ -105,7 +105,7 @@ const ProductsServicesPage = ({setUserRole}) => {
                             {/* Product Category 1: Aluminium Profiles */}
                             <div className="col">
                                 <div className="card h-100 rounded-4 shadow-2 overflow-hidden">
-                                    <img src="https://placehold.co/600x400/e0f2fe/007bff?text=Aluminium+Profiles" className="card-img-top" alt="Aluminium Profiles" style={{height: '15rem', objectFit: 'cover'}} />
+                                    <img src="/Assets/landing/5.avif" className="card-img-top" alt="Aluminium Profiles" style={{height: '15rem', objectFit: 'cover'}} />
                                     <div className="card-body p-4">
                                         <h5 className="card-title fw-semibold text-dark mb-2">Aluminium Profiles</h5>
                                         <p className="card-text text-muted small">
@@ -124,7 +124,7 @@ const ProductsServicesPage = ({setUserRole}) => {
                             {/* Product Category 2: Hardware */}
                             <div className="col">
                                 <div className="card h-100 rounded-4 shadow-2 overflow-hidden">
-                                    <img src="https://placehold.co/600x400/f0f8ff/007bff?text=Hardware+Solutions" className="card-img-top" alt="Hardware Solutions" style={{height: '15rem', objectFit: 'cover'}} />
+                                    <img src="/Assets/landing/6.avif" className="card-img-top" alt="Hardware Solutions" style={{height: '15rem', objectFit: 'cover'}} />
                                     <div className="card-body p-4">
                                         <h5 className="card-title fw-semibold text-dark mb-2">Architectural Hardware</h5>
                                         <p className="card-text text-muted small">
@@ -143,7 +143,7 @@ const ProductsServicesPage = ({setUserRole}) => {
                             {/* Product Category 3: Accessories */}
                             <div className="col">
                                 <div className="card h-100 rounded-4 shadow-2 overflow-hidden">
-                                    <img src="https://placehold.co/600x400/e0f2fe/007bff?text=Accessories" className="card-img-top" alt="Accessories" style={{height: '15rem', objectFit: 'cover'}} />
+                                    <img src="/Assets/landing/3.webp" className="card-img-top" alt="Accessories" style={{height: '15rem', objectFit: 'cover'}} />
                                     <div className="card-body p-4">
                                         <h5 className="card-title fw-semibold text-dark mb-2">Essential Accessories</h5>
                                         <p className="card-text text-muted small">
