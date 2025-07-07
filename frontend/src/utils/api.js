@@ -4,8 +4,8 @@ import "react-toastify/dist/ReactToastify.css";
 import store from "../redux/store";
 import { startLoading, stopLoading } from "../redux/loadingSlice";
 
-export const BASE_API_URL = "http://localhost:5555/api";
 // export const BASE_API_URL = "http://localhost:5555/api";
+export const BASE_API_URL = "http://ec2-13-61-23-186.eu-north-1.compute.amazonaws.com:5000/api";
 
 export const buildQueryParams = (params) => {
   let queryStr;
