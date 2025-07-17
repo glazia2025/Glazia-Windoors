@@ -191,16 +191,16 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
                     </MDBDropdownToggle>
                     <MDBDropdownMenu>
                       {profileHeirarchy?.map((item) => (
-                        <MDBDropdownItem key={item.profile}>
+                        <MDBDropdownItem key={item?.profile}>
                           <a
                             href="#"
                             className="dropdown-item d-flex justify-content-between align-items-center"
                           >
-                            {item.profile}
+                            {item?.profile}
                             <MDBIcon fas icon="angle-right" />
                           </a>
                           <ul className="dropdown-menu dropdown-submenu">
-                            {item.options.map((subCategory) => (
+                            {item?.options.map((subCategory) => (
                               <MDBDropdownItem key={subCategory}>
                                 <a
                                   className="dropdown-item cursor-pointer"
@@ -208,7 +208,7 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
                                     setActiveState(
                                       "profile",
                                       subCategory,
-                                      item.profile
+                                      item?.profile
                                     )
                                   }
                                 >
@@ -348,7 +348,7 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
                 }
               }}>
                 {selectedProducts.length > 0 && <div className="cart-items-clip">{selectedProducts.length}</div>}
-                <MDBIcon fas icon="shopping-cart" size="lg" />
+                <MDBIcon fas icon="shopping-cart" size="2x" />
               </div>
                 
 

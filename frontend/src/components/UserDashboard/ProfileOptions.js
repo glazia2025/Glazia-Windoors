@@ -500,7 +500,9 @@ const ProfileSelection = forwardRef(
                     style={{ minWidth: "80px" }}
                   /> */}
 
-                    <span
+                    {selectedProducts.find(
+                      (sp) => (sp.sapCode === product.sapCode)
+                    ) && <span
                       className="amount-value"
                       style={
                         (quantities[
@@ -532,10 +534,10 @@ const ProfileSelection = forwardRef(
                       ) : (
                         <></>
                       )}
-                    </span>
+                    </span>}
                     {!selectedProducts.find(
-                      (sp) => sp.sapCode === product.sapCode
-                    ) ? (
+                      (sp) => (sp.sapCode === product.sapCode)&& (sp.quantity === quantities[`${activeProfile}-${activeOption}-${product.id}`]?.quantity)
+                    ) && (
                       <MDBBtn
                         disabled={
                           !quantities[
@@ -548,7 +550,11 @@ const ProfileSelection = forwardRef(
                       >
                         Save
                       </MDBBtn>
-                    ) : (
+                    )}
+                    
+                    {selectedProducts.find(
+                      (sp) => (sp.sapCode === product.sapCode)
+                    ) && (
                       <MDBBtn
                         color="danger"
                         disabled={

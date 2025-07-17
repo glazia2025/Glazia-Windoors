@@ -175,6 +175,24 @@ const ProfileTable = () => {
     }
   };
 
+   const handleCatVisibility = async (product) => {
+    const token = localStorage.getItem("authToken");
+    try {
+      const response = await api.post(
+        `${BASE_API_URL}/admin/toggle-cat`,
+        product,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      fetchProducts();// Exit editing mode
+    } catch (err) {
+      console.error("Error saving product", err);
+    }
+  };
+
   const handleDelete = async (productId) => {
     const token = localStorage.getItem("authToken");
     try {
@@ -242,6 +260,18 @@ const ProfileTable = () => {
               </MDBTabsItem>
             ))}
           </MDBTabs>
+          <MDBSwitch
+            defaultChecked={profileOptions[activeProfile]?.catEnabled}
+            onChange={e => {
+              const updatedProduct = {
+                categoryKey: activeProfile,
+              };
+              handleCatVisibility(updatedProduct);
+            }}
+            label="Enable/Disable Category"
+            className="mb-3"
+            id="enable-disable-category"
+          />
           <MDBSwitch
             defaultChecked={profileOptions[activeProfile]?.enabled[activeOption]}
             onChange={e => {

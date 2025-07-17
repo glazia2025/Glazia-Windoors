@@ -24,6 +24,7 @@ const profileOptionsSchema = new mongoose.Schema(
         options: { type: [String], required: true },
         rate: { type: Map, of: String, required: true },
         enabled: { type: Map, of: Boolean, required: true },
+        catEnabled: {type: Boolean, default: true},
         products: {
           type: Map,
           of: [productSchema],

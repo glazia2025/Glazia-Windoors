@@ -9,7 +9,8 @@ const {
   updateTechSheet,
   getTechSheet,
   toggleProfileAvailability,
-  getProfileHierarchy
+  getProfileHierarchy,
+  toggleCatEnabled
 } = require("../controllers/productController");
 const {
   addHardware,
@@ -60,5 +61,6 @@ router.post("/update-payment-due-date", isAdmin, updatePaymentDueDate);
 router.post("/complete-order", isAdmin, express.json({ limit: "50mb" }), completeOrder);
 router.post("/toggle-profile-availability", isAdmin, toggleProfileAvailability);
 router.get('/get-profile-heirarchy', isAdmin, getProfileHierarchy);
+router.post('/toggle-cat', toggleCatEnabled);
 
 module.exports = router;

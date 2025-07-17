@@ -103,29 +103,30 @@ const getProducts = async (req, res) => {
     if (!profileOptions) {
       return res.status(404).json({ message: 'Profile options not found' });
     }
+
     if (req.originalUrl.includes('user')) {
       const categories = profileOptions.categories; // This is a Map
 
-      
-
       for (const [categoryKey, categoryValue] of categories.entries()) {
+        // Check catEnabled; if false, remove this category from the map
+        if (!categoryValue.catEnabled) {
+          categories.delete(categoryKey);
+          continue;
+        }
+
         const productsMap = categoryValue.products; // Also a Map
-
-        const enabledMap = categoryValue.enabled || {};
-
+        const enabledMap = categoryValue.enabled || new Map();
 
         const enabledOptions = categoryValue.options.filter(option => enabledMap.get(option));
-        
-        categoryValue.options = enabledOptions; // Update the options to only include enabled ones
+        categoryValue.options = enabledOptions; // Keep only enabled options
 
         if (!productsMap) continue;
 
         for (const [optionKey, productArray] of productsMap.entries()) {
           const enabledProducts = productArray.filter(p => p.isEnabled);
-          productsMap.set(optionKey, enabledProducts); // update filtered list
+          productsMap.set(optionKey, enabledProducts); // Update with filtered list
         }
       }
-
     }
 
     res.status(200).json(profileOptions);
@@ -134,6 +135,46 @@ const getProducts = async (req, res) => {
     res.status(500).json({ message: 'Error fetching profile options' });
   }
 };
+
+const toggleCatEnabled = async (req, res) => {
+  try {
+    const { categoryKey } = req.body;
+
+    if (!categoryKey) {
+      return res.status(400).json({ message: "categoryKey is required" });
+    }
+
+    const profileOptions = await ProfileOptions.findOne({});
+
+    if (!profileOptions) {
+      return res.status(404).json({ message: "Profile options not found" });
+    }
+
+    const categories = profileOptions.categories;
+
+    if (!categories.has(categoryKey)) {
+      return res.status(404).json({ message: `Category "${categoryKey}" not found` });
+    }
+
+    const category = categories.get(categoryKey);
+    category.catEnabled = !category.catEnabled;
+
+    // Save updated document
+    await profileOptions.save();
+
+    res.status(200).json({
+      success: true,
+      message: `catEnabled toggled for category '${categoryKey}'`,
+      categoryKey,
+      newValue: category.catEnabled
+    });
+  } catch (error) {
+    console.error("Error toggling catEnabled:", error);
+    res.status(500).json({ success: false, message: "Internal server error", error: error.message });
+  }
+};
+
+
 
 const toggleProfileAvailability = async (req, res) => {
   try {
@@ -299,10 +340,13 @@ const getProfileHierarchy = async (req, res) => {
     }
 
     if (req.originalUrl.includes('user')) {
-      const finalObject = Array.from(profileOptions.categories.keys()).map(profile => {
+      const finalObject = Array.from(profileOptions.categories.keys())
+      .map(profile => {
         const category = profileOptions.categories.get(profile);
+        if (!category.catEnabled) return null; // Skip if not enabled
+
         const allOptions = category.options || [];
-        const enabledMap = category.enabled || {};
+        const enabledMap = category.enabled || new Map();
 
         const enabledOptions = allOptions.filter(option => enabledMap.get(option));
 
@@ -310,7 +354,9 @@ const getProfileHierarchy = async (req, res) => {
           profile,
           options: enabledOptions
         };
-      });
+      })
+      .filter(Boolean); // Remove null entries
+
 
 
 
@@ -408,134 +454,6 @@ const getTechSheet = async (req, res) => {
   }
 };
 
-async function updateDocument() {
-  try {
-    const newProducts = [
-      {
-        id: 1,
-        sapCode: "H-01-02-23",
-        part: "",
-        degree: "45",
-        description: "Frame (Vertical)",
-        per: "Kg",
-        kgm: 1.77,
-        length: "4880",
-        image: ""
-      },
-      {
-        id: 2,
-        sapCode: "H-02-03-23",
-        part: "",
-        degree: "45",
-        description: "Frame (Top)",
-        per: "Kg",
-        kgm: 2.1,
-        length: "4880",
-        image: ""
-      },
-      {
-        id: 3,
-        sapCode: "H-03-03-23",
-        part: "",
-        degree: "45",
-        description: "Frame (Bottom)",
-        per: "Kg",
-        kgm: 1.84,
-        length: "4880",
-        image: ""
-      },
-      {
-        id: 4,
-        sapCode: "H-04-03-23",
-        part: "",
-        degree: "45",
-        description: "Shutter",
-        per: "Kg",
-        kgm: 2.0,
-        length: "4880",
-        image: ""
-      },
-      {
-        id: 5,
-        sapCode: "H-05-03-23",
-        part: "",
-        degree: "45",
-        description: "Bead (24mm Glass)",
-        per: "Kg",
-        kgm: 0.26,
-        length: "4880",
-        image: ""
-      },
-      {
-        id: 6,
-        sapCode: "H-06-03-23",
-        part: "",
-        degree: "45",
-        description: "Fake Mullion",
-        per: "Kg",
-        kgm: 0.98,
-        length: "4880",
-        image: ""
-      },
-      {
-        id: 7,
-        sapCode: "H-01-03-23",
-        part: "",
-        degree: "45",
-        description: "Big Clip for Bottom",
-        per: "Kg",
-        kgm: 0.35,
-        length: "4880",
-        image: ""
-      },
-      {
-        id: 8,
-        sapCode: "S-02-03-23",
-        part: "",
-        degree: "45",
-        description: "Small Clip for Bottom",
-        per: "Kg",
-        kgm: 0.22,
-        length: "4880",
-        image: ""
-      },
-      {
-        id: 9,
-        sapCode: "H-10-03-23",
-        part: "",
-        degree: "45",
-        description: "Fake Mullion",
-        per: "Kg",
-        kgm: 1.0,
-        length: "4880",
-        image: ""
-      }
-    ]
-    
-  
-  
-    // Update the document with the specified _id
-    const result = await ProfileOptions.updateOne(
-      { _id: new mongoose.Types.ObjectId("6783f753ba72953976026092") },
-      { 
-        $push: { 
-          "categories.Slide and Fold.products.3m": { 
-            $each: newProducts
-          }
-        }
-      }
-    );
-
-    console.log('Document updated:', result.modifiedCount);
-  } catch (err) {
-    console.error('Error updating document:', err);
-  } finally {
-    // Close the Mongoose connection
-    mongoose.connection.close();
-  }
-}
-
-// updateDocument();
 
 module.exports = { 
   addProduct, 
@@ -546,5 +464,6 @@ module.exports = {
   getProfileHierarchy, 
   updateTechSheet, 
   getTechSheet,
-  toggleProfileAvailability
+  toggleProfileAvailability,
+  toggleCatEnabled
  };

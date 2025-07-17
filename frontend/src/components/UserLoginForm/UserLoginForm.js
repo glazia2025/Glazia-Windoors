@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { MDBCollapse, MDBBtn, MDBModal, MDBModalDialog, MDBInput,MDBModalContent, MDBCarousel, MDBCarouselItem } from 'mdb-react-ui-kit';
 import "./UserLoginForm.css";
 import LoginModal from "./LoginModal";
+import Nalco from "../UserDashboard/Nalco/Nalco";
 
 const MobileLoginForm = ({ setUserRole }) => {
 
@@ -12,6 +13,7 @@ const MobileLoginForm = ({ setUserRole }) => {
 
   return (
     <div className="antialiased">
+      <Nalco isLogin={true} />  
       <header className="header-bg py-3 sticky-top z-3">
                       <nav className="navbar navbar-expand-md navbar-light p-0">
                           <div className="container-fluid mx-auto px-4 d-flex justify-content-between align-items-center" style={{ maxWidth: '1300px' }}>

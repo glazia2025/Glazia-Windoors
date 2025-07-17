@@ -8,7 +8,7 @@ import {
 } from 'mdb-react-ui-kit';
 import api, { BASE_API_URL } from '../../../utils/api';
 
-const Nalco = () => {
+const Nalco = ({isLogin = false}) => {
   const [ nalco, setNalco ] = useState(0);
   
   const formattedDate = new Intl.DateTimeFormat('en-IN', {
@@ -38,13 +38,19 @@ const Nalco = () => {
   return (
     <div>
       <MDBCard background='primary' className='text-white mb-3 w-100'>
-        <MDBCardHeader>Today &nbsp; <MDBIcon far icon="calendar-check" /> {formattedDate}</MDBCardHeader>
-        <MDBCardBody>
-          <MDBCardTitle>Nalco Price Aluminium</MDBCardTitle>
-          <MDBCardTitle>
-            ₹{nalco.nalcoPrice/1000} / Kg
-          </MDBCardTitle>
-        </MDBCardBody>
+        {!isLogin && <>
+          <MDBCardHeader>Today &nbsp; <MDBIcon far icon="calendar-check" /> {formattedDate}</MDBCardHeader>
+          <MDBCardBody>
+            <MDBCardTitle>Nalco Price Aluminium</MDBCardTitle>
+            <MDBCardTitle>
+              ₹{nalco.nalcoPrice/1000} / Kg
+            </MDBCardTitle>
+          </MDBCardBody>
+        </>}
+        {isLogin && <>
+          <MDBCardHeader style={{textAlign: 'center'}}>{formattedDate} : Today's Nalco Price  ₹{nalco.nalcoPrice/1000} / Kg</MDBCardHeader>
+        </>}
+        
       </MDBCard>
     </div>
   );

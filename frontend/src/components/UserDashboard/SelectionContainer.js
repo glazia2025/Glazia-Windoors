@@ -535,20 +535,6 @@ Glazia Windoors Pvt Ltd.
                 className="d-flex flex-wrap"
                 style={{ width: "max-content", gap: "10px" }}
               >
-                <MDBTooltip
-                  tag="span"
-                  wrapperClass="d-inline-block"
-                  title="Please add products"
-                >
-                  <MDBBtn
-                    className="download-pdf"
-                    disabled={selectedProducts.length === 0}
-                    onClick={generatePDF}
-                  >
-                    <MDBIcon fas icon="cloud-download-alt" />
-                    &nbsp; Download pdf
-                  </MDBBtn>
-                </MDBTooltip>
               </div>
             </MDBRow>
 
