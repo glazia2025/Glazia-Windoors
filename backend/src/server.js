@@ -5,6 +5,7 @@ const cors = require("cors");
 const path = require("path");
 
 require('dotenv').config({ path: path.resolve(__dirname, '../prod.env') })
+require("./utils/cron");
 
 const connectDB = require("./db");
 const PORT = process.env.PORT || 5555;
