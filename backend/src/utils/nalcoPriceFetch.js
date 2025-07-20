@@ -11,33 +11,25 @@ const parsePdf = async (filePath) => {
     const data = await pdfParse(dataBuffer);
     const lines = data.text.split("\n").map(line => line.trim()).filter(Boolean);
 
-    let basicPrice = null;
-
-    for (let i = 0; i < lines.length - 1; i++) {
-      // Looking for line that is just "1"
-      if (lines[i] === "1") {
-        const nextLine = lines[i + 1];
-        const match = nextLine.match(/IA10(\d{5,6})/); // Match product code + price
-        if (match) {
-          basicPrice = match[1]; // Extract only price
-          break;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes("CH10269750268250265750") || lines[i].includes("CH10")) {
+        const ch10Line = lines[i].match(/CH10(\d{6})(\d{6})(\d{6})/);
+        if (ch10Line && ch10Line.length === 4) {
+          const thirdPrice = Number(ch10Line[3]);
+          console.log("CH10 Price for 178/203/229/254 mm:", thirdPrice);
+          return parseFloat(thirdPrice);
         }
       }
     }
 
-    if (basicPrice) {
-        const price = Number(basicPrice);
-        console.log(`Fetched Price for Date ${new Date()}: ${price}`);
-      return price;
-    } else {
-      console.warn("Could not extract Basic Price for row 1");
-      return null;
-    }
+    console.warn("CH10 price line not found or parsing failed.");
+    return null;
   } catch (error) {
     console.error("Error parsing PDF:", error);
     return null;
   }
 };
+
 const downloadPdf = async () => {
     const options = new chrome.Options();
     options.addArguments('--headless');
@@ -50,8 +42,18 @@ const downloadPdf = async () => {
 
     try {
         await driver.get('https://nalcoindia.com/domestic/current-price/');
-        const priceDiv = await driver.findElement(By.css(".price-div a"));
-        const pdfUrl = await priceDiv.getAttribute("href");
+        const priceDivs = await driver.findElements(By.css(".price-div a"));
+        let pdfUrl;
+        for(let i = 0; i < priceDivs.length; ++i) {
+          const temp = await priceDivs[i].getAttribute("href");
+          if (temp.includes('BILLET')) {
+            pdfUrl = temp;
+            break;
+          }
+          
+        }
+
+        
         console.log("PDF URL:", pdfUrl);
 
         const pdfPath = path.join(__dirname, "nalco_price.pdf");
