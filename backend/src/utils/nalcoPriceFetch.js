@@ -26,7 +26,7 @@ const parsePdf = async (filePath) => {
     }
 
     if (basicPrice) {
-        const price = Number(basicPrice).toFixed(2)/1000;
+        const price = Number(basicPrice);
         console.log(`Fetched Price for Date ${new Date()}: ${price}`);
       return price;
     } else {

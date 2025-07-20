@@ -17,24 +17,24 @@ const updateNalcoPrice = async (nalcoPrice) => {
 
       const savedNalco = await newNalco.save();
 
-      return res.status(201).json({
+      return {
         message: "Nalco created successfully.",
         nalco: savedNalco,
-      });
+      };
     } else {
       nalco.nalcoPrice = nalcoPrice;
       nalco.date = new Date();
 
       const updatedNalco = await nalco.save();
 
-      return res.status(200).json({
+      return {
         message: "Nalco updated successfully.",
         nalco: updatedNalco,
-      });
+      };
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error", error });
+    return null;
   }
 };
 
@@ -43,15 +43,19 @@ const updateNalcoPrice = async (nalcoPrice) => {
 const runJob = async () => {
 
   const price = await downloadPdf();
-  fs.unlinkSync(filePath);
+
+  console.log('Price sending', price);
 
   if (price) {
-    await updateNalcoPrice(price);
-    console.log("Database updated successfully via service");
+    const res = await updateNalcoPrice(price);
+    if (res) {
+      console.log("Database updated successfully via service");
+    } else {
+      console.log("Failed to save new price");
+    }
+    
   }
 };
 
 cron.schedule("0 0 * * *", runJob);
 console.log("Cron job scheduled");
-
-
