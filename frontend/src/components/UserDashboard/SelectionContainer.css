@@ -8,10 +8,6 @@ canvas {
   display: block; /* Avoids extra spacing below the canvas */
 }
 
-td {
-  border: 2px solid #e0e0e0;
-}
-
 .pdf-container {
   max-width: 100%;
   overflow: hidden;

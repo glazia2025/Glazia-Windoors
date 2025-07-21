@@ -7,6 +7,7 @@
     "axios": "^1.7.9",
     "cra-template": "1.2.0",
     "dotenv": "^16.4.7",
+    "html2pdf.js": "^0.10.3",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "jwt-decode": "^4.0.0",

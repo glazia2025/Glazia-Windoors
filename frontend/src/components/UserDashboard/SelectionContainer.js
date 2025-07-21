@@ -37,7 +37,7 @@ import axios from "axios";
 import { convertFileToBase64 } from "../../utils/common";
 import ImageZoom from "./ImageZoom";
 import { toast } from "react-toastify";
-
+import html2pdf from "html2pdf.js";
 
 // Initialize pdf.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -179,9 +179,9 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
     setPaymentSlider(true);
   };
 
-  const generatePDFPreview = () => {
+  const generatePDFPreview = async () => {
     const doc = createProformaInvoice();
-    const pdfOutput = doc.output("datauristring");
+    const pdfOutput = await doc?.output("datauristring");
     renderPDF(pdfOutput);
   };
 
@@ -392,7 +392,299 @@ Glazia Windoors Pvt Ltd.
     // sendMailInvoice(doc.output("datauristring").split(",")[1]);
   };
 
+
   const createProformaInvoice = () => {
+    const container = document.createElement("div");
+    container.innerHTML = generateHTML();
+
+    html2pdf()
+      .set({
+        margin: 0,
+        filename: "Proforma_Invoice.pdf",
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "pt", format: "a4", orientation: "portrait" }
+      })
+      .from(container)
+      .outputPdf("blob")
+      .then((pdfBlob) => {
+        const url = URL.createObjectURL(pdfBlob);
+        window.open(url); // or show in iframe if needed
+      });
+  };
+
+  function numberToWordsIndian(num) {
+  const a = [
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen',
+    'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+  ];
+  const b = [
+    '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy',
+    'Eighty', 'Ninety'
+  ];
+
+  const units = ['', 'Thousand', 'Lakh', 'Crore'];
+
+  if (num === 0) return 'Zero Rupees Only';
+
+  function getWords(n) {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 ? ' ' + a[n % 10] : '');
+    if (n < 1000) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + getWords(n % 100) : '');
+    return '';
+  }
+
+  let str = '';
+  let i = 0;
+
+  const parts = [];
+  parts.push(num % 1000); // hundreds
+  num = Math.floor(num / 1000);
+
+  while (num > 0) {
+    parts.push(num % 100);
+    num = Math.floor(num / 100);
+  }
+
+  for (let j = parts.length - 1; j >= 0; j--) {
+    if (parts[j]) {
+      str += getWords(parts[j]) + (units[j] ? ' ' + units[j] + ' ' : ' ');
+    }
+  }
+
+  return str.trim() + ' Rupees Only';
+}
+
+
+
+
+  const generateHTML = () => {
+    const subtotal = selectedProducts.reduce((sum, item) => sum + item.quantity * item.rate, 0);
+    const gst = subtotal * 0.18;
+    const net = subtotal + gst;
+    const today = new Date().toLocaleDateString("en-GB");
+
+    let total = 0;
+
+     selectedProducts.forEach((p) => {
+      console.log(parseInt(p.quantity, 10), p.quantity)
+      total += parseInt(p.quantity, 10);
+    })
+
+    const rows = selectedProducts.map((p, i) => `
+    <tr>
+      <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px;">${i + 1}</td>
+      <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; overflow: hidden; white-space: nowrap;">
+        ${p.description}
+      </td>
+      <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px;">
+        ${p.option ? ` (${p.option})` : ""}
+        ${p.powderCoating && Object.keys(p.powderCoating).length ? ` - ${JSON.stringify(p.powderCoating)}` : ""}
+      </td>
+      <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px;">${p.sapCode}</td>
+      <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px;">${p.quantity}</td>
+      <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px;">${Number(p.rate).toFixed(2)}</td>
+      <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px;">${p.per || "Piece"}</td>
+      <td style="border-bottom: 1px solid #000; padding:6px;">${Number(p.amount).toFixed(2)}</td>
+    </tr>
+  `).join("");
+
+    return `
+      <div style="margin: 40px; font-family:Arial, sans-serif;  border:1px solid #000;">
+        <div style="text-align: center; border-bottom: 1px solid #000; font-size:13px; padding: 4px;">
+          <strong>Glazia Windoors Pvt Ltd.</strong>
+        </div>
+
+        <div style="display: flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #000; font-size: 9px; padding: 2px;">
+          <div>Khevat/ Khata No. 361, Rect. No. 21 4/70-18 Kherki Dhaula Village Road, Gurgaon, Harana, 122001</div>
+          <div>Phone: 9958053708        Email: sales@glazia.com</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; font-size: 9px; table-layout: fixed;">
+          <div style="border-right: 1px solid #000; font-weight: bold; padding: 2px; border-bottom: 1px solid #000;">Consignee (Ship To)</div>
+          <div style="border-right: 1px solid #000; font-weight: bold; padding: 2px; border-bottom: 1px solid #000;">Invoice No.</div>
+          <div style=" padding: 2px; border-bottom: 1px solid #000;">Date</div>
+          <div style="border-right: 1px solid #000; padding: 2px; border-bottom: 1px solid #000;">${user.name}</div>
+          <div style="border-right: 1px solid #000; padding: 2px; border-bottom: 1px solid #000;">GW/25/26/PI/0023</div>
+          <div style=" padding: 2px; border-bottom: 1px solid #000;">${new Date().toLocaleDateString()}</div>
+          <div style="border-right: 1px solid #000; padding: 2px; border-bottom: 1px solid #000;">${user.address}</div>
+          <div style="border-right: 1px solid #000; padding: 2px; border-bottom: 1px solid #000;">Delivery Note No.</div>
+          <div style=" padding: 2px; border-bottom: 1px solid #000;">Delivery Note Date</div>
+          <div style="border-right: 1px solid #000; padding: 2px;  border-bottom: 1px solid #000;">${user.city}, ${user.state}-${user.pincode}</div>
+          <div style="border-right: 1px solid #000; padding: 2px;  border-bottom: 1px solid #000;">...........................................</div>
+          <div style=" padding: 2px;  border-bottom: 1px solid #000;">...........................................</div>
+          <div style="border-right: 1px solid #000; padding: 2px;  border-bottom: 1px solid #000;">${user.gstNumber}</div>
+          <div style="border-right: 1px solid #000; padding: 2px;  border-bottom: 1px solid #000;">Reference No. : 0023</div>
+          <div style=" padding: 2px;  border-bottom: 1px solid #000;">Mode of Payment</div>
+          <div style="border-right: 1px solid #000; font-weight: bold; padding: 2px; border-bottom: 1px solid #000;">Buyer (Bill To)</div>
+          <div style="border-right: 1px solid #000; padding: 2px;  border-bottom: 1px solid #000;">...........................................</div>
+          <div style=" padding: 2px;  border-bottom: 1px solid #000;">...........................................</div>
+          <div style="border-right: 1px solid #000; padding: 2px; border-bottom: 1px solid #000;">${user.name}</div>
+          <div style="border-right: 1px solid #000; padding: 2px; border-bottom: 1px solid #000;">Dispatch Mode</div>
+          <div style=" padding: 2px; border-bottom: 1px solid #000;">Destination</div>
+          <div style="border-right: 1px solid #000; padding: 2px; border-bottom: 1px solid #000;">${user.address}</div>
+          <div style="border-right: 1px solid #000; padding: 2px; border-bottom: 1px solid #000;">By Road</div>
+          <div style=" padding: 2px; border-bottom: 1px solid #000;">${user.city}, ${user.state}</div>
+          <div style="border-right: 1px solid #000; padding: 2px;  border-bottom: 1px solid #000;">${user.city}, ${user.state}-${user.pincode}</div>
+          <div style="border-right: 1px solid #000; padding: 2px;  border-bottom: 1px solid #000;">...........................................</div>
+          <div style=" padding: 2px;  border-bottom: 1px solid #000;">...........................................</div>
+        </div>
+        <div style="width: 100%; height: 15px; border-bottom: 1px solid #000;"></div>
+        <table style="width:100%; border-collapse:collapse; font-size: 9px;">
+          <colgroup>
+            <col style="width:12.5%;">
+            <col style="width:12.5%;">
+            <col style="width:12.5%;">
+            <col style="width:12.5%;">
+            <col style="width:12.5%;">
+            <col style="width:12.5%;">
+            <col style="width:12.5%;">
+            <col style="width:12.5%;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px;">S.No</th>
+              <th style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px;">Description</th>
+              <th style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px;">Series</th>
+              <th style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px;">SAP Code</th>
+              <th style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px;">Qty</th>
+              <th style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px;">Rate</th>
+              <th style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px;">Per</th>
+              <th style="border-bottom: 1px solid #000; padding:6px;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+            <tr>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;"> </td>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;"> </td>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;"> </td>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;"> </td>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;"> </td>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;"> </td>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;"> </td>
+              <td style="border-bottom: 1px solid #000; padding:6px;"></td>
+            </tr>
+            <tr>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;"> </td>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;"> </td>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;">Total</td>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;"> </td>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;">${total}</td>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;"> </td>
+              <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; padding:6px; height: 25px;"> </td>
+              <td style="border-bottom: 1px solid #000; padding:6px;">${subtotal.toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <table style="width:100%; border-collapse:collapse; font-size:9px; table-layout:fixed;">
+          <tr>
+            <td colspan="7" style="width:87.5%; border-right:1px solid #000; border-bottom:1px solid #000; padding:6px; text-align: center;">
+              SGST@9%
+            </td>
+            <td style="width:12.5%; border-bottom:1px solid #000; padding:6px;">
+              ${(gst / 2).toFixed(2)}
+            </td>
+          </tr>
+          <tr>
+            <td colspan="7" style="width:87.5%; border-right:1px solid #000; border-bottom:1px solid #000; padding:6px; text-align: center;">
+              CGST@9%
+            </td>
+            <td style="width:12.5%; border-bottom:1px solid #000; padding:6px;">
+              ${(gst / 2).toFixed(2)}
+            </td>
+          </tr>
+          <tr>
+            <td colspan="7" style="width:87.5%; border-right:1px solid #000; border-bottom:1px solid #000; padding:6px; text-align: center;">
+              Total
+            </td>
+            <td style="width:12.5%; border-bottom:1px solid #000; padding:6px;">
+              ${net.toFixed(2)}
+            </td>
+          </tr>
+          <tr>
+            <td colspan="7" style="width:87.5%; border-right:1px solid #000; border-bottom:1px solid #000; padding:6px; text-align: center;">
+              Rounded Off
+            </td>
+            <td style="width:12.5%; border-bottom:1px solid #000; padding:6px;">
+              ${Math.round(net)}
+            </td>
+          </tr>
+        </table>
+        <table style="width:100%; border-collapse:collapse; font-size:9px; table-layout:fixed;">
+          <tr>
+            <td style=" border-right:1px solid #000; border-bottom:1px solid #000; padding:6px; text-align: center;">
+              Amount Chargable in Words
+            </td>
+            <td style=" border-bottom:1px solid #000; padding:6px;">
+              ${numberToWordsIndian(Math.round(net))}
+            </td>
+          </tr>
+          <tr>
+            <td style=" border-right:1px solid #000; border-bottom:1px solid #000; padding:6px;">
+              Bank Detail:
+            </td>
+            <td style=" border-bottom:1px solid #000; padding:6px;">
+              Company Detail:
+            </td>
+          </tr>
+          <tr>
+            <td style=" border-right:1px solid #000; border-bottom:1px solid #000; padding:6px;">
+              Bank Name: HDFC Bank
+            </td>
+            <td style=" border-bottom:1px solid #000; padding:6px;">
+              Glazia Windoors Pvt. Ltd.
+            </td>
+          </tr>
+          <tr>
+            <td style=" border-right:1px solid #000; border-bottom:1px solid #000; padding:6px;">
+              A/c No: 50200084871361
+            </td>
+            <td style=" border-bottom:1px solid #000; padding:6px;">
+              Kherki Dhaula Village Road, Gurgaon, Harana, 122001
+            </td>
+          </tr>
+          <tr>
+            <td style=" border-right:1px solid #000; border-bottom:1px solid #000; padding:6px;">
+              RTGS/NEFT/IFSC Code: HDFC0004809
+            </td>
+            <td style=" border-bottom:1px solid #000; padding:6px;">
+             06AAKCG7530J1ZE
+            </td>
+          </tr>
+        </table>
+        <div style="text-align: center; border-bottom: 1px solid #000; font-size:13px; padding: 4px;">
+          Terms & Condition
+        </div>
+        <div style=" border-bottom: 1px solid #000; font-size:9px; padding: 4px;">
+          <div>1. PI Validity Period</div>
+          <div style="margin-left: 15px;">
+            <div>a. 15 days from date of issuane irrespective of selling price</div>
+            <div>b. PI shall be treated as null & void in all respect in absence of adnave payment as per PI terms</div>
+          </div>
+        </div>
+        <div style=" border-bottom: 1px solid #000; font-size:9px; padding: 4px;">
+          2. Selling Price: Selling Price is governed by NALCO Billet price on the date of material dispatch.
+        </div>
+        <div style=" border-bottom: 1px solid #000; font-size:9px; padding: 4px;">
+          3. Supply Schedule: Supply schedule will be discussed & finalized after advance payment.
+        </div>
+        <div style=" border-bottom: 1px solid #000; font-size:9px; padding: 4px;">
+          <div>4. Advance Payment: Advance payment will be governed as per below schedule</div>
+          <div style="margin-left: 15px;">
+            <div>a. 100% advance for PI having value   Rs. >0 ~ => 2,00,000</div>
+            <div>b. 50% advance for PI having value   Rs. >0 ~ =< 2,00,000</div>
+          </div>
+        </div>
+        <div style=" border-bottom: 1px solid #000; font-size:9px; padding: 4px;">
+          5. Transportation: In customer scope, No claim or responsibility in any form related to transportation will be levied.
+        </div>
+      </div>
+    `;
+  };
+
+
+  const createProformaInvoiceDep = () => {
     const doc = new jsPDF();
 
     // Add logo and company details
@@ -480,6 +772,14 @@ Glazia Windoors Pvt Ltd.
       15,
       currentY + 10
     );
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 10;
+
+    // Draw border around content area
+    doc.setDrawColor(0); // Black color
+    doc.setLineWidth(0.5); // Border thickness
+    doc.rect(margin, margin, pageWidth - 2 * margin, pageHeight - 2 * margin);
 
     return doc;
   };

@@ -4,6 +4,7 @@ const fs = require("fs");
 const axios = require("axios");
 const path = require("path");
 const pdfParse = require("pdf-parse");
+const os = require('os');
 
 const parsePdf = async (filePath) => {
   try {
@@ -31,9 +32,15 @@ const parsePdf = async (filePath) => {
 };
 
 const downloadPdf = async () => {
-    const options = new chrome.Options();
-    options.addArguments('--headless');
-    options.addArguments("--no-sandbox");
+
+    const userDataDir = path.join(os.tmpdir(), `chrome-user-data-${Date.now()}`);
+    fs.mkdirSync(userDataDir, { recursive: true });
+
+    const options = new chrome.Options()
+      .addArguments('--headless=new')
+      .addArguments('--no-sandbox')
+      .addArguments('--disable-dev-shm-usage')
+      .addArguments(`--user-data-dir=${userDataDir}`);
 
     const driver = new Builder()
         .forBrowser("chrome")
@@ -56,7 +63,7 @@ const downloadPdf = async () => {
         
         console.log("PDF URL:", pdfUrl);
 
-        const pdfPath = path.join(__dirname, "nalco_price.pdf");
+        const pdfPath = path.join(os.tmpdir(), `nalco_price_${Date.now()}.pdf`);
         const response = await axios.get(pdfUrl, { responseType: "arraybuffer" });
         fs.writeFileSync(pdfPath, response.data);
         console.log("pdfPath", pdfPath);
@@ -72,6 +79,7 @@ const downloadPdf = async () => {
         console.error("Error in downloadPdf:", error);
     } finally {
         await driver.quit();
+        fs.rmSync(userDataDir, { recursive: true, force: true });
     }
 }
 
