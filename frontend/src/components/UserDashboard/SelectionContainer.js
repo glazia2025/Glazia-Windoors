@@ -400,17 +400,30 @@ Glazia Windoors Pvt Ltd.
     html2pdf()
       .set({
         margin: 0,
-        filename: "Proforma_Invoice.pdf",
         html2canvas: { scale: 2 },
-        jsPDF: { unit: "pt", format: "a4", orientation: "portrait" }
+        jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
       })
       .from(container)
       .outputPdf("blob")
       .then((pdfBlob) => {
         const url = URL.createObjectURL(pdfBlob);
-        window.open(url); // or show in iframe if needed
+        window.open(url); // Open preview
+
+        const filename = `Glazia_${user.name}_${new Date().toLocaleDateString()}`
+        const safeFilename = filename.replace(/[\s/]/g, "_") + ".pdf";
+
+
+        // Optional: Also allow download
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = safeFilename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       });
   };
+
+
 
   function numberToWordsIndian(num) {
   const a = [
@@ -491,16 +504,16 @@ Glazia Windoors Pvt Ltd.
 
     return `
       <div style="margin: 40px; font-family:Arial, sans-serif;  border:1px solid #000;">
-        <div style="text-align: center; border-bottom: 1px solid #000; font-size:13px; padding: 4px;">
+        <div style="text-align: center; border-bottom: 1px solid #000; font-size:16px; padding: 4px;">
           <strong>Glazia Windoors Pvt Ltd.</strong>
         </div>
 
-        <div style="display: flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #000; font-size: 9px; padding: 2px;">
+        <div style="display: flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #000; font-size: 11px; padding: 2px;">
           <div>Khevat/ Khata No. 361, Rect. No. 21 4/70-18 Kherki Dhaula Village Road, Gurgaon, Harana, 122001</div>
           <div>Phone: 9958053708        Email: sales@glazia.com</div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; font-size: 9px; table-layout: fixed;">
+        <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; font-size: 11px; table-layout: fixed;">
           <div style="border-right: 1px solid #000; font-weight: bold; padding: 2px; border-bottom: 1px solid #000;">Consignee (Ship To)</div>
           <div style="border-right: 1px solid #000; font-weight: bold; padding: 2px; border-bottom: 1px solid #000;">Invoice No.</div>
           <div style=" padding: 2px; border-bottom: 1px solid #000;">Date</div>
@@ -530,7 +543,7 @@ Glazia Windoors Pvt Ltd.
           <div style=" padding: 2px;  border-bottom: 1px solid #000;">...........................................</div>
         </div>
         <div style="width: 100%; height: 15px; border-bottom: 1px solid #000;"></div>
-        <table style="width:100%; border-collapse:collapse; font-size: 9px;">
+        <table style="width:100%; border-collapse:collapse; font-size: 11px;">
           <colgroup>
             <col style="width:12.5%;">
             <col style="width:12.5%;">
@@ -577,7 +590,7 @@ Glazia Windoors Pvt Ltd.
             </tr>
           </tbody>
         </table>
-        <table style="width:100%; border-collapse:collapse; font-size:9px; table-layout:fixed;">
+        <table style="width:100%; border-collapse:collapse; font-size:11px; table-layout:fixed;">
           <tr>
             <td colspan="7" style="width:87.5%; border-right:1px solid #000; border-bottom:1px solid #000; padding:6px; text-align: center;">
               SGST@9%
@@ -611,7 +624,7 @@ Glazia Windoors Pvt Ltd.
             </td>
           </tr>
         </table>
-        <table style="width:100%; border-collapse:collapse; font-size:9px; table-layout:fixed;">
+        <table style="width:100%; border-collapse:collapse; font-size:11px; table-layout:fixed;">
           <tr>
             <td style=" border-right:1px solid #000; border-bottom:1px solid #000; padding:6px; text-align: center;">
               Amount Chargable in Words
@@ -653,30 +666,30 @@ Glazia Windoors Pvt Ltd.
             </td>
           </tr>
         </table>
-        <div style="text-align: center; border-bottom: 1px solid #000; font-size:13px; padding: 4px;">
+        <div style="text-align: center; border-bottom: 1px solid #000; font-size:16px; padding: 4px;">
           Terms & Condition
         </div>
-        <div style=" border-bottom: 1px solid #000; font-size:9px; padding: 4px;">
+        <div style=" border-bottom: 1px solid #000; font-size:11px; padding: 4px;">
           <div>1. PI Validity Period</div>
           <div style="margin-left: 15px;">
             <div>a. 15 days from date of issuane irrespective of selling price</div>
             <div>b. PI shall be treated as null & void in all respect in absence of adnave payment as per PI terms</div>
           </div>
         </div>
-        <div style=" border-bottom: 1px solid #000; font-size:9px; padding: 4px;">
+        <div style=" border-bottom: 1px solid #000; font-size:11px; padding: 4px;">
           2. Selling Price: Selling Price is governed by NALCO Billet price on the date of material dispatch.
         </div>
-        <div style=" border-bottom: 1px solid #000; font-size:9px; padding: 4px;">
+        <div style=" border-bottom: 1px solid #000; font-size:11px; padding: 4px;">
           3. Supply Schedule: Supply schedule will be discussed & finalized after advance payment.
         </div>
-        <div style=" border-bottom: 1px solid #000; font-size:9px; padding: 4px;">
+        <div style=" border-bottom: 1px solid #000; font-size:11px; padding: 4px;">
           <div>4. Advance Payment: Advance payment will be governed as per below schedule</div>
           <div style="margin-left: 15px;">
             <div>a. 100% advance for PI having value   Rs. >0 ~ => 2,00,000</div>
             <div>b. 50% advance for PI having value   Rs. >0 ~ =< 2,00,000</div>
           </div>
         </div>
-        <div style=" border-bottom: 1px solid #000; font-size:9px; padding: 4px;">
+        <div style=" border-bottom: 1px solid #000; font-size:11px; padding: 4px;">
           5. Transportation: In customer scope, No claim or responsibility in any form related to transportation will be levied.
         </div>
       </div>
