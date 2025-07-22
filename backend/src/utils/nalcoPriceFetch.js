@@ -32,14 +32,11 @@ const parsePdf = async (filePath) => {
 };
 
 const downloadPdf = async () => {
-  const userDataDir = path.join(os.tmpdir(), `chrome-user-data-${Date.now()}`);
-  fs.mkdirSync(userDataDir, { recursive: true });
 
   const options = new chrome.Options()
     .addArguments("--headless=new")
     .addArguments("--no-sandbox")
     .addArguments("--disable-dev-shm-usage")
-    .addArguments(`--user-data-dir=${userDataDir}`);
 
   const driver = await new Builder()
     .forBrowser("chrome")
@@ -80,7 +77,6 @@ const downloadPdf = async () => {
     console.error("Error in downloadPdf:", error);
   } finally {
     await driver.quit();
-    fs.rmSync(userDataDir, { recursive: true, force: true });
   }
 };
 
