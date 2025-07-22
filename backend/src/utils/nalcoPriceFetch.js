@@ -4,7 +4,7 @@ const fs = require("fs");
 const axios = require("axios");
 const path = require("path");
 const pdfParse = require("pdf-parse");
-const os = require('os');
+const os = require("os");
 
 const parsePdf = async (filePath) => {
   try {
@@ -32,56 +32,57 @@ const parsePdf = async (filePath) => {
 };
 
 const downloadPdf = async () => {
+  const userDataDir = path.join(os.tmpdir(), `chrome-user-data-${Date.now()}`);
+  fs.mkdirSync(userDataDir, { recursive: true });
 
-    const userDataDir = path.join(os.tmpdir(), `chrome-user-data-${Date.now()}`);
-    fs.mkdirSync(userDataDir, { recursive: true });
+  const options = new chrome.Options()
+    .addArguments("--headless=new")
+    .addArguments("--no-sandbox")
+    .addArguments("--disable-dev-shm-usage")
+    .addArguments(`--user-data-dir=${userDataDir}`);
 
-    const options = new chrome.Options()
-      .addArguments('--headless=new')
-      .addArguments('--no-sandbox')
-      .addArguments('--disable-dev-shm-usage')
-      .addArguments(`--user-data-dir=${userDataDir}`);
+  const driver = await new Builder()
+    .forBrowser("chrome")
+    .setChromeOptions(options)
+    .build();
 
-    const driver = new Builder()
-        .forBrowser("chrome")
-        .setChromeOptions(options)
-        .build();
+  try {
+    await driver.get("https://nalcoindia.com/domestic/current-price/");
+    const priceDivs = await driver.findElements(By.css(".price-div a"));
+    let pdfUrl;
 
-    try {
-        await driver.get('https://nalcoindia.com/domestic/current-price/');
-        const priceDivs = await driver.findElements(By.css(".price-div a"));
-        let pdfUrl;
-        for(let i = 0; i < priceDivs.length; ++i) {
-          const temp = await priceDivs[i].getAttribute("href");
-          if (temp.includes('BILLET')) {
-            pdfUrl = temp;
-            break;
-          }
-          
-        }
-
-        
-        console.log("PDF URL:", pdfUrl);
-
-        const pdfPath = path.join(os.tmpdir(), `nalco_price_${Date.now()}.pdf`);
-        const response = await axios.get(pdfUrl, { responseType: "arraybuffer" });
-        fs.writeFileSync(pdfPath, response.data);
-        console.log("pdfPath", pdfPath);
-        const price = parsePdf(pdfPath);
-
-        if (fs.existsSync(pdfPath)) {
-            fs.unlinkSync(pdfPath);
-            console.log("Temporary PDF file deleted");
-        }
-
-        return price;
-    } catch (error) {
-        console.error("Error in downloadPdf:", error);
-    } finally {
-        await driver.quit();
-        fs.rmSync(userDataDir, { recursive: true, force: true });
+    for (let i = 0; i < priceDivs.length; ++i) {
+      const temp = await priceDivs[i].getAttribute("href");
+      if (temp && temp.includes("BILLET")) {
+        pdfUrl = temp;
+        break;
+      }
     }
-}
+
+    if (!pdfUrl) throw new Error("PDF URL not found.");
+
+    console.log("PDF URL:", pdfUrl);
+
+    const pdfPath = path.join(os.tmpdir(), `nalco_price_${Date.now()}.pdf`);
+    const response = await axios.get(pdfUrl, { responseType: "arraybuffer" });
+    fs.writeFileSync(pdfPath, response.data);
+    console.log("pdfPath", pdfPath);
+
+    const price = await parsePdf(pdfPath); // ✅ await added here
+
+    if (fs.existsSync(pdfPath)) {
+      fs.unlinkSync(pdfPath);
+      console.log("Temporary PDF file deleted");
+    }
+
+    return price;
+  } catch (error) {
+    console.error("Error in downloadPdf:", error);
+  } finally {
+    await driver.quit();
+    fs.rmSync(userDataDir, { recursive: true, force: true });
+  }
+};
 
 module.exports = {
     downloadPdf
