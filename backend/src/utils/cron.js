@@ -57,5 +57,7 @@ const runJob = async () => {
   }
 };
 
+runJob();
+
 cron.schedule("0 0 * * *", runJob);
 console.log("Cron job scheduled");

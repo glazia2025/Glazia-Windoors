@@ -261,7 +261,7 @@ const ProfileTable = () => {
             ))}
           </MDBTabs>
           <MDBSwitch
-            defaultChecked={profileOptions[activeProfile]?.catEnabled}
+            checked={profileOptions[activeProfile]?.catEnabled}
             onChange={e => {
               const updatedProduct = {
                 categoryKey: activeProfile,
