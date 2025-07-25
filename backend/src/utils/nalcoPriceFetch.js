@@ -48,11 +48,17 @@ const downloadPdf = async () => {
   try {
     await driver.get("https://nalcoindia.com/domestic/current-price/");
     const priceDivs = await driver.findElements(By.css(".price-div a"));
+
+    console.log(priceDivs.length, "priceDivs found");
+    if (priceDivs.length === 0) {
+      throw new Error("No price links found on the page.");
+    }
     let pdfUrl;
 
     for (let i = 0; i < priceDivs.length; ++i) {
       const temp = await priceDivs[i].getAttribute("href");
-      if (temp && temp.includes("BILLET")) {
+      console.log(`Link ${i + 1}:`, temp);
+      if (temp && temp.toLowerCase().includes("billet")) {
         pdfUrl = temp;
         break;
       }

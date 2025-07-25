@@ -1,15 +1,75 @@
 const cron = require("node-cron");
 const fs = require("fs");
 const { Nalco } = require("../models/Order");
+const User = require('../models/User');
 const { downloadPdf } = require("./nalcoPriceFetch");
+const twilio = require('twilio');
+
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+const sendNalcoMessageToUsers = async (nalcoPrice) => {
+  try {
+    // Logic to send message to users
+    console.log("Sending Nalco price to users:", nalcoPrice);
+    const users = await User.find();
+    console.log(`Found ${users.length} users to notify`);
+    for(const user of users) {
+      if (user.phoneNumber) {
+        console.log(`Sending message to ${user.phoneNumber}`);
+        try {
+const message = await client.messages.create({
+    body: `🌞 Good Morning from Glazia!
+📊 Today's NALCO Aluminium CH10 Billet Rate: ₹${nalcoPrice/1000}/kg
+📍Updated as of ${new Date().toLocaleDateString()}
+
+For bulk orders or pricing, reach out to us at www.glazia.in
+Let's build something amazing today! 💪
+
+— Team Glazia 🪟`,  // Simple SMS body
+      from: `${process.env.TWILIO_SMS_NUMBER}`,  // Your Twilio SMS number
+      to: `+91${user.phoneNumber}`
+    });
+
+    console.log("SMS sent:", message.sid);
+        } catch (error) {
+          console.error(`Error sending message to ${user.phoneNumber}:`, error);
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error sending SMS message:', error);
+  }
+}
 
 
 const updateNalcoPrice = async (nalcoPrice) => {
-
   try {
-    const nalco = await Nalco.findOne({});
+    const now = new Date();
 
-    if (!nalco) {
+    // Detect server timezone
+    const serverTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Calculate today's start and end based on timezone
+    let todayStart, todayEnd;
+
+    if (serverTimeZone === "Asia/Kolkata") {
+      // If already in IST, no need to offset
+      todayStart = new Date(now.setHours(0, 0, 0, 0));
+      todayEnd = new Date(now.setHours(23, 59, 59, 999));
+    } else {
+      // Server is in UTC or another timezone, adjust to IST
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      todayStart = new Date(now.setHours(0, 0, 0, 0) - istOffset);
+      todayEnd = new Date(now.setHours(23, 59, 59, 999) - istOffset);
+    }
+
+    // Find the latest entry for today
+    const existingEntry = await Nalco.findOne({
+      date: { $gte: todayStart, $lte: todayEnd },
+    }).sort({ date: -1 });
+
+    if (!existingEntry) {
       const newNalco = new Nalco({
         nalcoPrice,
         date: new Date(),
@@ -17,20 +77,33 @@ const updateNalcoPrice = async (nalcoPrice) => {
 
       const savedNalco = await newNalco.save();
 
+      sendNalcoMessageToUsers(nalcoPrice);
+
       return {
-        message: "Nalco created successfully.",
+        message: "Nalco created for today.",
         nalco: savedNalco,
       };
     } else {
-      nalco.nalcoPrice = nalcoPrice;
-      nalco.date = new Date();
+      if (existingEntry.nalcoPrice !== nalcoPrice) {
+        const newNalco = new Nalco({
+          nalcoPrice,
+          date: new Date(),
+        });
 
-      const updatedNalco = await nalco.save();
+        const savedNalco = await newNalco.save();
 
-      return {
-        message: "Nalco updated successfully.",
-        nalco: updatedNalco,
-      };
+        sendNalcoMessageToUsers(nalcoPrice);
+
+        return {
+          message: "Nalco updated (new price for today).",
+          nalco: savedNalco,
+        };
+      } else {
+        return {
+          message: "Nalco price unchanged. No update needed.",
+          nalco: existingEntry,
+        };
+      }
     }
   } catch (error) {
     console.error(error);
@@ -59,5 +132,7 @@ const runJob = async () => {
 
 runJob();
 
-cron.schedule("0 0 * * *", runJob);
+cron.schedule("0 8 * * *", runJob, {
+  timezone: "Asia/Kolkata",
+});
 console.log("Cron job scheduled");
