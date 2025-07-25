@@ -50,10 +50,12 @@ const updateNalcoPrice = async (nalcoPrice) => {
     // Detect server timezone
     const serverTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+    console.log("Server timezone:", serverTimeZone);
+
     // Calculate today's start and end based on timezone
     let todayStart, todayEnd;
 
-    if (serverTimeZone === "Asia/Kolkata") {
+    if (serverTimeZone === "Asia/Calcutta" || serverTimeZone === "Asia/Kolkata") {
       // If already in IST, no need to offset
       todayStart = new Date(now.setHours(0, 0, 0, 0));
       todayEnd = new Date(now.setHours(23, 59, 59, 999));
@@ -64,12 +66,20 @@ const updateNalcoPrice = async (nalcoPrice) => {
       todayEnd = new Date(now.setHours(23, 59, 59, 999) - istOffset);
     }
 
+    
+      sendNalcoMessageToUsers(nalcoPrice);
+
     // Find the latest entry for today
     const existingEntry = await Nalco.findOne({
       date: { $gte: todayStart, $lte: todayEnd },
     }).sort({ date: -1 });
 
+    console.log("Existing entry found:", existingEntry);
+    console.log("Today's start:", todayStart);
+    console.log("Today's end:", todayEnd);
+
     if (!existingEntry) {
+      console.log("No existing entry found for today, creating a new one.");
       const newNalco = new Nalco({
         nalcoPrice,
         date: new Date(),
@@ -77,13 +87,16 @@ const updateNalcoPrice = async (nalcoPrice) => {
 
       const savedNalco = await newNalco.save();
 
-      sendNalcoMessageToUsers(nalcoPrice);
-
       return {
         message: "Nalco created for today.",
         nalco: savedNalco,
       };
     } else {
+      console.log("Existing entry found, checking price...");
+      // If the price has changed, update the existing entry
+      console.log("Existing price:", existingEntry.nalcoPrice);
+      console.log("New price:", nalcoPrice);
+      console.log("Price comparison:", existingEntry.nalcoPrice !== nalcoPrice);
       if (existingEntry.nalcoPrice !== nalcoPrice) {
         const newNalco = new Nalco({
           nalcoPrice,
@@ -91,8 +104,6 @@ const updateNalcoPrice = async (nalcoPrice) => {
         });
 
         const savedNalco = await newNalco.save();
-
-        sendNalcoMessageToUsers(nalcoPrice);
 
         return {
           message: "Nalco updated (new price for today).",
