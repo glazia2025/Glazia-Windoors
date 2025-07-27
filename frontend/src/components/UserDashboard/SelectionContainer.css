@@ -2,6 +2,28 @@
     flex-wrap: nowrap !important;
 }
 
+.cart-float-cta  {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  background-color: #3b71ca;
+  color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  height: 70px;
+  width: 70px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.cart-float-cta:hover {
+  background-color: #2c5a9f;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
 canvas {
   width: 100%; /* Ensures the canvas width adapts to its container */
   height: auto; /* Maintains aspect ratio */

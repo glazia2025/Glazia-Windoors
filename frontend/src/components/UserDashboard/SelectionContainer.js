@@ -830,6 +830,12 @@ Glazia Windoors Pvt Ltd.
 
   return (
     <>
+    {selectedProducts.length > 0 && <div className="cart-float-cta" onClick={() => {
+      setIsSliderOpen(true);
+    }}>
+      <MDBIcon fas icon="shopping-cart" size="2x" />
+    </div>}
+                    
     <MDBRow className="pdf-row-wrapper">
       <MDBCol className="main-selectors" style={{ minWidth: "65%" }}>
         <MDBRow className="d-flex justify-content-between align-items-end">

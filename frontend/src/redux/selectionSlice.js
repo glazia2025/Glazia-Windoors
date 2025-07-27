@@ -20,18 +20,33 @@ const selectionSlice = createSlice({
     },
     addSelectedProducts: (state, action) => {
       const { option, product } = action.payload;
+
+      console.log('Adding product to option:', option, 'Product:', product);
+      console.log('Current products for option:', state.productsByOption[option]);
+      console.log('Type of product:', typeof product);
+      console.log('Current state:', state);
+      console.log('Is product an array?', Array.isArray(product));
       if(Array.isArray(product)) {
         state.productsByOption[option] = [
           ...product
         ];
       }
       else {
-        state.productsByOption[option] = [
-          ...state.productsByOption[option],
-          product
-        ];
+        const id = state.productsByOption[option].findIndex(data => {
+          return data.sapCode === product.sapCode;
+        })
+        console.log('Product index in option:', id);
+        console.log('Product found:', state.productsByOption[option][id]);
+        if (id !== -1) {
+          state.productsByOption[option][id] = product;
+          return;
+        } else {
+          state.productsByOption[option] = [
+            ...state.productsByOption[option],
+            product
+          ];
+        }
       }
-
     },
     clearProduct: (state, action) => {
       const {option, sapCode} = action.payload;
