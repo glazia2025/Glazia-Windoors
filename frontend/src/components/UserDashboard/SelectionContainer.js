@@ -61,6 +61,7 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
   const [showModal, setShowModal] = useState(false);
   const [deliveryType, setDeliveryType] = useState('');
   const [paymentSlider, setPaymentSlider] = useState(false);
+  const [paymentStep, setPaymentStep] = useState(1);
 
   // Aggregate products from all options
   const selectedProducts = Object.values(productsByOption).flat();
@@ -237,7 +238,7 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
             proof: paymentProofBase64,
           },
           totalAmount: Number(total.toFixed(2)),
-          deliveryType
+          deliveryType: "SELF"
         };
 
         const token = localStorage.getItem("authToken");
@@ -697,106 +698,6 @@ Glazia Windoors Pvt Ltd.
   };
 
 
-  const createProformaInvoiceDep = () => {
-    const doc = new jsPDF();
-
-    // Add logo and company details
-    doc.setFontSize(16);
-    doc.text("PROFORMA INVOICE", 105, 15, { align: "center" });
-    doc.addImage(logo, "PNG", 15, 30, 50, 20);
-    doc.setFontSize(12);
-    doc.text("Glazia Windoors Pvt Ltd.", 70, 30);
-    doc.text("Shop in H. No. 275 G/F, Near Talab, Ghitorni, M G Road,", 70, 35);
-    doc.text("New Delhi - 110030 (India)", 70, 40);
-    doc.text("Phone: 6388406765, 9958053708", 70, 45);
-    doc.text("Email: sales@glazia.com", 70, 50);
-
-    // Invoice details
-    doc.text("Order No: 001", 15, 60);
-    const today = new Date();
-    const dateString = today.toLocaleDateString("en-GB"); // Formats date as dd-mm-yyyy
-
-    doc.text(`Dated: ${dateString}`, 50, 60);
-    doc.text("Supplier's Ref: N.A", 15, 70);
-    doc.text("Destination: Gurgaon", 15, 90);
-    doc.text("Terms of Delivery: N.A", 15, 100);
-    console.log("selectedProducts", selectedProducts);
-    // Add table with selected products
-    doc.autoTable({
-      startY: 110,
-      pageBreak: "auto", // Ensures page breaks automatically
-      head: [
-        [
-          "S.No.",
-          "Description of Goods",
-          "SAP Code",
-          "Quantity",
-          "Price",
-          "Per",
-          "Amount",
-        ],
-      ],
-      body: selectedProducts.map((product, index) => [
-        index + 1,
-        product.description +
-          " " +
-          `${product.powderCoating ? "(" + product.powderCoating + ")" : ""}` ||
-          product.perticular,
-        product.sapCode,
-        product.quantity,
-        product.rate,
-        product.per || "Piece",
-        (product.quantity * product.rate).toFixed(2),
-      ]),
-    });
-
-    // Get the last position of the table
-    let currentY = doc.autoTable.previous.finalY + 10;
-
-    // Add totals
-    const subtotal = selectedProducts.reduce(
-      (total, product) => total + product.quantity * product.rate,
-      0
-    );
-    setSubTotal(subtotal);
-    const gst = subtotal * 0.18; // 18% GST
-    const netAmount = subtotal + gst;
-    setTotal(netAmount);
-
-    // Ensure enough space for totals; else, add a new page
-    if (currentY + 30 > doc.internal.pageSize.height - 10) {
-      doc.addPage();
-      currentY = 10;
-    }
-
-    doc.text(`Subtotal: ₹${subtotal.toFixed(2)}`, 15, currentY);
-    doc.text(`GST @ 18%: ₹${gst.toFixed(2)}`, 15, currentY + 10);
-    doc.text(`Net Amount: ₹${netAmount.toFixed(2)}`, 15, currentY + 20);
-
-    // Add bank details
-    currentY += 50;
-    if (currentY + 20 > doc.internal.pageSize.height - 10) {
-      doc.addPage();
-      currentY = 10;
-    }
-    doc.text("OUR BANK DETAILS:", 15, currentY);
-    doc.text(
-      "Glazia Windoors Pvt Ltd, Axis Bank, IFSC: 00202030GJSS, AC No: 82837539293740",
-      15,
-      currentY + 10
-    );
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 10;
-
-    // Draw border around content area
-    doc.setDrawColor(0); // Black color
-    doc.setLineWidth(0.5); // Border thickness
-    doc.rect(margin, margin, pageWidth - 2 * margin, pageHeight - 2 * margin);
-
-    return doc;
-  };
-
   const setSlider = () => {
     setIsSliderOpen(true);
   };
@@ -805,6 +706,7 @@ Glazia Windoors Pvt Ltd.
     if (currentRenderTask.current) {
       currentRenderTask.current.cancel();
     }
+    setPaymentStep(1);
     setPaymentSlider(false);
     setIsMakingPayment(false);
   };
@@ -830,7 +732,7 @@ Glazia Windoors Pvt Ltd.
 
   return (
     <>
-    {selectedProducts.length > 0 && <div className="cart-float-cta" onClick={() => {
+    {(selectedProducts.length > 0 && !paymentSlider) && <div className="cart-float-cta" onClick={() => {
       setIsSliderOpen(true);
     }}>
       <MDBIcon fas icon="shopping-cart" size="2x" />
@@ -1017,7 +919,9 @@ Glazia Windoors Pvt Ltd.
         </>
       )}
 
-      {paymentSlider && (
+
+
+      {(paymentSlider && paymentStep === 2) && (
         <div className="overlay-wrapper">
           {/* <MDBBtn
             className="download-pdf overlay-download"
@@ -1028,15 +932,13 @@ Glazia Windoors Pvt Ltd.
             &nbsp; Download pdf
           </MDBBtn> */}
 
-          <div className="overlay" onClick={() => clearCurrentPdfView()}></div>
-
-          <MDBContainer
+          <div
             // className="bg-secondary"
             style={{
               position: "fixed",
               left: 0,
               background: "#efefef",
-              width: "60%",
+              width: "100vw",
               height: "100vh",
               zIndex: "999",
               borderRight: "1px solid #ddd",
@@ -1149,8 +1051,92 @@ Glazia Windoors Pvt Ltd.
                     </MDBRow>
                   </div>
                 </div>
+                <MDBCol className="stretch-height">
+                  <MDBTypography className="mt-4 mb-0 fw-medium text-muted">
+                    Steps
+                  </MDBTypography>
+                  <MDBTypography
+                    tag="h6"
+                    className="mt-0 mb-2 fw-normal bg-white p-3 rounded-5"
+                  >
+                    Make a payment of <strong>₹{(total / 2).toFixed(2)}</strong>{" "}
+                    (50% of the total amount) to the account details or UPI ID.
+                  </MDBTypography>
 
-                <div className="rounded-5 shadow-3-strong bg-white min-h-100 mt-4">
+                  <MDBTypography
+                    tag="h6"
+                    className="mt-2 mb-2 fw-normal bg-white p-3 rounded-5"
+                  >
+                    After making the payment, please upload the proof of payment.
+                  </MDBTypography>
+
+                  <MDBTypography
+                    tag="h6"
+                    className="mt-2 mb-4 fw-normal bg-white p-3 rounded-5"
+                  >
+                    Upon approval, we will proceed with the order.
+                  </MDBTypography>
+
+                  <hr className="mt-4" />
+                    <div>
+                      <MDBTypography tag="h3" className="mt-3 mb-4 fw-semibold">
+                        Upload Payment Proof
+                      </MDBTypography>
+
+                      <MDBTypography tag="h6" className="mb-3">
+                        Accepts PDFs or images (max 10MB)
+                      </MDBTypography>
+                      {paymentProofFile && (
+                        <MDBTypography small className="text-muted">
+                          {paymentProofFile.name} (
+                          {(paymentProofFile.size / 1024).toFixed(2)} KB)
+                        </MDBTypography>
+                      )}
+                      <MDBFile
+                        id="paymentProofUpload"
+                        onChange={handlePaymentProofChange}
+                        className="mb-2" // Added margin bottom
+                        style={{ maxWidth: "400px" }}
+                      />
+
+                      {/* <hr className="mt-4" />
+
+                      <div>
+                          <MDBTypography tag="h6" className="mb-2">Select Delivery Type</MDBTypography>
+                          <MDBRadio name='deliveryType' id='flexRadioDefault1' label='Self Pickup' value="SELF" onChange={e => setDeliveryType(e.target.value)} />
+                          <MDBRadio name='deliveryType' id='flexRadioDefault2' label='Full Truck' value="FULL" onChange={e => setDeliveryType(e.target.value)} />
+                          <MDBRadio name='deliveryType' id='flexRadioDefault3' label='Part Truck' value="PART" onChange={e => setDeliveryType(e.target.value)} />
+                        </div> */}
+
+                      
+                    </div>
+
+                  <div className="d-flex flex-row justify-content-between align-items-center">
+                    <MDBBtn
+                        onClick={confirmOrder}
+                        className="mt-4"
+                        color="primary"
+                        size="lg"
+                        disabled={!paymentProofFile || deliveryType === ""}
+                      > 
+                        <MDBIcon fas icon="check" />
+                        &nbsp; Confirm Order
+                    </MDBBtn>
+                  <MDBBtn
+                    onClick={() => setPaymentStep(1)}
+                    className="mt-4"
+                    color="primary"
+                    size="lg"
+                  >
+                    <MDBIcon fas icon="arrow-left" style={{marginRight: '10px'}} />
+                    Go Back
+                  </MDBBtn>
+                  </div>
+                </MDBCol>
+              </MDBCol>
+
+              <MDBCol className="p-0 mt-5">
+                <div className="rounded-5 shadow-3-strong bg-white min-h-100">
                   <MDBTypography
                     tag="h5"
                     className="px-3 py-3 bg-primary text-white mb-0 text-left fw-medium"
@@ -1176,71 +1162,34 @@ Glazia Windoors Pvt Ltd.
                       <span>navdeepkamboj08-3@okhdfcbank</span>{" "}
                       <MDBIcon fas icon="copy" />
                     </MDBBtn>
+                    <div className="d-flex justify-content-center align-items-center">
+                      <img
+                        src={"/Assets/Images/upi.jpeg"}
+                        alt="UPI"
+                        style={{ width: "50%" }}
+                      />
+                    </div>
 
-                    <ImageZoom
-                      productImage={"/Assets/Images/upi.jpeg"}
-                      imageWidth="100%"
-                    />
+                    
                   </div>
                 </div>
               </MDBCol>
-
-              <MDBCol className="stretch-height">
-                <MDBTypography className="mt-4 mb-0 fw-medium text-muted">
-                  Steps
-                </MDBTypography>
-                <MDBTypography
-                  tag="h6"
-                  className="mt-0 mb-2 fw-normal bg-white p-3 rounded-5"
-                >
-                  Make a payment of <strong>₹{(total / 2).toFixed(2)}</strong>{" "}
-                  (50% of the total amount) to the account details or UPI ID.
-                </MDBTypography>
-
-                <MDBTypography
-                  tag="h6"
-                  className="mt-2 mb-2 fw-normal bg-white p-3 rounded-5"
-                >
-                  After making the payment, please upload the proof of payment.
-                </MDBTypography>
-
-                <MDBTypography
-                  tag="h6"
-                  className="mt-2 mb-4 fw-normal bg-white p-3 rounded-5"
-                >
-                  Upon approval, we will proceed with the order.
-                </MDBTypography>
-
-                <hr className="mt-4" />
-
-                <MDBBtn
-                  onClick={() => setShowModal(true)}
-                  className="mt-4"
-                  color="primary"
-                  size="lg"
-                >
-                  <MDBIcon fas icon="check" />
-                  &nbsp; Confirm Order
-                </MDBBtn>
-              </MDBCol>
             </MDBRow>
-          </MDBContainer>
-          {/* {isMakingPayment ? (
-          ) : (
-            <></>
-          )} */}
+          </div>
         </div>
       )}
 
+
       {/* Slider component */}
-      {paymentSlider && (
+      {(paymentSlider && paymentStep === 1) && (
         <div
           className="slider"
           style={{
             transform: paymentSlider ? "translateX(0)" : "translateX(100%)",
             padding: "0",
             zIndex: 10000,
-            padding: "1rem",
+            padding: "3rem",
+            width: "100vw",
           }}
         >
           <div className="d-flex align-items-center justify-content-center">
@@ -1269,29 +1218,40 @@ Glazia Windoors Pvt Ltd.
               ))}
             </tbody>
           </table>
-          <div
-            className="total-pricing-slider w-100"
-            style={{ position: "absolute", bottom: "0", left: "0", width: "95%" }}
-          >
-            <div className="price-control">
-              <div className="heading sub-price slider-price">Sub Total</div>
-              <div className="price sub-price slider-price">
-                ₹ {subTotal.toFixed(2)}
-              </div>
-            </div>
-            <div className="price-control">
-              <div className="heading sub-price slider-price">GST @ 18%</div>
-              <div className="price sub-price slider-price">
-                ₹ {(subTotal * 0.18).toFixed(2)}
-              </div>
-            </div>
-            <div className="price-control">
-              <div className="heading main-price slider-main-price">Total</div>
-              <div className="price main-price slider-main-price">
-                ₹ {total.toFixed(2)}
-              </div>
-            </div>
+          <MDBBtn
+              className="mt-2"
+              onClick={generatePDF}
+              color={"secondary"}
+            >
+              <MDBIcon fas icon="cloud-download-alt" />
+              &nbsp; Download pdf
+            </MDBBtn>
+          <div className="total-pricing m-2 rounded-2" style={{ position: "absolute", bottom: "0rem", width: "95%", left: "2%" }}>
+
             <div
+              className="d-flex flex-column w-100"
+            >
+              <div className="price-control">
+                <div className="heading sub-price slider-price">Sub Total</div>
+                <div className="price sub-price slider-price">
+                  ₹ {subTotal.toFixed(2)}
+                </div>
+              </div>
+              <div className="price-control">
+                <div className="heading sub-price slider-price">GST @ 18%</div>
+                <div className="price sub-price slider-price">
+                  ₹ {(subTotal * 0.18).toFixed(2)}
+                </div>
+              </div>
+              <div className="price-control">
+                <div className="heading main-price slider-main-price">Total</div>
+                <div className="price main-price slider-main-price">
+                  ₹ {total.toFixed(2)}
+                </div>
+              </div>
+              
+            </div>
+<div
               className="d-flex justify-content-between align-items-center mt-2 pt-2"
               style={{
                 borderTop: "1px solid #32a4",
@@ -1306,11 +1266,11 @@ Glazia Windoors Pvt Ltd.
               </MDBBtn>
               <MDBBtn
                 // className="download-pdf mobile-download"
-                onClick={generatePDF}
+                onClick={() => setPaymentStep(2)}
                 color={"secondary"}
               >
-                <MDBIcon fas icon="cloud-download-alt" />
-                &nbsp; Download pdf
+                <MDBIcon fas icon="check" style={{marginRight: '8px'}} />
+                Confirm Order
               </MDBBtn>
               {/* <MDBBtn
                 className="download-pdf"
@@ -1323,9 +1283,14 @@ Glazia Windoors Pvt Ltd.
                 &nbsp; Make Payment
               </MDBBtn> */}
             </div>
+            
           </div>
+
+          
         </div>
       )}
+
+      
     </MDBRow>
     <MDBModal className="bottom-sheet-modal" open={showModal} onClose={() => setShowModal(false)}>
         <MDBModalDialog >

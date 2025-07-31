@@ -61,7 +61,7 @@ canvas {
   top: 0;
   right: 0;
   height: 100%;
-  width: 40%;
+  width: 100%;
   background-color: white;
   box-shadow: -2px 0px 5px rgba(0, 0, 0, 0.5);
   z-index: 2;
