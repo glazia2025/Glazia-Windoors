@@ -61,7 +61,6 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
   const [showModal, setShowModal] = useState(false);
   const [deliveryType, setDeliveryType] = useState('');
   const [paymentSlider, setPaymentSlider] = useState(false);
-  const [paymentStep, setPaymentStep] = useState(1);
 
   // Aggregate products from all options
   const selectedProducts = Object.values(productsByOption).flat();
@@ -706,7 +705,6 @@ Glazia Windoors Pvt Ltd.
     if (currentRenderTask.current) {
       currentRenderTask.current.cancel();
     }
-    setPaymentStep(1);
     setPaymentSlider(false);
     setIsMakingPayment(false);
   };
@@ -735,6 +733,7 @@ Glazia Windoors Pvt Ltd.
     {(selectedProducts.length > 0 && !paymentSlider) && <div className="cart-float-cta" onClick={() => {
       setIsSliderOpen(true);
     }}>
+      {selectedProducts.length > 0 && <div className="cart-items-clip">{selectedProducts.length}</div>}
       <MDBIcon fas icon="shopping-cart" size="2x" />
     </div>}
                     
@@ -921,7 +920,7 @@ Glazia Windoors Pvt Ltd.
 
 
 
-      {(paymentSlider && paymentStep === 2) && (
+      {(paymentSlider) && (
         <div className="overlay-wrapper">
           {/* <MDBBtn
             className="download-pdf overlay-download"
@@ -1123,7 +1122,7 @@ Glazia Windoors Pvt Ltd.
                         &nbsp; Confirm Order
                     </MDBBtn>
                   <MDBBtn
-                    onClick={() => setPaymentStep(1)}
+                    onClick={() => clearCurrentPdfView()}
                     className="mt-4"
                     color="primary"
                     size="lg"
@@ -1176,117 +1175,6 @@ Glazia Windoors Pvt Ltd.
               </MDBCol>
             </MDBRow>
           </div>
-        </div>
-      )}
-
-
-      {/* Slider component */}
-      {(paymentSlider && paymentStep === 1) && (
-        <div
-          className="slider"
-          style={{
-            transform: paymentSlider ? "translateX(0)" : "translateX(100%)",
-            padding: "0",
-            zIndex: 10000,
-            padding: "3rem",
-            width: "100vw",
-          }}
-        >
-          <div className="d-flex align-items-center justify-content-center">
-            <h5 className="fw-bold text-center">Selected Products</h5>
-            <div style={{ cursor: "pointer", marginLeft: "auto" }} onClick={() => clearCurrentPdfView()}>
-              <MDBIcon fas icon="times" />
-            </div>
-          </div>
-          <table className="table table-striped table-bordered" style={{ width: "100%", marginTop: "1rem", tableLayout: 'auto' }}>
-            <thead>
-              <tr>
-                <td>Name</td>
-                <td>Rate</td>
-                <td>Quantity</td>
-                <td>Amount</td>
-              </tr>
-            </thead>
-            <tbody>
-              {selectedProducts.map((product, index) => (
-                <tr key={index}>
-                  <td>{product.description}</td>
-                  <td>₹ {product.rate}</td>
-                  <td>{product.quantity}</td>
-                  <td>₹ {product.amount}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <MDBBtn
-              className="mt-2"
-              onClick={generatePDF}
-              color={"secondary"}
-            >
-              <MDBIcon fas icon="cloud-download-alt" />
-              &nbsp; Download pdf
-            </MDBBtn>
-          <div className="total-pricing m-2 rounded-2" style={{ position: "absolute", bottom: "0rem", width: "95%", left: "2%" }}>
-
-            <div
-              className="d-flex flex-column w-100"
-            >
-              <div className="price-control">
-                <div className="heading sub-price slider-price">Sub Total</div>
-                <div className="price sub-price slider-price">
-                  ₹ {subTotal.toFixed(2)}
-                </div>
-              </div>
-              <div className="price-control">
-                <div className="heading sub-price slider-price">GST @ 18%</div>
-                <div className="price sub-price slider-price">
-                  ₹ {(subTotal * 0.18).toFixed(2)}
-                </div>
-              </div>
-              <div className="price-control">
-                <div className="heading main-price slider-main-price">Total</div>
-                <div className="price main-price slider-main-price">
-                  ₹ {total.toFixed(2)}
-                </div>
-              </div>
-              
-            </div>
-<div
-              className="d-flex justify-content-between align-items-center mt-2 pt-2"
-              style={{
-                borderTop: "1px solid #32a4",
-              }}
-            >
-              <MDBBtn
-                // className="download-pdf mobile-download"
-                onClick={() => clearCurrentPdfView()}
-                color={"primary"}
-              >
-                <span className="fs-6">×</span> Close
-              </MDBBtn>
-              <MDBBtn
-                // className="download-pdf mobile-download"
-                onClick={() => setPaymentStep(2)}
-                color={"secondary"}
-              >
-                <MDBIcon fas icon="check" style={{marginRight: '8px'}} />
-                Confirm Order
-              </MDBBtn>
-              {/* <MDBBtn
-                className="download-pdf"
-                disabled={selectedProducts.length === 0}
-                onClick={goToPayment}
-                color={"secondary"}
-                size={"lg"}
-              >
-                <MDBIcon fas icon="shopping-cart" />
-                &nbsp; Make Payment
-              </MDBBtn> */}
-            </div>
-            
-          </div>
-
-          
         </div>
       )}
 
