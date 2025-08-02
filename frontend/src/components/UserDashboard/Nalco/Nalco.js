@@ -25,7 +25,7 @@ const Nalco = ({isLogin = false}) => {
           Authorization: `Bearer ${token}`,
         },
       });
-      setNalco(response.data[0]);
+      setNalco(response.data);
     }catch (err) {
       console.log(err);
     }
