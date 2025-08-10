@@ -16,7 +16,7 @@ import {
 } from "mdb-react-ui-kit";
 import "./Header.css";
 import { useNavigate } from "react-router-dom";
-import logo from "../../Glazia.png";
+import logo from "../../logo/logo-sm.png";
 import { useDispatch, useSelector } from "react-redux";
 import api, { BASE_API_URL } from "../../utils/api";
 import {

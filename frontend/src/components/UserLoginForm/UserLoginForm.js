@@ -14,12 +14,12 @@ const MobileLoginForm = ({ setUserRole }) => {
   return (
     <div className="antialiased">
       <Nalco isLogin={true} />  
-      <header className="header-bg py-3 sticky-top z-3">
+      <header className="header-bg py-1 sticky-top z-3">
                       <nav className="navbar navbar-expand-md navbar-light p-0">
                           <div className="container-fluid mx-auto px-4 d-flex justify-content-between align-items-center" style={{ maxWidth: '1300px' }}>
                               {/* Logo */}
                               <a className="navbar-brand d-flex align-items-center" href="#">
-                                  <img src="/Assets/Images/Glazia.png" alt="Glazia Logo" className="logo" />
+                                  <img src="/Assets/logo/logo-sm.png" alt="Glazia Logo" className="logo" />
                                   <span className="fs-4 fw-bold text-dark">Glazia</span>
                               </a>
       

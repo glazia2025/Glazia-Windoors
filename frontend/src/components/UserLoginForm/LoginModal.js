@@ -21,6 +21,13 @@ const LoginModal = ({ showModal, setShowModal, setUserRole }) => {
     const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  React.useEffect(() => {
+    console.log(phoneNumber);
+    return() => {
+      setPhoneNumber('');
+    }
+  }, []);
+
 const sendOtp = async () => {
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNumber)) {

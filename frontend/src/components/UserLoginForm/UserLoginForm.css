@@ -5,8 +5,8 @@ body {
 }
 
 .logo {
-  height: 40px;
-  width: 40px;
+  height: 55px !important;
+  width: 55px !important;
 }
 
 /* Custom modal overlay and content styling */

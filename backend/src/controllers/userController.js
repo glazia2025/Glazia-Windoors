@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key'; // Replace with 
 
 // API to store user data when they log in with mobile number
 const createUser = async (req, res) => {
-  const { name, email, gstNumber, pincode, city, state, address, phoneNumber } = req.body;
+  const { name, email, gstNumber, pincode, city, state, address, phoneNumber, paUrl } = req.body;
 
   // Check if the user already exists
   try {
@@ -27,6 +27,7 @@ const createUser = async (req, res) => {
       state,
       address,
       phoneNumber,
+      paUrl
     });
 
     // Save the new user

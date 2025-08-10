@@ -86,10 +86,11 @@ const UserProfile = () => {
         minHeight: '100vh',
         display: 'flex',
         justifyContent: 'center',
+        marginTop: '5%'
       }}
     >
       <MDBContainer className="py-5">
-        <MDBRow>
+        <MDBRow className='mt-10'>
           <MDBCol lg="4">
             <MDBCard className="mb-4" style={{ height: '100%' }}>
               <MDBCardBody className="text-center">
@@ -145,6 +146,7 @@ const UserProfile = () => {
                     <hr />
                   </React.Fragment>
                 ))}
+                <iframe src={user.paUrl} width="100%" height="450px" />
               </MDBCardBody>
             </MDBCard>
           </MDBCol>

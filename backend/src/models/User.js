@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   state: { type: String, required: true },
   address: { type: String, required: true },
   phoneNumber: { type: String, required: true, unique: true }, // This is the mobile number for login
+  paUrl: {type: String, required: false, default: null, unique: true}
 });
 
 const User = mongoose.model('User', userSchema);
