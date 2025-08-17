@@ -3,10 +3,10 @@ const fs = require("fs");
 const { Nalco } = require("../models/Order");
 const User = require('../models/User');
 const { downloadPdf } = require("./nalcoPriceFetch");
-const twilio = require('twilio');
 require('dotenv').config();
 
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const META_TOKEN=process.env.META_TOKEN;
+const META_NUMID=process.env.META_NUMID;
 
 const sendNalcoMessageToUsers = async (nalcoPrice) => {
   try {
@@ -16,25 +16,49 @@ const sendNalcoMessageToUsers = async (nalcoPrice) => {
     console.log(`Found ${users.length} users to notify`);
     for(const user of users) {
       if (user.phoneNumber) {
-        console.log(`Sending message to ${user.phoneNumber}`);
-        try {
-const message = await client.messages.create({
-    body: `🌞 Good Morning from Glazia!
-📊 Today's NALCO Aluminium CH10 Billet Rate: ₹${nalcoPrice/1000}/kg
-📍Updated as of ${new Date().toLocaleDateString()}
+          const axios = require('axios');
+          let data = JSON.stringify({
+            "messaging_product": "whatsapp",
+            "to": `91${user.phoneNumber}`,
+            "type": "template",
+            "template": {
+              "name": "daily_update",
+              "language": {
+                "code": "en"
+              },
+              "components": [
+                {
+                  "type": "body",
+                  "parameters": [
+                    {
+                      "type": "text",
+                      "text": nalcoPrice/1000
+                    }
+                  ]
+                }
+              ]
+            }
+          });
 
-For bulk orders or pricing, reach out to us at www.glazia.in
-Let's build something amazing today! 💪
+          let config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: `https://graph.facebook.com/v22.0/${META_NUMID}/messages`,
+            headers: { 
+              'Authorization': `Bearer ${META_TOKEN}`, 
+              'Content-Type': 'application/json'
+            },
+            data : data
+          };
 
-— Team Glazia 🪟`,  // Simple SMS body
-      from: `${process.env.TWILIO_SMS_NUMBER}`,  // Your Twilio SMS number
-      to: `+91${user.phoneNumber}`
-    });
+          axios.request(config)
+          .then((response) => {
+            console.log(JSON.stringify(response.data));
+          })
+          .catch((error) => {
+            console.log(error);
+          });
 
-    console.log("SMS sent:", message.sid);
-        } catch (error) {
-          console.error(`Error sending message to ${user.phoneNumber}:`, error);
-        }
       }
     }
     
@@ -68,7 +92,7 @@ const updateNalcoPrice = async (nalcoPrice) => {
     }
 
     
-      // sendNalcoMessageToUsers(nalcoPrice);
+    sendNalcoMessageToUsers(nalcoPrice);
 
     // Find the latest entry for today
     const existingEntry = await Nalco.findOne({
