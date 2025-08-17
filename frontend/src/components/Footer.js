@@ -22,7 +22,7 @@ const Footer = () => {
                         <li><a href="/products_and_services" className="text-muted text-decoration-none hover-link text-white-hover">Products & Services</a></li>
                         <li><a href="/contact" className="text-muted text-decoration-none hover-link text-white-hover">Contact Us</a></li>
                         <li><a href="/terms" className="text-muted text-decoration-none hover-link text-white-hover">Terms & Conditions</a></li>
-                        <li><a href="/privacy" className="text-muted text-decoration-none hover-link text-white-hover">Privacy Policy</a></li>
+                        <li><a href="/privacy-policy" className="text-muted text-decoration-none hover-link text-white-hover">Privacy Policy</a></li>
                     </ul>
                 </div>
                 {/* Contact Info */}
@@ -47,7 +47,7 @@ const Footer = () => {
                         <a href="#" className="me-3 text-muted hover-link text-white-hover">
                             <i className="fab fa-instagram fa-lg"></i>
                         </a>
-                        <a href="#" className="me-3 text-muted hover-link text-white-hover">
+                        <a href="https://www.linkedin.com/company/glazia-windoors-private-limited/?viewAsMember=true" target='_blank' rel="noopener noreferrer" className="me-3 text-muted hover-link text-white-hover">
                             <i className="fab fa-linkedin-in fa-lg"></i>
                         </a>
                     </div>

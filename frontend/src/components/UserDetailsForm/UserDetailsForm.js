@@ -21,6 +21,7 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
   const [isAgreed, setIsAgreed] = useState(false);
   const [inv, setInv] = useState(false);
   const [blob, setBlob] = useState(null);
+  const [step, setStep] = useState(0);
 
   const navigate = useNavigate();
 
@@ -40,12 +41,81 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
     setErrorMessage('');
     setMessage('');
   }, [receivedPhoneNumber]);
+
+  const gstStateCodes = {
+  "01": "Jammu & Kashmir",
+  "02": "Himachal Pradesh",
+  "03": "Punjab",
+  "04": "Chandigarh",
+  "05": "Uttarakhand",
+  "06": "Haryana",
+  "07": "Delhi",
+  "08": "Rajasthan",
+  "09": "Uttar Pradesh",
+  "10": "Bihar",
+  "11": "Sikkim",
+  "12": "Arunachal Pradesh",
+  "13": "Nagaland",
+  "14": "Manipur",
+  "15": "Mizoram",
+  "16": "Tripura",
+  "17": "Meghalaya",
+  "18": "Assam",
+  "19": "West Bengal",
+  "20": "Jharkhand",
+  "21": "Odisha",
+  "22": "Chhattisgarh",
+  "23": "Madhya Pradesh",
+  "24": "Gujarat",
+  "27": "Maharashtra",
+  "29": "Karnataka",
+  "32": "Kerala",
+  "33": "Tamil Nadu",
+  "36": "Telangana",
+  "37": "Andhra Pradesh",
+  "97": "Other Territory"
+};
+
+function getStateFromGST(gstin) {
+  if (!gstin || gstin.length !== 15) {
+    throw new Error("Invalid GSTIN");
+  }
+  const stateCode = gstin.substring(0, 2);
+  return gstStateCodes[stateCode] || "";
+}
   
   useEffect(() => {
     if (receivedPhoneNumber) {
       setPhoneNumber(receivedPhoneNumber); // Use the receivedPhoneNumber prop
     }
   }, [receivedPhoneNumber]); // Correct dependency
+
+  const checkGstin = async (e) => {
+    if (!gstNumber) {
+      setErrorMessage('GSTIN number is required');
+      return;
+    }
+
+    let config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `https://razorpay.com/api/gstin/${gstNumber}`,
+      headers: { 
+        'accept': 'application/json, text/plain, */*'
+      }
+    };
+
+    axios.request(config).then(res => {
+      const details = res.data.enrichment_details.online_provider.details;
+      setUserName(details.legal_name.value);
+      setState(getStateFromGST(gstNumber));
+      setStep(1);
+    }).catch(err => {
+      setErrorMessage(err.toString());
+    })
+
+
+  }
 
 
   const handleSubmit = async (e) => {
@@ -103,10 +173,25 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
   };
 
   return (
-<MDBCol>
-          <MDBCard className="my-5">
-            <MDBCardBody>
-              <div style={{display: 'flex', justifyContent: 'space-between', gap: '20px'}}>
+<>
+            {step === 0 &&<MDBCardBody>
+              <h2 className="mb-4">Please fill out the details</h2>
+              <MDBInput
+                size="lg"
+                wrapperClass="mb-4"
+                label="GST Number (Further Non-Editable)"
+                id="gstNumberInput"
+                type="text"
+                value={gstNumber}
+                onChange={(e) => setGstNumber(e.target.value)}
+              />
+              <MDBBtn className="w-100" size="lg" type="button" onClick={() => checkGstin()}>
+                Check GSTIN
+              </MDBBtn>
+              
+            </MDBCardBody>}
+            {step === 1 && <MDBCardBody>
+              <div className='user-detail-wrapper'>
                 <div>
                 <h2 className="mb-4">Please fill out the details</h2>
                 <form onSubmit={handleSubmit}>
@@ -116,6 +201,7 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
                     label="User Name"
                     id="userNameInput"
                     type="text"
+                    disabled
                     value={userName}
                     onChange={(e) => setUserName(e.target.value)}
                   />
@@ -147,42 +233,41 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
                     id="gstNumberInput"
                     type="text"
                     value={gstNumber}
+                    disabled
                     onChange={(e) => setGstNumber(e.target.value)}
                   />
-
-                  {/* Pincode, City, and State in the same row */}
-                  <MDBRow className="mb-4">
-                    <MDBCol md="4">
-                      <MDBInput
+                  <MDBInput
                         size="lg"
+                        wrapperClass="mb-4"
                         label="Pincode"
                         id="pincodeInput"
                         type="text"
                         value={pincode}
                         onChange={(e) => setPincode(e.target.value)}
                       />
-                    </MDBCol>
-                    <MDBCol md="4">
+
                       <MDBInput
                         size="lg"
+                        wrapperClass="mb-4"
                         label="City"
                         id="cityInput"
                         type="text"
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
                       />
-                    </MDBCol>
-                    <MDBCol md="4">
+
                       <MDBInput
                         size="lg"
+                        wrapperClass="mb-4"
                         label="State"
                         id="stateInput"
                         type="text"
                         value={state}
+                        disabled
                         onChange={(e) => setState(e.target.value)}
                       />
-                    </MDBCol>
-                  </MDBRow>
+
+        
 
                   <MDBTextArea className="mb-4" id='textAreaExample' label='Complete Address' rows={3} onChange={(e) => setCompleteAddress(e.target.value)}></MDBTextArea>
 
@@ -195,19 +280,20 @@ const UserDetailsForm = ({ receivedPhoneNumber }) => {
                       onChange={() => setIsAgreed(!isAgreed)}
                     />
 
+                    {inv && <ParterAgreement userName={userName} completeAddress={completeAddress} gstNumber={gstNumber} pincode={pincode} city={city} state={state} phoneNumber={phoneNumber} email={email} setBlob={setBlob} />}
+
                   <MDBBtn className="w-100" size="lg" type="submit">
                     {inv ? 'Save Details' : 'Create Partner Agreement'}
                   </MDBBtn>
                 </form>
               </div>
-              {inv && <ParterAgreement userName={userName} completeAddress={completeAddress} gstNumber={gstNumber} pincode={pincode} city={city} state={state} phoneNumber={phoneNumber} email={email} setBlob={setBlob} />}
+              
 
               </div>
               {errorMessage && <p className="text-danger">{errorMessage}</p>}
               {message && <p className="text-success">{message}</p>}
-            </MDBCardBody>
-          </MDBCard>
-        </MDBCol>
+            </MDBCardBody>}
+        </>
   );
 };
 

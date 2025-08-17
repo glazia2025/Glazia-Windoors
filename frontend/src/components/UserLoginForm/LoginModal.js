@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom"; // Import useNavigate from react
 const LoginModal = ({ showModal, setShowModal, setUserRole }) => {
 
     
-      const [phoneNumber, setPhoneNumber] = useState("");
+      const [phoneNumber, setPhoneNumber] = useState("7500269270");
       const [otp, setOtp] = useState("");
       const [isOtpSent, setIsOtpSent] = useState(false);
       const [message, setMessage] = useState("");
@@ -110,7 +110,11 @@ const sendOtp = async () => {
                </MDBModalContent>
              </MDBModalDialog>
            ) : (
-             <UserDetailsForm receivedPhoneNumber={phoneNumber} />
+             <MDBModalDialog>
+                <MDBModalContent>
+                  <UserDetailsForm receivedPhoneNumber={phoneNumber} />
+                </MDBModalContent>
+              </MDBModalDialog>
            )}
     </MDBModal>
     )

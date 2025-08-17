@@ -669,7 +669,7 @@ const ParterAgreement = ({userName, completeAddress, gstNumber, pincode, city, s
     }, []);
 
     return (
-        <iframe src={url} width="50%" />
+        <a href={url} target="_blank" rel="noopener noreferrer">Open partners Agreement</a>
     );
 }
 

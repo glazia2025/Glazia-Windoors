@@ -21,7 +21,7 @@ const ProductsServicesPage = ({setUserRole}) => {
                                 <div className="container-fluid mx-auto px-4 d-flex justify-content-between align-items-center" style={{ maxWidth: '1300px' }}>
                                     {/* Logo */}
                                     <a className="navbar-brand d-flex align-items-center" href="#">
-                                        <img src="/Assets/logo/logo-sm.png" alt="Glazia Logo" className="logo" />
+                                        <img src="/Assets/logo/logo-final.png" alt="Glazia Logo" className="logo" />
                                         <span className="fs-4 fw-bold text-dark">Glazia</span>
                                     </a>
             

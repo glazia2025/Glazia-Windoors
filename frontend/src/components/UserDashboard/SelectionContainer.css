@@ -200,7 +200,7 @@ canvas {
   .bottom-sheet-modal .modal-dialog {
     position: fixed;
     transform: translate(-50%, -50%);
-    top: 50%;
+    top: 38%;
     left: 50%;
     width: auto;
     max-width: 500px;

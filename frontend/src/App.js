@@ -33,6 +33,7 @@ import ProductsServicesPage from "./components/ProductAndServices/ProductsAndSer
 import ContactUsPage from "./components/ContactUs/ContactUs";
 import BlogPage from "./components/Blogs/Blogs";
 import BlogDetailPage from "./components/BlogDetail/BlogDetail";
+import PrivacyPolicyPage from "./components/PrivacyPolicy/PrivacyPolicy";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -176,6 +177,10 @@ function App() {
               <Route
                 path="/contact"
                 element={<ContactUsPage setUserRole={setUserRole} />}
+              />
+              <Route
+                path="/privacy-policy"
+                element={<PrivacyPolicyPage setUserRole={setUserRole} />}
               />
             </>
           )}

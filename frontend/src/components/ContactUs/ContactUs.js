@@ -76,7 +76,7 @@ const ContactUsPage = ({setUserRole}) => {
                     <div className="container-fluid mx-auto px-4 d-flex justify-content-between align-items-center" style={{ maxWidth: '1300px' }}>
                         {/* Logo */}
                         <a className="navbar-brand d-flex align-items-center" href="#">
-                            <img src="/Assets/logo/logo-sm.png" alt="Glazia Logo" className="logo" />
+                            <img src="/Assets/logo/logo-final.png" alt="Glazia Logo" className="logo" />
                             <span className="fs-4 fw-bold text-dark">Glazia</span>
                         </a>
 
@@ -235,7 +235,7 @@ const ContactUsPage = ({setUserRole}) => {
                                         <a href="#" className="me-3 text-primary hover-link text-dark-hover">
                                             <i className="fab fa-instagram fa-2x"></i>
                                         </a>
-                                        <a href="#" className="me-3 text-primary hover-link text-dark-hover">
+                                        <a href="https://www.linkedin.com/company/glazia-windoors-private-limited/?viewAsMember=true" target='_blank' rel="noopener noreferrer" className="me-3 text-primary hover-link text-dark-hover">
                                             <i className="fab fa-linkedin-in fa-2x"></i>
                                         </a>
                                     </div>
