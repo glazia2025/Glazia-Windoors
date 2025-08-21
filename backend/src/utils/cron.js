@@ -92,7 +92,7 @@ const updateNalcoPrice = async (nalcoPrice) => {
     }
 
     
-    // sendNalcoMessageToUsers(nalcoPrice);
+    sendNalcoMessageToUsers(nalcoPrice);
 
     // Find the latest entry for today
     const existingEntry = await Nalco.findOne({
