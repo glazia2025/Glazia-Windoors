@@ -42,6 +42,7 @@ app.use("/api/user", userRoutes);
 
 // Root route for testing
 app.get("/", (req, res) => {
+  console.log('Reached');
   res.send("Server is running!");
 });
 // duTlxgmhfnwZXzSb

@@ -6,6 +6,8 @@ const path = require("path");
 const pdfParse = require("pdf-parse");
 const os = require("os");
 
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 const parsePdf = async (filePath) => {
   try {
     const dataBuffer = fs.readFileSync(filePath);
@@ -53,8 +55,8 @@ const downloadPdf = async () => {
     if (priceDivs.length === 0) {
       throw new Error("No price links found on the page.");
     }
-    let pdfUrl;
 
+    let pdfUrl;
     for (let i = 0; i < priceDivs.length; ++i) {
       const temp = await priceDivs[i].getAttribute("href");
       console.log(`Link ${i + 1}:`, temp);
@@ -73,7 +75,7 @@ const downloadPdf = async () => {
     fs.writeFileSync(pdfPath, response.data);
     console.log("pdfPath", pdfPath);
 
-    const price = await parsePdf(pdfPath); // ✅ await added here
+    const price = await parsePdf(pdfPath);
 
     if (fs.existsSync(pdfPath)) {
       fs.unlinkSync(pdfPath);
@@ -85,10 +87,19 @@ const downloadPdf = async () => {
     console.error("Error in downloadPdf:", error);
   } finally {
     await driver.quit();
-    fs.rmSync(userDataDir, { recursive: true, force: true });
+
+    // Wait briefly to let Chrome release files
+    await sleep(1000);
+
+    try {
+      fs.rmSync(userDataDir, { recursive: true, force: true });
+      console.log("Temporary Chrome profile deleted");
+    } catch (err) {
+      console.warn("Failed to clean Chrome profile:", err.message);
+    }
   }
 };
 
 module.exports = {
-    downloadPdf
-}
+  downloadPdf
+};

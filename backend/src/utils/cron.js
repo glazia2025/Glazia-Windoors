@@ -92,7 +92,7 @@ const updateNalcoPrice = async (nalcoPrice) => {
     }
 
     
-    sendNalcoMessageToUsers(nalcoPrice);
+    // sendNalcoMessageToUsers(nalcoPrice);
 
     // Find the latest entry for today
     const existingEntry = await Nalco.findOne({
@@ -166,7 +166,7 @@ const runJob = async () => {
   }
 };
 
-runJob();
+runJob()
 
 cron.schedule("0 8 * * *", runJob, {
   timezone: "Asia/Kolkata",
