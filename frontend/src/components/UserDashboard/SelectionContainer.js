@@ -69,6 +69,15 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
   const prevSelectedProducts = useRef([]);
 
   useEffect(() => {
+    if (window.gtag) {
+      window.gtag("event", "home_view", {
+        page_path: window.location.pathname,
+      });
+    }
+  }, [window]);
+
+
+  useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.scrollY;
       const windowHeight = window.innerHeight;

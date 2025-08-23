@@ -25,6 +25,14 @@ const UserProfile = () => {
   const [editableUser, setEditableUser] = useState(user);
 
   useEffect(() => {
+      if (window.gtag) {
+        window.gtag("event", "user_profile", {
+          page_path: window.location.pathname,
+        });
+      }
+    }, [window]);
+
+  useEffect(() => {
     if (!user) {
       const token = localStorage.getItem('authToken');
       if (!token) {

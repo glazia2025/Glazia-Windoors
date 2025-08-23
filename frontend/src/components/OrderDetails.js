@@ -54,6 +54,14 @@ const OrderDetails = () => {
     fetchOrderDetails();
   }, [orderId]);
 
+  useEffect(() => {
+      if (window.gtag) {
+        window.gtag("event", "order_detail", {
+          page_path: window.location.pathname,
+        });
+      }
+    }, [window]);
+
   const fetchOrderDetails = async () => {
     try {
       const token = localStorage.getItem("authToken");
