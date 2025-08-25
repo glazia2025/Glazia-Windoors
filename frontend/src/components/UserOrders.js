@@ -1,27 +1,16 @@
 import React, { useEffect, useState } from "react";
-import UserProducts from "./UserProducts/UserProducts";
+import OrderList from "./OrderList";
+import CompletedOrders from "./CompletedOrders";
 import {
   MDBBtn,
   MDBCol,
-  MDBContainer,
-  MDBDropdown,
-  MDBDropdownItem,
-  MDBDropdownMenu,
-  MDBDropdownToggle,
-  MDBIcon,
-  MDBInput,
   MDBRow,
-  MDBTooltip,
-  MDBTypography,
+  MDBIcon,
 } from "mdb-react-ui-kit";
 import { useSearchParams } from "react-router-dom";
-import OrderList from "./OrderList";
-import CompletedOrders from "./CompletedOrders";
-import Squares from "./ui/Squares/Squares";
 
 const UserOrders = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-
   const [userRole, setUserRole] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState("all");
 
@@ -34,100 +23,73 @@ const UserOrders = () => {
   }, [searchParams]);
 
   const handleSearchParamsChange = (searchParams) => {
-    console.log(searchParams);
     const status = searchParams.get("status");
     if (status) {
       setSelectedStatus(status);
     }
   };
 
-  const renderSelectedComponent = () => {
-    if (selectedStatus === "ongoing") {
-      return <OrderList />;
-    } else if (selectedStatus === "completed") {
-      return <CompletedOrders />;
-    } else if (selectedStatus === "all") {
-      return <OrderList />;
-    }
-  };
-
   return (
-    <>
-      <div className="bg-transparent">
-        <MDBRow className="pdf-row-wrapper">
-          <MDBCol className="main-selectors" style={{ minWidth: "70%" }}>
-            <MDBRow className="d-flex justify-content-between align-items-end">
-              <MDBCol className="btns-container w-100 justify-content-between">
-                <MDBRow>
-                  <h1 style={{ width: "max-content" }}>Order History</h1>
-                </MDBRow>
-                <MDBRow className="d-flex justify-content-between align-items-center">
-                  <h4 style={{ width: "max-content" }}>
-                    View, search and filter
-                    {userRole === "admin" ? "" : " your"} orders!{" "}
-                    <MDBIcon fas icon="check-circle" />
-                  </h4>
-                </MDBRow>
-              </MDBCol>
+    <div className="bg-white p-3">
+      <MDBRow className="pdf-row-wrapper">
+        <MDBCol className="" style={{marginTop: "6rem", padding: "2rem"}}>
+          {/* Heading + Subheading */}
+          <MDBRow className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-end">
+            <MDBCol className="btns-container w-100">
+              <h1 className="fw-bold mb-2 text-center text-md-start" style={{ fontSize: "clamp(1.5rem, 2vw, 2.5rem)" }}>
+                Order History
+              </h1>
+              <h5 className="text-center text-md-start" style={{ fontSize: "clamp(1rem, 1.5vw, 1.25rem)" }}>
+                View, search and filter
+                {userRole === "admin" ? "" : " your"} orders!{" "}
+                <MDBIcon fas icon="check-circle" />
+              </h5>
+            </MDBCol>
+          </MDBRow>
 
-              <MDBRow
-                className="d-flex gap-3"
-                style={{ marginTop: "20px", maxWidth: "400px" }}
+          {/* Filter Buttons */}
+          <MDBRow className="d-flex justify-content-center justify-content-md-start gap-2 mt-4">
+            <MDBCol xs="12" sm="4" md="auto">
+              <MDBBtn
+                className="w-100"
+                size="lg"
+                color={selectedStatus === "all" ? "primary" : "light"}
+                onClick={() => setSearchParams({ status: "all" })}
               >
-                <MDBCol
-                  md="auto"
-                  className="mb-3 mx-0 px-0"
-                  style={{ flex: "1 1 auto" }}
-                >
-                  <MDBBtn
-                    style={{ width: "100%" }}
-                    size="lg"
-                    color={selectedStatus === "all" ? "primary" : "light"}
-                    onClick={() => setSearchParams({ status: "all" })}
-                  >
-                    All
-                  </MDBBtn>
-                </MDBCol>
-                <MDBCol
-                  md="auto"
-                  className="mb-3 mx-0 px-0"
-                  style={{ flex: "1 1 auto" }}
-                >
-                  <MDBBtn
-                    style={{ width: "100%" }}
-                    size="lg"
-                    color={selectedStatus === "ongoing" ? "primary" : "light"}
-                    onClick={() => setSearchParams({ status: "ongoing" })}
-                  >
-                    Ongoing
-                  </MDBBtn>
-                </MDBCol>
-                <MDBCol
-                  md="auto"
-                  className="mb-3 mx-0 px-0"
-                  style={{ flex: "1 1 auto" }}
-                >
-                  <MDBBtn
-                    style={{ width: "100%" }}
-                    size="lg"
-                    color={selectedStatus === "completed" ? "primary" : "light"}
-                    onClick={() => setSearchParams({ status: "completed" })}
-                  >
-                    Completed
-                  </MDBBtn>
-                </MDBCol>
-              </MDBRow>
-            </MDBRow>
+                All
+              </MDBBtn>
+            </MDBCol>
+            <MDBCol xs="12" sm="4" md="auto">
+              <MDBBtn
+                className="w-100"
+                size="lg"
+                color={selectedStatus === "ongoing" ? "primary" : "light"}
+                onClick={() => setSearchParams({ status: "ongoing" })}
+              >
+                Ongoing
+              </MDBBtn>
+            </MDBCol>
+            <MDBCol xs="12" sm="4" md="auto">
+              <MDBBtn
+                className="w-100"
+                size="lg"
+                color={selectedStatus === "completed" ? "primary" : "light"}
+                onClick={() => setSearchParams({ status: "completed" })}
+              >
+                Completed
+              </MDBBtn>
+            </MDBCol>
+          </MDBRow>
 
-            <MDBRow>
-              <MDBCol md="12" className="mt-4">
-                <OrderList selectedStatus={selectedStatus} />
-              </MDBCol>
-            </MDBRow>
-          </MDBCol>
-        </MDBRow>
-      </div>
-    </>
+          {/* Orders List */}
+          <MDBRow className="mt-4">
+            <MDBCol xs="12">
+              <OrderList selectedStatus={selectedStatus} />
+            </MDBCol>
+          </MDBRow>
+        </MDBCol>
+      </MDBRow>
+    </div>
   );
 };
 

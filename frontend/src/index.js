@@ -15,14 +15,6 @@ root.render(
     <BrowserRouter>
       <App />
     </BrowserRouter>,
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VVEW7G623L"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments)}
-      gtag('js', new Date());
-
-      gtag('config', 'G-VVEW7G623L');
-    </script>
   </Provider>
 );
 

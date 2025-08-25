@@ -37,19 +37,8 @@ const Nalco = ({isLogin = false}) => {
 
   return (
     <div>
-      <MDBCard background='primary' className='text-white mb-3 w-100'>
-        {!isLogin && <>
-          <MDBCardHeader>Today &nbsp; <MDBIcon far icon="calendar-check" /> {formattedDate}</MDBCardHeader>
-          <MDBCardBody>
-            <MDBCardTitle>Nalco Price Aluminium</MDBCardTitle>
-            <MDBCardTitle>
-              ₹{nalco.nalcoPrice/1000} / Kg
-            </MDBCardTitle>
-          </MDBCardBody>
-        </>}
-        {isLogin && <>
-          <MDBCardHeader style={{textAlign: 'center'}}>{formattedDate} : Today's Nalco Price  ₹{nalco.nalcoPrice/1000} / Kg</MDBCardHeader>
-        </>}
+      <MDBCard background='primary' style={{marginTop: isLogin ? '0rem' :'4rem'}} className='text-white mb-3 w-100'>
+        <MDBCardHeader style={{textAlign: 'center'}}>{formattedDate} : Today's Nalco Price  ₹{nalco.nalcoPrice/1000} / Kg</MDBCardHeader>
         
       </MDBCard>
     </div>

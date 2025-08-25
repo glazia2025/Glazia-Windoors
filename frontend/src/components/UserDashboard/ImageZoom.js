@@ -13,7 +13,7 @@ const ImageZoom = ({productImage, imageWidth = "40px"}) => {
       <img
         src={productImage}
         alt="Product"
-        style={{ width: imageWidth, cursor: "pointer" }}
+        style={{ width: imageWidth, cursor: "pointer", height: imageWidth, objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc' }}
         onClick={() => setIsOpen(true)}
       />
 

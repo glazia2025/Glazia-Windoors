@@ -7,6 +7,24 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.slider-cart {
+  position: fixed;
+  right: 0;
+  border-left: 1px solid #ddd;
+  padding-left: 0px !important;
+  bottom: 0;
+  height: 100vh;
+  background-color: #FFF;
+  z-index: 10000;
+  width: 35vw !important;
+}
+
+@media screen and (max-width: 768px) {
+  .slider-cart {
+    width: 100vw !important;
+  }
+}
+
 .modal-backdrop {
   z-index: 1050;
 }

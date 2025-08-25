@@ -58,7 +58,6 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
   const [subTotal, setSubTotal] = useState(0);
   const [total, setTotal] = useState(0);
   const [paymentProofFile, setPaymentProofFile] = useState(null);
-  const [showModal, setShowModal] = useState(false);
   const [deliveryType, setDeliveryType] = useState('');
   const [paymentSlider, setPaymentSlider] = useState(false);
 
@@ -109,6 +108,24 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
     };
   }, [isSliderOpen]);
 
+  const subTotalHandle = () => {
+    let temp = 0;
+    selectedProducts.forEach((p) => {
+      console.log(parseInt(p.amount, 10), p.amount)
+      temp += parseInt(p.amount, 10);
+    })
+    return temp;
+  }
+
+  const gstHandle = () => {
+    let temp = subTotalHandle();
+    return temp * 0.18;
+  }
+
+  const totalHandle = () => {
+    let temp = subTotalHandle();
+    return temp + (temp * 0.18);
+  }
   
 
  
@@ -276,131 +293,6 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
       }
     }
   };
-
-  const sendMailOrderProcessing = async (pdfData) => {
-    const emailData = {
-      to: user.email,
-      subject: "Glazia Windoors Order In Process",
-      text: `
-Dear ${user.name},
-Thank you for choosing Glazia Windoors – your one-stop solution for all your aluminum needs!
-    
-We are pleased to inform you that we are processing your order. Please find the attached PDF document of the Proforma Invoice for your reference. It contains the details of your order and other related information.
-    
-If you have any questions or need further assistance, feel free to reach out to us. Our team is here to provide you with the best service for all your aluminum requirements.
-    
-Thank you once again for choosing us. We look forward to serving you.
-    
-Best regards,  
-Glazia Windoors Pvt Ltd.   
-[www.glazia.in]  
-[+91 9958053708]
-      `,
-      pdf: pdfData,
-    };
-
-    try {
-      const token = localStorage.getItem("authToken");
-      const response = await axios.post(
-        `${BASE_API_URL}/user/send-email`,
-        emailData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    } catch (error) {
-      // alert('Error sending email');
-    }
-  };
-
-  const sendMailOrderConfirmed = async () => {
-    const emailData = {
-      to: user.email,
-      subject: "Glazia Windoors Order Is Confirmed",
-      text: `
-Dear ${user.name},
-Thank you for choosing Glazia Windoors – your one-stop solution for all your aluminum needs!
-    
-We are pleased to inform you that your order is confirmed. Please wait for the final payment date.
-    
-If you have any questions or need further assistance, feel free to reach out to us. Our team is here to provide you with the best service for all your aluminum requirements.
-    
-Thank you once again for choosing us. We look forward to serving you.
-    
-Best regards,  
-Glazia Windoors Pvt Ltd.   
-[www.glazia.in]  
-[+91 9958053708]
-      `,
-    };
-
-    try {
-      const token = localStorage.getItem("authToken");
-      const response = await axios.post(
-        `${BASE_API_URL}/user/send-email`,
-        emailData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    } catch (error) {
-      // alert('Error sending email');
-    }
-  };
-
-  const sendMailOrderComplete = async (pdfData) => {
-    const emailData = {
-      to: user.email,
-      subject: "Glazia Windoors Order Is Complete",
-      text: `
-Dear ${user.name},
-Thank you for choosing Glazia Windoors – your one-stop solution for all your aluminum needs!
-    
-We are pleased to inform you that your order has been completed. Please check out the documents related to your order delivery on the app.
-    
-If you have any questions or need further assistance, feel free to reach out to us. Our team is here to provide you with the best service for all your aluminum requirements.
-    
-Thank you once again for choosing us. We look forward to serving you.
-    
-Best regards,  
-Glazia Windoors Pvt Ltd.   
-[www.glazia.in]  
-[+91 9958053708]
-      `,
-      pdf: pdfData,
-    };
-
-    try {
-      const token = localStorage.getItem("authToken");
-      const response = await axios.post(
-        `${BASE_API_URL}/user/send-email`,
-        emailData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    } catch (error) {
-      // alert('Error sending email');
-    }
-  };
-
-  const generatePDF = () => {
-    const doc = createProformaInvoice();
-    // registerUserProducts(user, selectedProducts);
-
-    doc.save("Glazia Performa Invoice.pdf");
-    // sendMailInvoice(doc.output("datauristring").split(",")[1]);
-  };
-
 
   const createProformaInvoice = () => {
     const container = document.createElement("div");
@@ -746,10 +638,13 @@ Glazia Windoors Pvt Ltd.
       <MDBIcon fas icon="shopping-cart" size="2x" />
     </div>}
                     
-    <MDBRow className="pdf-row-wrapper">
+    <MDBRow className="pdf-row-wrapper bg-white">
       <MDBCol className="main-selectors" style={{ minWidth: "65%" }}>
         <MDBRow className="d-flex justify-content-between align-items-end">
           <MDBCol className="btns-container w-100 justify-content-between">
+            <MDBCol md="auto" className="nalco-rate">
+            <Nalco />
+          </MDBCol>
             <MDBRow>
               <h1 style={{ width: "max-content" }}>
                 Welcome to Glazia Windoors
@@ -800,10 +695,6 @@ Glazia Windoors Pvt Ltd.
               </MDBCol>
             </MDBRow>
           </MDBCol>
-
-          <MDBCol md="auto" className="nalco-rate">
-            <Nalco />
-          </MDBCol>
         </MDBRow>
 
         <MDBRow>
@@ -814,118 +705,150 @@ Glazia Windoors Pvt Ltd.
       </MDBCol>
 
       {isSliderOpen && (
-        <>
-          <div className="overlay" onClick={() => setIsSliderOpen(false)} />
-          <MDBCol
-          className="mt-0"
+  <>
+    {/* Overlay */}
+    <div className="overlay" onClick={() => setIsSliderOpen(false)} />
+
+    <MDBCol className="mt-0 slider-cart">
+      <div className="canva-scroll-set">
+        <div
+          className="pdf-wrapper"
           style={{
-            position: "fixed",
-            right: "0",
-            borderLeft: "1px solid #ddd",
-            paddingLeft: "0px",
-            bottom: "0",
-            height: '100vh',
-            backgroundColor: '#FFF',
-            zIndex: 10000,
-            width: "35vw",
+            height: "100%",
+            maxHeight: "100vh",
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-start",
+            width: "100%",
+            background: "#fff",
+            padding: "1rem",
           }}
         >
-          <div className="canva-scroll-set">
+          {/* Header */}
+          <div className="d-flex align-items-center justify-content-center mb-3">
+            <h5 className="fw-bold text-center">Selected Products</h5>
             <div
-              className="pdf-wrapper"
-              style={{
-                height: "100%",
-                maxHeight: wrapperHeight,
-                overflow: "scroll",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "flex-start",
-                width: "-webkit-fill-available",
-                background: "#fff",
-                gap: "2rem",
-                padding: "1rem",
-              }}
+              style={{ cursor: "pointer", marginLeft: "auto" }}
+              onClick={() => setIsSliderOpen(false)}
             >
-              <div className="d-flex align-items-center justify-content-center">
-                <h5 className="fw-bold text-center">Selected Products</h5>
-                <div style={{ cursor: "pointer", marginLeft: "auto" }} onClick={() => setIsSliderOpen(false)}>
-                  <MDBIcon fas icon="times" />
-                </div>
-              </div>
-              
-                  <table className="table table-striped table-bordered" style={{ width: "100%", marginTop: "1rem", tableLayout: 'auto' }}>
-                      <thead>
-                        <tr>
-                          <td>Name</td>
-                          <td>Rate</td>
-                          <td>Quantity</td>
-                          <td>Amount</td>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedProducts.map((product, index) => (
-                          <tr key={index}>
-                            <td>{product.description}</td>
-                            <td>₹ {product.rate}</td>
-                            <td>{product.quantity}</td>
-                            <td>₹ {product.amount}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-
-                    <MDBBtn
-                  className="mt-3"
-                  disabled={selectedProducts.length === 0}
-                  color={"secondary"}
-                  onClick={() => clearCart()}
-                  size={"lg"}
-                >
-                  Clear Cart
-                </MDBBtn>
-              <div className="total-pricing m-2 rounded-2" style={{ position: "absolute", bottom: "0rem", width: "95%", left: "0" }}>
-                <div className="price-control">
-                  <div className="heading sub-price">Sub Total</div>
-                  <div className="price sub-price">₹ {subTotal.toFixed(2)}</div>
-                </div>
-                <div className="price-control">
-                  <div className="heading sub-price">GST @ 18%</div>
-                  <div className="price sub-price">
-                    ₹ {(subTotal * 0.18).toFixed(2)}
-                  </div>
-                </div>
-                <div className="price-control">
-                  <div className="heading main-price">Total</div>
-                  <div className="price main-price">₹ {total.toFixed(2)}</div>
-                </div>
-
-                <MDBBtn
-                  className="mt-3"
-                  disabled={selectedProducts.length === 0}
-                  color={"secondary"}
-                  onClick={() => generatePDFPreview()}
-                  size={"lg"}
-                >
-                  <MDBIcon fas icon="receipt" />
-                  &nbsp; View Performa Invoice
-                </MDBBtn>
-
-                <MDBBtn
-                  className="mt-3"
-                  disabled={selectedProducts.length === 0}
-                  color={"secondary"}
-                  onClick={goToPayment}
-                  size={"lg"}
-                >
-                  <MDBIcon fas icon="shopping-cart" />
-                  &nbsp; Make Payment
-                </MDBBtn>
-              </div>
+              <MDBIcon fas icon="times" />
             </div>
           </div>
-        </MDBCol>
-        </>
-      )}
+
+          {/* Desktop Table View */}
+          <div className="d-none d-md-block">
+            <table
+              className="table table-striped table-bordered"
+              style={{ width: "100%", tableLayout: "auto" }}
+            >
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Rate</th>
+                  <th>Quantity</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedProducts.map((product, index) => (
+                  <tr key={index}>
+                    <td>{product.description}</td>
+                    <td>₹ {product.rate}</td>
+                    <td>{product.quantity}</td>
+                    <td>₹ {product.amount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="d-block d-md-none">
+            {selectedProducts.map((product, index) => (
+              <div
+                key={index}
+                className="card mb-2 shadow-sm p-2"
+                style={{ borderRadius: "8px" }}
+              >
+                <div className="d-flex justify-content-between">
+                  <strong>{product.description}</strong>
+                  <span>₹ {product.amount}</span>
+                </div>
+                <div className="d-flex justify-content-between mt-1">
+                  <small>Rate: ₹{product.rate}</small>
+                  <small>Qty: {product.quantity}</small>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Clear Cart */}
+          <MDBBtn
+            className="mt-3"
+            disabled={selectedProducts.length === 0}
+            color="secondary"
+            onClick={clearCart}
+            size="lg"
+          >
+            Clear Cart
+          </MDBBtn>
+
+          {/* Pricing Section (Fixed at Bottom) */}
+          <div
+            className="total-pricing rounded-2"
+            style={{
+              position: "sticky",
+              bottom: "0",
+              left: "0",
+              background: "#fff",
+              padding: "1rem",
+              borderTop: "1px solid #ddd",
+              marginTop: "1rem",
+            }}
+          >
+            <div className="price-control d-flex justify-content-between">
+              <div className="heading sub-price">Sub Total</div>
+              <div className="price sub-price">₹ {subTotalHandle().toFixed(2)}</div>
+            </div>
+            <div className="price-control d-flex justify-content-between">
+              <div className="heading sub-price">GST @ 18%</div>
+              <div className="price sub-price">
+                ₹ {(subTotalHandle() * 0.18).toFixed(2)}
+              </div>
+            </div>
+            <div className="price-control d-flex justify-content-between fw-bold">
+              <div className="heading main-price">Total</div>
+              <div className="price main-price">₹ { totalHandle().toFixed(2)}</div>
+            </div>
+
+            {/* Action Buttons */}
+            <MDBBtn
+              className="mt-3 w-100"
+              disabled={selectedProducts.length === 0}
+              color="secondary"
+              onClick={generatePDFPreview}
+              size="lg"
+            >
+              <MDBIcon fas icon="receipt" /> &nbsp; View Performa Invoice
+            </MDBBtn>
+
+            <MDBBtn
+              className="mt-3 w-100"
+              disabled={selectedProducts.length === 0}
+              color="secondary"
+              onClick={goToPayment}
+              size="lg"
+            >
+              <MDBIcon fas icon="shopping-cart" /> &nbsp; Make Payment
+            </MDBBtn>
+          </div>
+        </div>
+      </div>
+    </MDBCol>
+  </>
+)}
+
 
 
 
@@ -945,7 +868,7 @@ Glazia Windoors Pvt Ltd.
             style={{
               position: "fixed",
               left: 0,
-              background: "#efefef",
+              background: "#fff",
               width: "100vw",
               height: "100vh",
               zIndex: "999",
@@ -1067,7 +990,7 @@ Glazia Windoors Pvt Ltd.
                     tag="h6"
                     className="mt-0 mb-2 fw-normal bg-white p-3 rounded-5"
                   >
-                    Make a payment of <strong>₹{(total / 2).toFixed(2)}</strong>{" "}
+                    Make a payment of <strong>₹{(totalHandle() / 2).toFixed(2)}</strong>{" "}
                     (50% of the total amount) to the account details or UPI ID.
                   </MDBTypography>
 
@@ -1189,52 +1112,6 @@ Glazia Windoors Pvt Ltd.
 
       
     </MDBRow>
-    <MDBModal className="bottom-sheet-modal" open={showModal} onClose={() => setShowModal(false)}>
-        <MDBModalDialog >
-          <MDBModalContent>
-<MDBTypography tag="h3" className="mt-3 mb-4 fw-semibold">
-            Upload Payment Proof
-          </MDBTypography>
-
-          <MDBTypography tag="h6" className="mb-3">
-            Accepts PDFs or images (max 10MB)
-          </MDBTypography>
-          {paymentProofFile && (
-            <MDBTypography small className="text-muted">
-              {paymentProofFile.name} (
-              {(paymentProofFile.size / 1024).toFixed(2)} KB)
-            </MDBTypography>
-          )}
-          <MDBFile
-            id="paymentProofUpload"
-            onChange={handlePaymentProofChange}
-            className="mb-2" // Added margin bottom
-            style={{ maxWidth: "400px" }}
-          />
-
-          <hr className="mt-4" />
-
-          <div>
-              <MDBTypography tag="h6" className="mb-2">Select Delivery Type</MDBTypography>
-              <MDBRadio name='deliveryType' id='flexRadioDefault1' label='Self Pickup' value="SELF" onChange={e => setDeliveryType(e.target.value)} />
-              <MDBRadio name='deliveryType' id='flexRadioDefault2' label='Full Truck' value="FULL" onChange={e => setDeliveryType(e.target.value)} />
-              <MDBRadio name='deliveryType' id='flexRadioDefault3' label='Part Truck' value="PART" onChange={e => setDeliveryType(e.target.value)} />
-            </div>
-
-          <MDBBtn
-            onClick={confirmOrder}
-            className="mt-4"
-            color="primary"
-            size="lg"
-            disabled={!paymentProofFile || deliveryType === ""}
-          > 
-            <MDBIcon fas icon="check" />
-            &nbsp; Confirm Order
-          </MDBBtn>
-          </MDBModalContent>
-        </MDBModalDialog>
-
-      </MDBModal>
     </>
   );
 };

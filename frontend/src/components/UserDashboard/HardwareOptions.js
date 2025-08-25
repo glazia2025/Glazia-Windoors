@@ -172,107 +172,125 @@ const ProfileSelection = forwardRef(({ onProductSelect, onRemoveProduct, selecte
     dispatch(clearSelectedProducts({option: 'hardware'}));
   };
 
-  const renderTableContent = () => {
-    if (searchQuery && searchResults?.length === 0) {
-      return (
-        <div className="text-center p-4">
-          <MDBTypography tag="h5" className="text-muted">
-            <MDBIcon far icon="folder-open" className="me-2" />
-            No results found for "{searchQuery}"
-          </MDBTypography>
-          <p className="text-muted mt-2">
-            Try adjusting your search terms or browse all products
-          </p>
-        </div>
-      );
-    }
-
-    if (!productsToDisplay || productsToDisplay?.length === 0) {
-      return (
-        <div className="text-center p-4">
-          <MDBTypography tag="h5" className="text-muted">
-            <MDBIcon far icon="folder-open" className="me-2" />
-            No products available for this category
-          </MDBTypography>
-          <p className="text-muted mt-2">
-            Please select a different category or check back later
-          </p>
-        </div>
-      );
-    }
-
+  const renderCardContent = () => {
+  if (searchQuery && searchResults?.length === 0) {
     return (
-      <table className="table table-bordered">
-        <thead>
-          <tr>
-            <th>S No.</th>
-            <th>Image</th>
-            <th>SAP Code</th>
-            <th>Sub Category</th>
-            <th>Perticular</th>
-            <th>Rate</th>
-            <th>MOQ</th>
-            <th>Quantity</th>
-            <th>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {productsToDisplay?.map((product, index) => (
-            <tr key={product.id}>
-              <td>{index + 1}</td>
-              <td>
-                {product.image !== '' ? <ImageZoom productImage={product.image} /> : 'N.A'}
-              </td>
-              <td>{product.sapCode}</td>
-              <td>{product.subCategory}</td>
-              <td>{product?.perticular}</td>
-              <td>{'₹' + product.rate}</td>
-              <td>{product.moq}</td>
-              <td>
-                <MDBInput
-                  type="number"
-                  min="0"
-                  value={quantities[`${activeOption}-${product.id}`]?.quantity || ""}
-                  onChange={(e) => handleQuantityChange(activeOption, product.id, e.target.value)}
-                  size="sm"
-                  style={{ minWidth: '80px' }}
-                />
-              </td>
-              <td className="d-flex align-items-center justify-content-start">
-                <MDBInput
-                  disabled
-                  type="number"
-                  value={(quantities[`${activeOption}-${product.id}`]?.quantity || 0) * (product.rate || 0)}
-                  size="sm"
-                  style={{ minWidth: '80px' }}
-                />
-                {!selectedProducts.find((sp) => sp.sapCode === product.sapCode) ? 
-                  <MDBBtn 
-                    disabled={!(quantities[`${activeOption}-${product.id}`]?.quantity)} 
-                    onClick={() => onConfirmRow(product)} 
-                    style={{marginLeft: '10px'}} 
-                    className="confirm-button w-auto text-nowrap d-flex justify-content-center align-items-center"
+      <div className="text-center p-4">
+        <MDBTypography tag="h5" className="text-muted">
+          <MDBIcon far icon="folder-open" className="me-2" />
+          No results found for "{searchQuery}"
+        </MDBTypography>
+        <p className="text-muted mt-2">
+          Try adjusting your search terms or browse all products
+        </p>
+      </div>
+    );
+  }
+
+  if (!productsToDisplay || productsToDisplay?.length === 0) {
+    return (
+      <div className="text-center p-4">
+        <MDBTypography tag="h5" className="text-muted">
+          <MDBIcon far icon="folder-open" className="me-2" />
+          No products available for this category
+        </MDBTypography>
+        <p className="text-muted mt-2">
+          Please select a different category or check back later
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="row">
+      {productsToDisplay?.map((product, index) => {
+        const key = `${activeOption}-${product.id}`;
+        const quantity = quantities[key]?.quantity || 0;
+        const isSelected = selectedProducts.find((sp) => sp.sapCode === product.sapCode);
+
+        return (
+          <div className="col-md-4 mb-3" key={product.id}>
+            <MDBCard className="h-100 shadow-sm">
+              {/* Image */}
+              <div className="card-img-top d-flex justify-content-center align-items-center p-3">
+                {product.image !== '' ? <ImageZoom imageWidth="200px" productImage={product.image} /> : 'N.A'}
+              </div>
+
+              {/* Card Body */}
+              <MDBCardBody>
+                <h6 className="fw-bold" style={{textAlign: 'center'}}>SAP Code: {product.sapCode}</h6>
+                
+
+                <div className="grid mb-3" style={{fontSize: '0.9rem'}}>
+                  <p className="grid-col-2 mb-1"><strong>Sub Category:</strong> {product.subCategory}</p>
+                  <p className="grid-col-2 mb-1"><strong>Perticular:</strong> {product.perticular}</p>
+                  <p className="grid-col-2 mb-1"><strong>Rate:</strong> ₹{product.rate}</p>
+                  <p className="grid-col-2 mb-1"><strong>MOQ:</strong> {product.moq}</p>
+                  <p className="grid-col-2 mb-1"><strong>Amount:</strong> ₹{quantity * (product.rate || 0)}</p>
+                </div>
+                
+
+                {/* Quantity Control */}
+                <div className="d-flex align-items-center mb-3">
+                  <MDBBtn
+                    color="link"
+                    size="sm"
+                    className="d-flex align-items-center justify-content-center px-2"
+                    onClick={() =>
+                      handleQuantityChange(activeOption, product.id, Math.max(0, quantity - 1).toString())
+                    }
+                  >
+                    <MDBIcon fas icon="minus" />
+                  </MDBBtn>
+
+                  <MDBInput
+                    type="number"
+                    min="0"
+                    value={quantity || ""}
+                    onChange={(e) => handleQuantityChange(activeOption, product.id, e.target.value)}
+                    size="sm"
+                    style={{ width: "60px", textAlign: "center" }}
+                    className="mx-1"
+                  />
+
+                  <MDBBtn
+                    color="link"
+                    size="sm"
+                    className="d-flex align-items-center justify-content-center px-2"
+                    onClick={() =>
+                      handleQuantityChange(activeOption, product.id, (quantity + 1).toString())
+                    }
+                  >
+                    <MDBIcon fas icon="plus" />
+                  </MDBBtn>
+                </div>
+
+                {/* Action Buttons */}
+                {!isSelected ? (
+                  <MDBBtn
+                    disabled={!quantity}
+                    onClick={() => onConfirmRow(product)}
+                    className="w-100"
                   >
                     Save
                   </MDBBtn>
-                  :
-                  <MDBBtn 
-                    color='danger' 
-                    disabled={!(quantities[`${activeOption}-${product.id}`]?.quantity)} 
-                    onClick={() => onCancelRow(product)} 
-                    style={{marginLeft: '10px'}} 
-                    className="confirm-button w-auto text-nowrap d-flex justify-content-center align-items-center"
+                ) : (
+                  <MDBBtn
+                    color="danger"
+                    onClick={() => onCancelRow(product)}
+                    className="w-100"
                   >
                     X
                   </MDBBtn>
-                }
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    );
-  };
+                )}
+              </MDBCardBody>
+            </MDBCard>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
   return (
     <>
@@ -291,10 +309,9 @@ const ProfileSelection = forwardRef(({ onProductSelect, onRemoveProduct, selecte
       {/* <hr/> */}
 
       {activeOption && (
-        <MDBCard className="mt-4">
-          <MDBCardBody style={{overflowX: 'scroll', maxWidth: '100%'}}>
+        <>
             <div 
-              className="table-controller d-flex justify-content-between align-items-center mb-3 sticky-top bg-white table-responsive"
+              className="table-controller d-flex justify-content-between align-items-center mb-3 sticky-top table-responsive"
               style={{ 
                 top: "0", 
                 zIndex: 1 
@@ -338,11 +355,9 @@ const ProfileSelection = forwardRef(({ onProductSelect, onRemoveProduct, selecte
               </div>
             </div>
             <h6 className="scroll-right">Scroll right <MDBIcon fas icon="angle-double-right" style={{color: '#3b71ca'}}/></h6>
-            <div className="table-responsive">
-              {renderTableContent()}
-            </div>
-          </MDBCardBody>
-        </MDBCard>
+            
+          {renderCardContent()}
+          </>
       )}
     </>
   );

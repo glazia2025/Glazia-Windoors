@@ -50,6 +50,14 @@ const OrderDetails = () => {
     setUserRole(localStorage.getItem("userRole"));
   }, []);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   useEffect(() => {
     fetchOrderDetails();
   }, [orderId]);
@@ -651,12 +659,12 @@ const OrderDetails = () => {
 
   return (
     <>
-      <MDBRow className="pdf-row-wrapper">
+      <MDBRow className="pdf-row-wrapper bg-white" style={{marginTop: isMobile ? "4rem" : "1rem", padding: isMobile ? "1rem" : "2rem"}}>
         <MDBCol className="main-selectors" style={{ minWidth: "70%" }}>
           <MDBRow className="d-flex align-items-center justify-content-start gap-3 mb-4">
             <MDBCol className="col-auto px-0 mx-0">
               <MDBBtn
-                className="small mx-0 mb-0 mt-0 border-0 bg-transparent d-flex align-items-center gap-2 text-muted hover:text-primary"
+                className="small mx-0 mb-0 mt-0 border-0 bg-white d-flex align-items-center gap-2 text-muted hover:text-primary"
                 color={"light"}
                 size={"sm"}
                 onClick={goBack}

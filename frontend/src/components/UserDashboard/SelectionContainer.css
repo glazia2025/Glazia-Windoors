@@ -114,13 +114,6 @@ canvas {
     padding: 5px !important;
   }
 
-  .sub-price {
-    font-size: 5px !important;
-  }
-  .main-price {
-    font-size: 5px !important;
-  }
-
   .slider-price {
     font-size: 12px !important;
   }
@@ -159,14 +152,6 @@ canvas {
   right: 50%;
   top: 15%;
   z-index: 999;
-}
-
-.total-pricing, .total-pricing-slider {
-  display: flex;
-  flex-direction: column;
-  background: #3b71ca;
-  padding: 10px;
-  color: #fff;
 }
 
 .price-control {
