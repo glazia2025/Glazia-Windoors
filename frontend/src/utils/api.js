@@ -4,8 +4,8 @@ import "react-toastify/dist/ReactToastify.css";
 import store from "../redux/store";
 import { startLoading, stopLoading } from "../redux/loadingSlice";
 
-export const BASE_API_URL = "http://localhost:4949/api";
-// export const BASE_API_URL = "https://api.glazia.in/api";
+// export const BASE_API_URL = "http://localhost:4949/api";
+export const BASE_API_URL = "https://api.glazia.in/api";
 
 export const buildQueryParams = (params) => {
   let queryStr;
