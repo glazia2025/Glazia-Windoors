@@ -27,6 +27,7 @@ import {
   addSelectedProducts,
   clearProduct,
   clearSelectedProducts,
+  updateProductQuantity as updateProductQuantityAction,
 } from "../../redux/selectionSlice";
 import { setUser } from "../../redux/userSlice";
 import api, { BASE_API_URL } from "../../utils/api";
@@ -197,6 +198,33 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
     );
   };
 
+  // New function to update product quantity
+  const updateProductQuantity = (product, newQuantity) => {
+    if (newQuantity <= 0) {
+      // If quantity is 0 or less, remove the product
+      onRemoveProductFromCart(product);
+      return;
+    }
+
+    dispatch(
+      updateProductQuantityAction({
+        option: selectedOption,
+        sapCode: product.sapCode,
+        quantity: newQuantity,
+      })
+    );
+  };
+
+  // New function to remove product directly from cart
+  const onRemoveProductFromCart = (product) => {
+    dispatch(
+      clearProduct({
+        option: selectedOption,
+        sapCode: product.sapCode,
+      })
+    );
+  };
+
   const goToPayment = () => {
     if (isMakingPayment) return;
 
@@ -259,10 +287,10 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
             amount: product.amount,
           })),
           payment: {
-            amount: Number((total / 2).toFixed(2)),
+            amount: Number((totalHandle() / 2).toFixed(2)),
             proof: paymentProofBase64,
           },
-          totalAmount: Number(total.toFixed(2)),
+          totalAmount: Number(totalHandle().toFixed(2)),
           deliveryType: "SELF"
         };
 
@@ -716,6 +744,7 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
           style={{
             height: "100%",
             maxHeight: "100vh",
+            minHeight: "100vh",
             overflowY: "auto",
             display: "flex",
             flexDirection: "column",
@@ -723,10 +752,12 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
             width: "100%",
             background: "#fff",
             padding: "1rem",
+            paddingTop: "env(safe-area-inset-top, 1rem)",
+            paddingBottom: "env(safe-area-inset-bottom, 1rem)",
           }}
         >
           {/* Header */}
-          <div className="d-flex align-items-center justify-content-center mb-3">
+          <div className="cart-header d-flex align-items-center justify-content-center mb-3">
             <h5 className="fw-bold text-center">Selected Products</h5>
             <div
               style={{ cursor: "pointer", marginLeft: "auto" }}
@@ -748,6 +779,7 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
                   <th>Rate</th>
                   <th>Quantity</th>
                   <th>Amount</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -755,8 +787,41 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
                   <tr key={index}>
                     <td>{product.description}</td>
                     <td>₹ {product.rate}</td>
-                    <td>{product.quantity}</td>
+                    <td>
+                      <div className="d-flex align-items-center justify-content-center" style={{ gap: "8px" }}>
+                        <MDBBtn
+                          size="sm"
+                          color="light"
+                          onClick={() => updateProductQuantity(product, parseInt(product.quantity) - 1)}
+                          disabled={parseInt(product.quantity) <= 1}
+                          style={{ minWidth: "30px", padding: "4px 8px" }}
+                        >
+                          <MDBIcon fas icon="minus" size="sm" />
+                        </MDBBtn>
+                        <span style={{ minWidth: "30px", textAlign: "center", fontWeight: "bold" }}>
+                          {product.quantity}
+                        </span>
+                        <MDBBtn
+                          size="sm"
+                          color="light"
+                          onClick={() => updateProductQuantity(product, parseInt(product.quantity) + 1)}
+                          style={{ minWidth: "30px", padding: "4px 8px" }}
+                        >
+                          <MDBIcon fas icon="plus" size="sm" />
+                        </MDBBtn>
+                      </div>
+                    </td>
                     <td>₹ {product.amount}</td>
+                    <td>
+                      <MDBBtn
+                        size="sm"
+                        color="danger"
+                        onClick={() => onRemoveProductFromCart(product)}
+                        style={{ padding: "4px 8px" }}
+                      >
+                        <MDBIcon fas icon="trash" size="sm" />
+                      </MDBBtn>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -768,16 +833,50 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
             {selectedProducts.map((product, index) => (
               <div
                 key={index}
-                className="card mb-2 shadow-sm p-2"
+                className="card mb-2 shadow-sm p-3"
                 style={{ borderRadius: "8px" }}
               >
-                <div className="d-flex justify-content-between">
-                  <strong>{product.description}</strong>
-                  <span>₹ {product.amount}</span>
+                <div className="d-flex justify-content-between align-items-start mb-2">
+                  <strong style={{ flex: 1, marginRight: "10px" }}>{product.description}</strong>
+                  <MDBBtn
+                    size="sm"
+                    color="danger"
+                    onClick={() => onRemoveProductFromCart(product)}
+                    style={{ padding: "4px 8px" }}
+                  >
+                    <MDBIcon fas icon="trash" size="sm" />
+                  </MDBBtn>
                 </div>
-                <div className="d-flex justify-content-between mt-1">
+
+                <div className="d-flex justify-content-between align-items-center mb-2">
                   <small>Rate: ₹{product.rate}</small>
-                  <small>Qty: {product.quantity}</small>
+                  <span className="fw-bold">₹ {product.amount}</span>
+                </div>
+
+                <div className="d-flex justify-content-between align-items-center">
+                  <small>Quantity:</small>
+                  <div className="d-flex align-items-center" style={{ gap: "8px" }}>
+                    <MDBBtn
+                      size="sm"
+                      color="light"
+                      onClick={() => updateProductQuantity(product, parseInt(product.quantity) - 1)}
+                      disabled={parseInt(product.quantity) <= 1}
+                      style={{ minWidth: "30px", padding: "4px 8px" }}
+                    >
+                      <MDBIcon fas icon="minus" size="sm" />
+                    </MDBBtn>
+                    <span style={{ minWidth: "30px", textAlign: "center", fontWeight: "bold" }}>
+                      {product.quantity}
+                    </span>
+                    <MDBBtn
+                      size="sm"
+                      color="light"
+                      onClick={() => updateProductQuantity(product, parseInt(product.quantity) + 1)}
+                      style={{ minWidth: "30px", padding: "4px 8px" }}
+                    >
+                      <MDBIcon fas icon="plus" size="sm" />
+                    </MDBBtn>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1048,7 +1147,7 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
                         className="mt-4"
                         color="primary"
                         size="lg"
-                        disabled={!paymentProofFile || deliveryType === ""}
+                        disabled={!paymentProofFile}
                       > 
                         <MDBIcon fas icon="check" />
                         &nbsp; Confirm Order
