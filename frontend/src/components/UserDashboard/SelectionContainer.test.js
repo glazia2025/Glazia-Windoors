@@ -116,6 +116,8 @@ describe('SelectionContainer Cart Functionality', () => {
     mockSetIsSliderOpen = jest.fn();
     // Mock localStorage
     Storage.prototype.getItem = jest.fn(() => 'mock-token');
+    Storage.prototype.setItem = jest.fn();
+    Storage.prototype.removeItem = jest.fn();
   });
 
   afterEach(() => {
@@ -191,5 +193,30 @@ describe('SelectionContainer Cart Functionality', () => {
     fireEvent.click(closeButton);
 
     expect(mockSetIsSliderOpen).toHaveBeenCalledWith(false);
+  });
+
+  test('persists cart data to localStorage when products are added', () => {
+    const store = createTestStore();
+
+    renderWithProviders(
+      <SelectionContainer isSliderOpen={true} setIsSliderOpen={mockSetIsSliderOpen} />,
+      { store }
+    );
+
+    // Check that localStorage.setItem was called during initial render
+    // (due to the products already in the test store)
+    expect(localStorage.setItem).toHaveBeenCalled();
+  });
+
+  test('clears all cart data when clear cart is clicked', () => {
+    renderWithProviders(
+      <SelectionContainer isSliderOpen={true} setIsSliderOpen={mockSetIsSliderOpen} />
+    );
+
+    const clearButton = screen.getByText('Clear Cart');
+    fireEvent.click(clearButton);
+
+    // Should save empty cart to localStorage
+    expect(localStorage.setItem).toHaveBeenCalled();
   });
 });

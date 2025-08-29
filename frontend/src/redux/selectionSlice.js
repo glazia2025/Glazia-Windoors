@@ -1,4 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { loadCartFromStorage, saveCartToStorage, mergeCartData } from '../utils/cartStorage';
+
+// Load saved cart data from localStorage
+const savedCartData = loadCartFromStorage();
 
 const initialState = {
   selectedOption: 'profile',
@@ -11,9 +15,14 @@ const initialState = {
   },
 };
 
+// Merge saved data with initial state if available
+const mergedInitialState = savedCartData
+  ? mergeCartData(initialState, savedCartData)
+  : initialState;
+
 const selectionSlice = createSlice({
   name: 'selection',
-  initialState,
+  initialState: mergedInitialState,
   reducers: {
     setSelectedOption: (state, action) => {
       state.selectedOption = action.payload;
@@ -39,7 +48,6 @@ const selectionSlice = createSlice({
         console.log('Product found:', state.productsByOption[option][id]);
         if (id !== -1) {
           state.productsByOption[option][id] = product;
-          return;
         } else {
           state.productsByOption[option] = [
             ...state.productsByOption[option],
@@ -47,45 +55,46 @@ const selectionSlice = createSlice({
           ];
         }
       }
+      // Save to localStorage after updating
+      saveCartToStorage(state);
     },
     clearProduct: (state, action) => {
-      const { option, sapCode } = action.payload;
-
-      console.log(
-        "Clearing product from option:",
-        option,
-        "SapCode:",
-        sapCode,
-        state.selectedOption,
-        state.productsByOption[option]
-      );
-
-      if (state.productsByOption[option]) {
-        state.productsByOption[option] = state.productsByOption[option].filter(
-          (item) => item.sapCode !== sapCode
-        );
-      }
+      const {option, sapCode} = action.payload;
+      state.productsByOption[option] = state.productsByOption[option].filter(item => item.sapCode !== sapCode);
+      // Save to localStorage after updating
+      saveCartToStorage(state);
     },
     clearSelectedProducts: (state, action) => {
       const { option } = action.payload;
       state.productsByOption[option] = [];
+      // Save to localStorage after updating
+      saveCartToStorage(state);
     },
     updateProductQuantity: (state, action) => {
       const { option, sapCode, quantity } = action.payload;
-      if (state.productsByOption[option]) {
-        const productIndex = state.productsByOption[option].findIndex(
-          (product) => product.sapCode === sapCode
-        );
+      const productIndex = state.productsByOption[option].findIndex(
+        product => product.sapCode === sapCode
+      );
 
-        if (productIndex !== -1) {
-          const product = state.productsByOption[option][productIndex];
-          state.productsByOption[option][productIndex] = {
-            ...product,
-            quantity,
-            amount: (Number(product.rate) * quantity).toFixed(2),
-          };
-        }
+      if (productIndex !== -1) {
+        const product = state.productsByOption[option][productIndex];
+        state.productsByOption[option][productIndex] = {
+          ...product,
+          quantity: quantity,
+          amount: (product.rate * quantity).toFixed(2)
+        };
+        // Save to localStorage after updating
+        saveCartToStorage(state);
       }
+    },
+    clearAllCartData: (state) => {
+      state.productsByOption = {
+        profile: [],
+        hardware: [],
+        accessories: [],
+      };
+      // Save to localStorage after clearing
+      saveCartToStorage(state);
     },
     setActiveProfile: (state, action) => {
       state.activeProfile = action.payload;
@@ -102,6 +111,7 @@ export const {
   clearProduct,
   clearSelectedProducts,
   updateProductQuantity,
+  clearAllCartData,
   setActiveProfile,
   setActiveOption
 } = selectionSlice.actions;

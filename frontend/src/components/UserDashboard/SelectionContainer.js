@@ -26,8 +26,8 @@ import logo from "./glazia_logo.png";
 import {
   addSelectedProducts,
   clearProduct,
-  clearSelectedProducts,
   updateProductQuantity as updateProductQuantityAction,
+  clearAllCartData,
 } from "../../redux/selectionSlice";
 import { setUser } from "../../redux/userSlice";
 import api, { BASE_API_URL } from "../../utils/api";
@@ -639,7 +639,7 @@ const SelectionContainer = ({isSliderOpen, setIsSliderOpen}) => {
   };
 
   const clearCart = () => {
-    dispatch(clearSelectedProducts({ option: selectedOption }));
+    dispatch(clearAllCartData());
 
     setSubTotal(0);
     setTotal(0);
