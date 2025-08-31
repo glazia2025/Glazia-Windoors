@@ -1,32 +1,405 @@
+/* Enhanced responsive table container */
 .table-responsive {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Custom scrollbar for better UX */
+.table-responsive::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Enhanced table styling */
+.profile-table {
+  min-width: 1200px; /* Ensure minimum width for all columns */
+  margin-bottom: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.profile-table th,
+.profile-table td {
+  padding: 12px 8px;
+  vertical-align: middle;
+  border: 1px solid #dee2e6;
+  white-space: nowrap;
+  position: relative;
+}
+
+.profile-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Column width classes */
 .w5 {
   width: 5%;
+  min-width: 60px;
 }
 
 .w10 {
   width: 10%;
+  min-width: 100px;
 }
 
 .w15 {
   width: 15%;
+  min-width: 150px;
+}
+
+.w20 {
+  width: 20%;
+  min-width: 200px;
+}
+
+/* Specific column styling */
+.col-sno {
+  width: 60px;
+  min-width: 60px;
+  text-align: center;
+}
+
+.col-image {
+  width: 100px;
+  min-width: 100px;
+  text-align: center;
+}
+
+.col-sapcode {
+  width: 120px;
+  min-width: 120px;
+}
+
+.col-part {
+  width: 100px;
+  min-width: 100px;
+}
+
+.col-description {
+  width: 200px;
+  min-width: 200px;
+  max-width: 250px;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.col-degree {
+  width: 140px;
+  min-width: 140px;
+}
+
+.col-rate {
+  width: 80px;
+  min-width: 80px;
+  text-align: right;
+}
+
+.col-per {
+  width: 80px;
+  min-width: 80px;
+}
+
+.col-kgm {
+  width: 80px;
+  min-width: 80px;
+}
+
+.col-length {
+  width: 80px;
+  min-width: 80px;
+}
+
+.col-actions {
+  width: 180px;
+  min-width: 180px;
+  text-align: center;
+}
+
+/* Editable row styling */
+.editable-row {
+  background-color: #fff3cd !important;
+  border: 2px solid #ffc107 !important;
+}
+
+.editable-row td {
+  border-color: #ffc107 !important;
+}
+
+/* Input styling in editable mode */
+.editable-input {
+  width: 100%;
+  min-width: 80px;
+  padding: 4px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.editable-input:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  outline: 0;
+}
+
+/* File input styling */
+.editable-file {
+  width: 100%;
+  font-size: 12px;
+}
+
+/* Action buttons container */
+.actions-container {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Switch styling */
+.visibility-switch {
+  margin-left: 8px;
+}
+
+/* Mobile responsive design */
+@media (max-width: 1200px) {
+  .profile-table {
+    min-width: 1000px;
+  }
+
+  .col-description {
+    width: 180px;
+    min-width: 180px;
+    max-width: 200px;
+  }
 }
 
 @media (max-width: 900px) {
   .table-responsive {
-    -ms-overflow-style: none; /* IE 10+ */
-    scrollbar-width: none; /* Firefox */
-  }
-  .table-responsive::-webkit-scrollbar {
-    display: none; /* Hide scrollbar in Webkit browsers */
+    -ms-overflow-style: auto;
+    scrollbar-width: auto;
   }
 
-  .w5,
-  .w10,
-  .w15 {
-    width: 100% !important;
+  .table-responsive::-webkit-scrollbar {
+    display: block;
+    height: 12px;
+  }
+
+  .profile-table {
+    min-width: 900px;
+    font-size: 14px;
+  }
+
+  .profile-table th,
+  .profile-table td {
+    padding: 8px 6px;
+  }
+
+  .col-description {
+    width: 150px;
+    min-width: 150px;
+    max-width: 180px;
+  }
+
+  .col-actions {
+    width: 160px;
+    min-width: 160px;
+  }
+
+  .action-btn {
+    min-width: 28px;
+    height: 28px;
+    padding: 2px 6px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .profile-table {
+    min-width: 800px;
+    font-size: 12px;
+  }
+
+  .profile-table th,
+  .profile-table td {
+    padding: 6px 4px;
+  }
+
+  .col-description {
+    width: 120px;
+    min-width: 120px;
+    max-width: 150px;
+  }
+
+  .col-actions {
+    width: 140px;
+    min-width: 140px;
+  }
+
+  .action-btn {
+    min-width: 24px;
+    height: 24px;
+    padding: 2px 4px;
+    font-size: 11px;
+  }
+
+  .editable-input {
+    padding: 2px 4px;
+    font-size: 12px;
+  }
+}
+
+/* Loading and empty states */
+.table-loading {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+}
+
+.table-empty {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Hover effects */
+.profile-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.profile-table tbody tr.editable-row:hover {
+  background-color: #fff3cd;
+}
+
+/* Scroll indicator for mobile */
+.table-responsive::after {
+  content: "← Scroll horizontally to see more →";
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 5;
+}
+
+@media (max-width: 900px) {
+  .table-responsive::after {
+    opacity: 1;
+  }
+
+  .table-responsive:hover::after {
+    opacity: 0;
+  }
+}
+
+/* Improved focus states for accessibility */
+.editable-input:focus,
+.action-btn:focus,
+.visibility-switch input:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}
+
+/* Better text truncation for long content */
+.col-description span,
+.col-sapcode span,
+.col-part span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sticky header enhancement */
+.profile-table th {
+  background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 2px solid #dee2e6;
+}
+
+/* Loading state */
+.table-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.table-loading::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Enhanced mobile layout */
+@media (max-width: 480px) {
+  .profile-table {
+    min-width: 700px;
+  }
+
+  .actions-container {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .action-btn {
+    width: 100%;
+    min-width: auto;
+    justify-content: flex-start;
+    padding: 4px 8px;
+  }
+
+  .action-btn i {
+    margin-right: 4px;
+  }
+
+  .visibility-switch {
+    margin: 4px 0 0 0;
+    align-self: stretch;
   }
 }

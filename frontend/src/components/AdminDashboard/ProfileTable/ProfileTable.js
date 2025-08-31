@@ -32,6 +32,7 @@ const ProfileTable = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [profileData, setProfileData] = useState({});
   const [editableProduct, setEditableProduct] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const productsToDisplay =
     searchResults.length > 0
@@ -291,54 +292,67 @@ const ProfileTable = () => {
 
       {activeOption && (
         <MDBCard className="mt-4">
-          <MDBCardBody>
+          <MDBCardBody className="p-0">
             <div
-              className="d-flex justify-content-between align-items-center mb-3 sticky-top bg-white p-3"
+              className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 sticky-top bg-white p-3 border-bottom"
               style={{ top: "0", zIndex: 1 }}
             >
-              <div className="d-flex align-items-center">
+              <div className="d-flex align-items-center mb-2 mb-md-0">
                 <MDBTypography
                   tag="h4"
                   className="mb-0"
                   style={{ marginRight: "20px" }}
                 >
-                  Products
+                  Products ({productsToDisplay?.length || 0})
                 </MDBTypography>
               </div>
-              <Search
-                searchQuery={searchQuery}
-                setSearchQuery={searchProduct}
-                handleSearch={handleSearch}
-              />
+              <div className="w-100 w-md-auto">
+                <Search
+                  searchQuery={searchQuery}
+                  setSearchQuery={searchProduct}
+                  handleSearch={handleSearch}
+                />
+              </div>
             </div>
-            <div className="table-responsive">
-              <table className="table table-bordered" style={{ width: "100%" }}>
+            <div className="table-responsive" style={{ maxHeight: '70vh', position: 'relative' }}>
+              <table className="table table-bordered profile-table">
                 <thead>
                   <tr>
-                    <th className="w5">S No.</th>
-                    <th className="w10">Image</th>
-                    <th>SAP Code</th>
-                    <th>Part</th>
-                    <th className="w15">Description</th>
-                    <th>90 degree/ 45 degree</th>
-                    <th className="w5">Rate</th>
-                    <th>Per</th>
-                    <th>Kg/m</th>
-                    <th>Length</th>
-                    <th className="w15">Actions</th>
+                    <th className="col-sno">S No.</th>
+                    <th className="col-image">Image</th>
+                    <th className="col-sapcode">SAP Code</th>
+                    <th className="col-part">Part</th>
+                    <th className="col-description">Description</th>
+                    <th className="col-degree">90°/45°</th>
+                    <th className="col-rate">Rate</th>
+                    <th className="col-per">Per</th>
+                    <th className="col-kgm">Kg/m</th>
+                    <th className="col-length">Length</th>
+                    <th className="col-actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {productsToDisplay?.map((product, index) => (
-                    <tr key={product.id}>
-                      <td>{index + 1}</td>
-                      <td>
+                  {productsToDisplay?.length === 0 ? (
+                    <tr>
+                      <td colSpan="11" className="table-empty">
+                        No products found. Try adjusting your search criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    productsToDisplay?.map((product, index) => (
+                      <tr
+                        key={product.id}
+                        className={editableProduct?.id === product.id ? 'editable-row' : ''}
+                      >
+                        <td className="col-sno">{index + 1}</td>
+                      <td className="col-image">
                         {editableProduct?.id === product.id ? (
                           <MDBFile
                             name="image"
                             size="sm"
                             onChange={handleInputChange}
                             id="formFileSm"
+                            className="editable-file"
                           />
                         ) : product.image ? (
                           <ImageZoom productImage={product.image} />
@@ -346,119 +360,176 @@ const ProfileTable = () => {
                           "N.A"
                         )}
                       </td>
-                      <td>{product.sapCode}</td>
-                      <td>
+                      <td className="col-sapcode">
+                        {editableProduct?.id === product.id ? (
+                          <MDBInput
+                            name="sapCode"
+                            value={editableProduct.sapCode}
+                            onChange={handleInputChange}
+                            className="editable-input"
+                            size="sm"
+                          />
+                        ) : (
+                          <span title={product.sapCode}>{product.sapCode || "N.A"}</span>
+                        )}
+                      </td>
+                      <td className="col-part">
                         {editableProduct?.id === product.id ? (
                           <MDBInput
                             name="part"
                             value={editableProduct.part}
                             onChange={handleInputChange}
+                            className="editable-input"
+                            size="sm"
                           />
                         ) : (
-                          product.part || "N.A"
+                          <span title={product.part}>{product.part || "N.A"}</span>
                         )}
                       </td>
-                      <td>
+                      <td className="col-description">
                         {editableProduct?.id === product.id ? (
                           <MDBInput
                             name="description"
                             value={editableProduct.description}
                             onChange={handleInputChange}
+                            className="editable-input"
+                            size="sm"
                           />
                         ) : (
-                          product.description || "N.A"
+                          <span title={product.description}>{product.description || "N.A"}</span>
                         )}
                       </td>
-                      <td>{product.degree}</td>
-                      <td>
-                        {profileOptions[activeProfile].rate[activeOption]}
+                      <td className="col-degree">
+                        {editableProduct?.id === product.id ? (
+                          <MDBInput
+                            name="degree"
+                            value={editableProduct.degree}
+                            onChange={handleInputChange}
+                            className="editable-input"
+                            size="sm"
+                          />
+                        ) : (
+                          <span title={product.degree}>{product.degree || "N.A"}</span>
+                        )}
                       </td>
-                      <td>
+                      <td className="col-rate">
+                        {editableProduct?.id === product.id ? (
+                          <MDBInput
+                            name="rate"
+                            value={profileOptions[activeProfile]?.rate?.[activeOption] || ''}
+                            onChange={handleInputChange}
+                            className="editable-input"
+                            size="sm"
+                            type="number"
+                          />
+                        ) : (
+                          <span title={profileOptions[activeProfile]?.rate?.[activeOption]}>
+                            {profileOptions[activeProfile]?.rate?.[activeOption] || "N.A"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="col-per">
                         {editableProduct?.id === product.id ? (
                           <MDBInput
                             name="per"
                             value={editableProduct.per}
                             onChange={handleInputChange}
+                            className="editable-input"
+                            size="sm"
                           />
                         ) : (
-                          product.per
+                          <span title={product.per}>{product.per || "N.A"}</span>
                         )}
                       </td>
-                      <td>
+                      <td className="col-kgm">
                         {editableProduct?.id === product.id ? (
                           <MDBInput
                             name="kgm"
                             value={editableProduct.kgm}
                             onChange={handleInputChange}
+                            className="editable-input"
+                            size="sm"
+                            type="number"
+                            step="0.01"
                           />
                         ) : (
-                          product.kgm
+                          <span title={product.kgm}>{product.kgm || "N.A"}</span>
                         )}
                       </td>
-                      <td>
+                      <td className="col-length">
                         {editableProduct?.id === product.id ? (
                           <MDBInput
                             name="length"
                             value={editableProduct.length}
                             onChange={handleInputChange}
+                            className="editable-input"
+                            size="sm"
+                            type="number"
                           />
                         ) : (
-                          product.length
+                          <span title={product.length}>{product.length || "N.A"}</span>
                         )}
                       </td>
-                      <td className="d-flex align-items-center">
-                        {editableProduct?.id === product.id ? (
-                          <>
+                      <td className="col-actions">
+                        <div className="actions-container">
+                          {editableProduct?.id === product.id ? (
+                            <>
+                              <MDBBtn
+                                color="success"
+                                size="sm"
+                                className="action-btn"
+                                onClick={handleSave}
+                                title="Save changes"
+                              >
+                                <MDBIcon far icon="save" />
+                              </MDBBtn>
+                              <MDBBtn
+                                color="secondary"
+                                size="sm"
+                                className="action-btn"
+                                onClick={() => setEditableProduct(null)}
+                                title="Cancel editing"
+                              >
+                                <MDBIcon fas icon="times" />
+                              </MDBBtn>
+                            </>
+                          ) : (
                             <MDBBtn
-                              color="success"
+                              color="warning"
                               size="sm"
-                              className="m-1"
-                              onClick={handleSave}
+                              className="action-btn"
+                              onClick={() => handleEditClick(product)}
+                              title="Edit product"
                             >
-                              <MDBIcon far icon="save" />
+                              <MDBIcon fas icon="pen" />
                             </MDBBtn>
-                            <MDBBtn
-                              color="secondary"
-                              size="sm"
-                              className="m-1"
-                              onClick={() => setEditableProduct(null)}
-                            >
-                              <MDBIcon fas icon="times" />
-                            </MDBBtn>
-                          </>
-                        ) : (
+                          )}
                           <MDBBtn
-                            color="warning"
+                            color="danger"
                             size="sm"
-                            className="m-1"
-                            onClick={() => handleEditClick(product)}
+                            className="action-btn"
+                            onClick={() => handleDelete(product._id)}
+                            title="Delete product"
                           >
-                            <MDBIcon fas icon="pen" />
-                            &nbsp;
+                            <MDBIcon fas icon="trash" />
                           </MDBBtn>
-                        )}
-                        <MDBBtn
-                          color="danger"
-                          size="sm"
-                          className="m-1"
-                          onClick={() => handleDelete(product._id)}
-                        >
-                          <MDBIcon fas icon="trash" />
-                          &nbsp;
-                        </MDBBtn>
-                        <MDBSwitch
-                          defaultChecked={product.isEnabled}
-                          onChange={e => {
-                            const updatedProduct = {
-                              ...product,
-                              isEnabled: e.target.checked,
-                            };
-                            handleVisibility(updatedProduct);
-                          }}
-                        />
+                          <MDBSwitch
+                            defaultChecked={product.isEnabled}
+                            onChange={e => {
+                              const updatedProduct = {
+                                ...product,
+                                isEnabled: e.target.checked,
+                              };
+                              handleVisibility(updatedProduct);
+                            }}
+                            className="visibility-switch"
+                            title="Toggle visibility"
+                          />
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
