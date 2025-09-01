@@ -22,7 +22,7 @@ const {
   saveProductImage,
 } = require("../controllers/hardwareController");
 const { updateNalco, approvePayment, completeOrder, updatePaymentDueDate } = require("../controllers/orderController");
-const { getNalco } = require("../controllers/userController");
+const { getNalco, getNalcoGraph } = require("../controllers/userController");
 const isUser = require("../middleware/userMiddleware");
 const router = express.Router();
 
@@ -33,6 +33,7 @@ router.post("/add-all", isAdmin, addAllProducts);
 router.get("/search-product", isUser, searchProduct);
 router.get("/search-hardware", isUser, searchHardware);
 router.get("/get-nalco", getNalco);
+router.get("/get-nalco-graph", getNalcoGraph);
 router.post(
   "/save-product-images",
   isAdmin,

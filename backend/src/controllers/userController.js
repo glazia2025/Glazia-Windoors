@@ -146,4 +146,20 @@ const getNalco = async (req, res) => {
     res.status(500).json({ message: 'Error fetching nalco price' });
   }
 };
-module.exports = { createUser, getUser, updateUser, getNalco };
+
+const getNalcoGraph = async (req, res) => {
+  try {
+    const nalco = await Nalco.find({});
+
+    if (!nalco) {
+      return res.status(404).json({ message: 'No data found' });
+    }
+
+    res.status(200).json(nalco);
+  } catch (error) {
+    console.error("Error fetching nalco price:", error);
+    res.status(500).json({ message: 'Error fetching nalco price' });
+  }
+};
+
+module.exports = { createUser, getUser, updateUser, getNalco, getNalcoGraph };
