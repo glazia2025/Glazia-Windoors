@@ -100,7 +100,7 @@ const sendWhatsAppOTP = async (req, res) => {
   const { phoneNumber } = req.body;
   const otp = generateOtp();
 
-  // console.log("otp", otp);
+  console.log("otp", otp);
 
   try {
     sendLoginOtp(otp, phoneNumber);

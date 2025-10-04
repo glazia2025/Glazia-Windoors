@@ -28,7 +28,7 @@ const router = express.Router();
 
 router.post("/add-product", isAdmin, addProduct);
 router.post("/add-hardware", isAdmin, addHardware);
-router.get("/getHardwares", isUser, getHardwares);
+router.get("/getHardwares", getHardwares);
 router.post("/add-all", isAdmin, addAllProducts);
 router.get("/search-product", isUser, searchProduct);
 router.get("/search-hardware", isUser, searchHardware);
