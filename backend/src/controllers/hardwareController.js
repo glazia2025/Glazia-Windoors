@@ -1,276 +1,181 @@
+// controllers/hardwareController.js
 const mongoose = require('mongoose');
-const HardwareOptions = require('../models/Hardware');
+const HardwareOptions = require('../models/Hardware'); // single product per doc
 
+// Add a single product document
 const addHardware = async (req, res) => {
-    const { option, product } = req.body;
-  
-    console.log("Received request to add hardware with data:", req.body);
-  
-    // Check if option and product are provided
-    if (!product) {
-      console.log("Missing required fields: option or product");
-      return res.status(400).json({ message: 'Option and product details are required' });
-    }
-  
-    try {
-      // Step 1: Find the existing hardware options document or create a new one
-      let hardwareOptions = await HardwareOptions.findOne({});
-  
-      if (!hardwareOptions) {
-        console.log("Hardware options not found, creating a new document.");
-        hardwareOptions = new HardwareOptions({
-          options: [],
-          products: new Map(),
-        });
-        await hardwareOptions.save();
-        console.log("New hardware options document created.");
-      }
-  
-      // Step 2: Add the option if it doesn't exist
-      if (!hardwareOptions.options.includes(option)) {
-        console.log(`Option '${option}' does not exist, adding it.`);
-        hardwareOptions.options.push(option);
-      }
-  
-      // Step 3: Initialize products map for the option if it doesn't exist
-      if (!hardwareOptions.products.has(option)) {
-        console.log(`Option '${option}' does not have products, initializing.`);
-        hardwareOptions.products.set(option, []);
-      }
-  
-      // Step 4: Add the product to the option
-      res.status(200).json({ message: 'Product added successfully', hardwareOptions });
-      const productsArray = hardwareOptions.products.get(option);
-      productsArray.push(product);
-      hardwareOptions.products.set(option, productsArray);
-  
-      console.log(`Product added under option '${option}':`, product);
-  
-      // Step 5: Save the updated hardware options document
-      await hardwareOptions.save();
-      console.log("Hardware options updated successfully.");
-  
-    } catch (error) {
-      console.error("Error occurred while adding product:", error);
-      res.status(500).json({ message: 'Error updating the product' });
-    }
+  const { option, product } = req.body;
+  if (!option || !product) {
+    return res.status(400).json({ message: 'option and product are required' });
+  }
+
+  try {
+    // ensure product has subCategory (consistent field)
+    const productDoc = {
+      ...product,
+      subCategory: option
+    };
+
+    const created = await HardwareOptions.create(productDoc);
+    res.status(201).json({ message: 'Product created', product: created });
+  } catch (err) {
+    console.error('Error creating product:', err);
+    res.status(500).json({ message: 'Error creating product', error: err.message });
+  }
 };
 
+// Get products by category (reqOption) or return all if not provided
 const getHardwares = async (req, res) => {
   const { reqOption } = req.query;
   try {
-    const hardwareOptions = await HardwareOptions.findOne({});
+    let query = {};
+    if (reqOption) query.subCategory = reqOption;
 
-    if (!hardwareOptions) {
-      return res.status(404).json({ message: 'Hardware options not found' });
-    }
+    const products = await HardwareOptions.find(query).lean();
 
-    const selectedProduct = hardwareOptions.products.get(reqOption);
+    // build options list (distinct subCategory values) for frontend
+    const options = await HardwareOptions.distinct('subCategory');
 
-    if (!selectedProduct) {
-      return res.status(404).json({ message: `No product found for reqOption: ${reqOption}` });
-    }
-    
     res.status(200).json({
-      options: hardwareOptions.options,
-      products: { [reqOption]: selectedProduct }
+      options,
+      products: {[reqOption]: products} // array of product docs
     });
-
-  } catch (error) {
-    console.error("Error fetching hardware options:", error);
-    res.status(500).json({ message: 'Error fetching hardware options' });
+  } catch (err) {
+    console.error('Error fetching products:', err);
+    res.status(500).json({ message: 'Error fetching products', error: err.message });
   }
 };
 
+// Bulk add multiple product documents (expects array of items; optionally { option, items })
 const addAllProducts = async (req, res) => {
   try {
-    let hardwareItems = req.body;
-  
-    // Update the document with the specified _id
-    const result = await HardwareOptions.updateOne(
-      { _id: new mongoose.Types.ObjectId("6787b6c444cfc9207760c89c") },
-      { 
-        $push: { 
-          "products.HANDLES": { 
-            $each: hardwareItems
-          }
-        }
-      }
-    );
+    // Accept either: req.body = [{...}, {...}] OR { option: "HANDLES", items: [{...}] }
+    let items = [];
+    if (Array.isArray(req.body)) {
+      items = req.body;
+    } else if (req.body && Array.isArray(req.body.items)) {
+      // attach subCategory if option provided
+      const { option, items: bodyItems } = req.body;
+      items = bodyItems.map(it => (option ? { ...it, subCategory: option } : it));
+    } else {
+      return res.status(400).json({ message: 'Invalid payload. Provide array of products or { option, items }' });
+    }
 
-    console.log('Document updated:', result.modifiedCount);
-    res.status(200).json({ message: 'Products added successfully'});
+    if (!items.length) {
+      return res.status(400).json({ message: 'No items provided' });
+    }
+
+    const result = await HardwareOptions.insertMany(items);
+    res.status(201).json({ message: 'Products added', insertedCount: result.length, products: result });
   } catch (err) {
-    console.error('Error updating document:', err);
-  } finally {
-    // Close the Mongoose connection
-    mongoose.connection.close();
+    console.error('Error inserting products:', err);
+    res.status(500).json({ message: 'Error inserting products', error: err.message });
   }
-}
+};
 
+// Edit a product by its _id
 const editHardware = async (req, res) => {
-  const { option, productId } = req.params;
+  const { productId } = req.params;
   const updatedData = req.body;
 
-  // Define mandatory fields
+  // Mandatory fields check (optional — keep if you require)
   const mandatoryFields = ["sapCode", "perticular", "subCategory", "rate", "system", "moq"];
-
-  // Check if any mandatory field is missing
-  const missingFields = mandatoryFields.filter(field => !(field in updatedData));
-
-  if (missingFields.length > 0) {
-    return res.status(400).json({
-      message: `Missing mandatory fields: ${missingFields.join(", ")}`
-    });
+  const missing = mandatoryFields.filter(f => !(f in updatedData));
+  if (missing.length > 0) {
+    return res.status(400).json({ message: `Missing mandatory fields: ${missing.join(', ')}` });
   }
 
   try {
-    // Find the product and update it
-    const result = await HardwareOptions.updateOne(
-      { [`products.${option}._id`]: productId },
-      { $set: { [`products.${option}.$`]: updatedData } }
-    );
-
-    if (result.modifiedCount === 0) {
-      return res.status(404).json({ message: 'Product not found or no changes made.' });
-    }
-
-    res.status(200).json({ message: 'Product updated successfully.' });
-  } catch (error) {
-    console.error('Error updating product:', error);
-    res.status(500).json({ message: 'Server error.' });
-  }
-};
-
-const deleteHardware = async (req, res) => {
-  const { option, productId } = req.params;
-
-  try {
-    const hardwareOptions = await HardwareOptions.findOne({});
-    if (!hardwareOptions) {
-      return res.status(404).json({ message: 'Profile options not found' });
-    }
-
-    console.log("option", productId);
-    const productsArray = hardwareOptions.products.get(option);
-    if (!productsArray) {
-      return res.status(404).json({ message: 'Option not found' });
-    }
-
-    // Find the product by ID and delete it
-    console.log("productsArray", productsArray)
-    const productIndex = productsArray.findIndex(product => {
-      return product._id.toString() === productId;
-    });
-
-    if (productIndex === -1) {
+    const result = await HardwareOptions.findByIdAndUpdate(productId, updatedData, { new: true });
+    if (!result) {
       return res.status(404).json({ message: 'Product not found' });
     }
-
-    productsArray.splice(productIndex, 1); // Remove the product from the array
-    if (productsArray.length === 0) {
-      hardwareOptions.products.delete(option);
-    } else {
-      // Otherwise, update the map with the modified array
-      hardwareOptions.products.set(option, productsArray);
-    }
-
-    // Mark the specific field as modified
-    hardwareOptions.markModified(`products`);
-
-    await hardwareOptions.save(); // Save changes to the database
-
-    res.status(200).json({ message: 'Product deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting product:', error);
-    res.status(500).json({ message: 'Error deleting product' });
+    res.status(200).json({ message: 'Product updated', product: result });
+  } catch (err) {
+    console.error('Error updating product:', err);
+    res.status(500).json({ message: 'Error updating product', error: err.message });
   }
 };
 
+// Delete a product by its _id
+const deleteHardware = async (req, res) => {
+  const { productId } = req.params;
+
+  try {
+    const result = await HardwareOptions.findByIdAndDelete(productId);
+    if (!result) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    res.status(200).json({ message: 'Product deleted', productId });
+  } catch (err) {
+    console.error('Error deleting product:', err);
+    res.status(500).json({ message: 'Error deleting product', error: err.message });
+  }
+};
+
+// Search products by sapCode or perticular, optional category filter
 const searchHardware = async (req, res) => {
   const { sapCode, perticular, option } = req.query;
-
   if ((!sapCode || !sapCode.trim()) && (!perticular || !perticular.trim()) && !option) {
-    return res.status(400).json({ message: 'Provide sapCode, perticular or option to search' });
+    return res.status(400).json({ message: 'Provide sapCode, perticular, or option to search' });
   }
 
   try {
-    const hardwareOptions = await HardwareOptions.findOne({});
-    if (!hardwareOptions) {
-      return res.status(404).json({ message: 'No products found' });
+    const query = {};
+    if (sapCode && sapCode.trim()) {
+      query.sapCode = { $regex: sapCode.trim(), $options: 'i' };
     }
-    console.log("kjhvjkeh 2");
+    if (perticular && perticular.trim()) {
+      query.perticular = { $regex: perticular.trim(), $options: 'i' };
+    }
+    if (option) {
+      query.subCategory = option;
+    }
 
-    const matchedProducts = [];
-    hardwareOptions.products.get(option).forEach(product => {
-      if (
-        (sapCode &&
-          sapCode.trim() &&
-          product.sapCode.match(new RegExp(sapCode.trim(), "i"))) ||
-        (perticular &&
-          perticular.trim() &&
-          product.perticular.match(new RegExp(perticular.trim(), "i")))
-      ) {
-        matchedProducts.push(product);
-      }
-    });
+    // If both sapCode and perticular present, we combine with $or to allow either to match
+    let products;
+    if (query.sapCode && query.perticular) {
+      products = await HardwareOptions.find({ $and: [ { subCategory: option || { $exists: true } }, { $or: [{ sapCode: query.sapCode }, { perticular: query.perticular }] } ] }).lean();
+    } else {
+      products = await HardwareOptions.find(query).lean();
+    }
 
-    res.status(200).json({ products: matchedProducts });
-  } catch (error) {
-    res.status(500).json({ message: 'Error searching products' });
+    res.status(200).json({ products });
+  } catch (err) {
+    console.error('Error searching products:', err);
+    res.status(500).json({ message: 'Error searching products', error: err.message });
   }
 };
 
+// Update images for multiple products by sapCode
 const saveProductImage = async (req, res) => {
   try {
-    const productImagesData = req.body; // Array of {productCode, image}
-    
-    // Get all unique product codes
-    const productCodes = productImagesData.map(item => item.productCode);
-    
-    // Get the HardwareOptions document
-    const hardwareOptions = await HardwareOptions.findOne();
-    if (!hardwareOptions) {
-      return res.status(404).json({ error: 'Hardware options not found' });
+    const productImagesData = req.body; // array of { productCode, image }
+    if (!Array.isArray(productImagesData) || productImagesData.length === 0) {
+      return res.status(400).json({ message: 'Provide an array of { productCode, image }' });
     }
 
-    // Keep track of updates
     const updatedProducts = [];
     const notFoundProducts = [];
 
-    // Iterate through each product category in the products Map
-    for (const [category, products] of hardwareOptions.products.entries()) {
-      // For each product in the category
-      products.forEach((product, index) => {
-        // Find matching product image data
-        const matchingImageData = productImagesData.find(
-          imgData => imgData.productCode === product.sapCode
-        );
+    // Process each image update (bulk approach with updateOne per item)
+    for (const imgData of productImagesData) {
+      const { productCode, image } = imgData;
+      if (!productCode) continue;
 
-        if (matchingImageData) {
-          // Update the product's image
-          hardwareOptions.products.get(category)[index].image = matchingImageData.image;
-          updatedProducts.push({
-            category,
-            sapCode: product.sapCode,
-            perticular: product.perticular
-          });
-        }
-      });
+      const result = await HardwareOptions.findOneAndUpdate(
+        { sapCode: productCode },
+        { $set: { image } },
+        { new: true }
+      );
+
+      if (result) {
+        updatedProducts.push({ sapCode: productCode, _id: result._id, perticular: result.perticular });
+      } else {
+        notFoundProducts.push(productCode);
+      }
     }
 
-    // Find products that weren't updated
-    productImagesData.forEach(imgData => {
-      const found = updatedProducts.some(up => up.sapCode === imgData.productCode);
-      if (!found) {
-        notFoundProducts.push(imgData.productCode);
-      }
-    });
-
-    // Save the updated document
-    await hardwareOptions.save();
-
-    // Return response with results
     res.json({
       success: true,
       updated: updatedProducts.length,
@@ -278,27 +183,30 @@ const saveProductImage = async (req, res) => {
       notFound: notFoundProducts.length,
       notFoundProducts
     });
-
-  } catch (error) {
-    console.error('Error saving product images:', error);
-    res.status(500).json({
-      error: 'Failed to save product images',
-      message: error.message
-    });
+  } catch (err) {
+    console.error('Error saving product images:', err);
+    res.status(500).json({ message: 'Failed to save product images', error: err.message });
   }
 };
 
+// Return distinct categories (hierarchy)
 const getHardwareHeirarchy = async (req, res) => {
   try {
-    const hardwareOptions = await HardwareOptions.findOne({});
-    if (!hardwareOptions) {
-      return res.status(404).json({ message: 'No profile found' });
-    }
-    const finalObject = Array.from(hardwareOptions.options).map(profile => profile);
-    res.status(200).json({ products: finalObject });
-  } catch (error) {
-    res.status(500).json({ message: 'Error getting profiles' });
+    const options = await HardwareOptions.distinct('subCategory');
+    res.status(200).json({ products: options });
+  } catch (err) {
+    console.error('Error getting categories:', err);
+    res.status(500).json({ message: 'Error getting categories', error: err.message });
   }
-}
+};
 
-module.exports = { addHardware, getHardwares, addAllProducts, editHardware, deleteHardware, searchHardware, saveProductImage, getHardwareHeirarchy };
+module.exports = {
+  addHardware,
+  getHardwares,
+  addAllProducts,
+  editHardware,
+  deleteHardware,
+  searchHardware,
+  saveProductImage,
+  getHardwareHeirarchy
+};

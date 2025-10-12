@@ -12,19 +12,6 @@ const singleHardwareSchema = new mongoose.Schema({
   image: { type: String, required: false },
 });
 
-// Define the profile options schema with dynamic categories
-const hardwareOptionsSchema = new mongoose.Schema(
-  {
-    options: { type: [String], required: true },
-    products: {
-      type: Map,
-      of: [singleHardwareSchema],
-      required: true,
-    },
-  },
-  { strict: false }
-);
-
-const HardwareOptions = mongoose.model('hardwareSchema', hardwareOptionsSchema);
+const HardwareOptions = mongoose.model('HardwareOptions', singleHardwareSchema, 'hardware');
 
 module.exports = HardwareOptions;
