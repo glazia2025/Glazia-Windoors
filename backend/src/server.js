@@ -20,6 +20,7 @@ app.use(
       "https://glazia.in",
       "https://www.glazia.in",
       "http://localhost:3000",
+      "https://splendid-begonia-cbc292.netlify.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
