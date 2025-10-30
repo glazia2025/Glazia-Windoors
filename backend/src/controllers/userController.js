@@ -162,4 +162,111 @@ const getNalcoGraph = async (req, res) => {
   }
 };
 
-module.exports = { createUser, getUser, updateUser, getNalco, getNalcoGraph };
+// Update dynamic pricing for a user (Admin only)
+const updateDynamicPricing = async (req, res) => {
+  const { userId } = req.params;
+  const { hardware, profiles } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ message: 'User ID is required' });
+  }
+
+  if (!hardware && !profiles) {
+    return res.status(400).json({ message: 'At least one of hardware or profiles pricing data is required' });
+  }
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Initialize dynamicPricing if it doesn't exist
+    if (!user.dynamicPricing) {
+      user.dynamicPricing = {
+        hardware: {},
+        profiles: {}
+      };
+    }
+
+    // Update hardware pricing
+    if (hardware) {
+      if (typeof hardware !== 'object') {
+        return res.status(400).json({ message: 'Hardware pricing must be an object' });
+      }
+      user.dynamicPricing.hardware = hardware;
+    }
+
+    // Update profiles pricing
+    if (profiles) {
+      if (typeof profiles !== 'object') {
+        return res.status(400).json({ message: 'Profiles pricing must be an object' });
+      }
+      user.dynamicPricing.profiles = profiles;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: 'Dynamic pricing updated successfully',
+      dynamicPricing: user.dynamicPricing
+    });
+  } catch (error) {
+    console.error('Error updating dynamic pricing:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Get dynamic pricing for a user
+const getDynamicPricing = async (req, res) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    return res.status(400).json({ message: 'User ID is required' });
+  }
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const dynamicPricing = user.dynamicPricing || {
+      hardware: {},
+      profiles: {}
+    };
+
+    res.status(200).json({
+      userId: user._id,
+      name: user.name,
+      dynamicPricing
+    });
+  } catch (error) {
+    console.error('Error fetching dynamic pricing:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// List all users for admin with basic details and dynamic pricing summary
+const listUsers = async (req, res) => {
+  try {
+    const users = await User.find({}, {
+      name: 1,
+      email: 1,
+      phoneNumber: 1,
+      city: 1,
+      state: 1,
+      gstNumber: 1,
+      dynamicPricing: 1,
+    }).sort({ name: 1 });
+
+    res.status(200).json({ users });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+module.exports = { createUser, getUser, updateUser, getNalco, getNalcoGraph, updateDynamicPricing, getDynamicPricing, listUsers };

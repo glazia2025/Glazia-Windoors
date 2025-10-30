@@ -9,7 +9,26 @@ const userSchema = new mongoose.Schema({
   state: { type: String, required: true },
   address: { type: String, required: true },
   phoneNumber: { type: String, required: true, unique: true }, // This is the mobile number for login
-  paUrl: {type: String, required: false, default: null, unique: true}
+  paUrl: {type: String, required: false, default: null, unique: true},
+  dynamicPricing: {
+    type: {
+      hardware: {
+        type: Map,
+        of: Number,
+        default: {}
+      },
+      profiles: {
+        type: Map,
+        of: Number,
+        default: {}
+      }
+    },
+    required: false,
+    default: {
+      hardware: {},
+      profiles: {}
+    }
+  }
 });
 
 const User = mongoose.model('User', userSchema);

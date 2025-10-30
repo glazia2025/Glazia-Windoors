@@ -6,6 +6,7 @@ import ordersReducer from "./orderSlice";
 import profileReducer from './profileSlice';
 import hardwareReducer from './hardwareSlice';
 import heirarchyReducer from './heirarchySlice';
+import adminUsersReducer from './adminUsersSlice';
 
 const store = configureStore({
   reducer: {
@@ -15,7 +16,8 @@ const store = configureStore({
     orders: ordersReducer,
     profiles: profileReducer,
     hardwares: hardwareReducer,
-    heirarchy: heirarchyReducer
+    heirarchy: heirarchyReducer,
+    adminUsers: adminUsersReducer,
   },
 });
 

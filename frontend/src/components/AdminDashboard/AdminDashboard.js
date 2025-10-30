@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import ProfileOptions from "./ProfileTable/ProfileTable";
 import HardwareOptions from "./HardwareTable/HardwareTable";
 import AccessoriesOptions from "../UserDashboard/AcessoriesOptions";
+import UserListing from "./UserListing/UserListing";
 import { setActiveOption, setActiveProfile } from "../../redux/selectionSlice";
 import api, { BASE_API_URL } from '../../utils/api';
 
@@ -124,6 +125,12 @@ const AdminDashboard = () => {
         <MDBRow>
           <MDBCol md="12" className="mt-4">
             <div>{renderSelectedComponent()}</div>
+          </MDBCol>
+        </MDBRow>
+
+        <MDBRow>
+          <MDBCol md="12">
+            <UserListing />
           </MDBCol>
         </MDBRow>
 

@@ -22,7 +22,7 @@ const {
   saveProductImage,
 } = require("../controllers/hardwareController");
 const { updateNalco, approvePayment, completeOrder, updatePaymentDueDate } = require("../controllers/orderController");
-const { getNalco, getNalcoGraph } = require("../controllers/userController");
+const { getNalco, getNalcoGraph, updateDynamicPricing, getDynamicPricing, listUsers } = require("../controllers/userController");
 const isUser = require("../middleware/userMiddleware");
 const router = express.Router();
 
@@ -63,5 +63,10 @@ router.post("/complete-order", isAdmin, express.json({ limit: "50mb" }), complet
 router.post("/toggle-profile-availability", isAdmin, toggleProfileAvailability);
 router.get('/get-profile-heirarchy', isAdmin, getProfileHierarchy);
 router.post('/toggle-cat', toggleCatEnabled);
+
+// Dynamic pricing routes
+router.put('/update-dynamic-pricing/:userId', isAdmin, updateDynamicPricing);
+router.get('/get-dynamic-pricing/:userId', isAdmin, getDynamicPricing);
+router.get('/users', isAdmin, listUsers);
 
 module.exports = router;
