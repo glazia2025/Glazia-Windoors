@@ -400,6 +400,7 @@ const OrderDetails = () => {
           orderId: orderDetails._id,
           paymentId: paymentId,
           finalPaymentDueDate: data.finalPaymentDueDate,
+          depositedAmount: data.depositedAmount,
           driverInfo: data.driverInfo,
           eWayBill: data.eWayBill,
           taxInvoice: data.taxInvoice,

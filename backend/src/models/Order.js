@@ -25,6 +25,7 @@ const paymentSchema = new mongoose.Schema({
   proofAddedAt: { type: Date, required: false },
   isApproved: { type: Boolean, default: false },
   dueDate: { type: Date },
+  depositedAmount: { type: Number, required: false }, // Amount deposited by user as entered by admin during approval
 });
 
 // Define the user order schema

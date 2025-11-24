@@ -170,12 +170,18 @@ const createPayment = async (req, res) => {
 };
 
 const approvePayment = async (req, res) => {
-  const { orderId, paymentId, finalPaymentDueDate } = req.body;
+  const { orderId, paymentId, finalPaymentDueDate, depositedAmount } = req.body;
 
   if (!orderId || !paymentId) {
     return res
       .status(400)
       .json({ message: "Please select order and payment." });
+  }
+
+  if (!depositedAmount || depositedAmount <= 0) {
+    return res
+      .status(400)
+      .json({ message: "Please enter the deposited amount." });
   }
 
   try {
@@ -214,7 +220,7 @@ const approvePayment = async (req, res) => {
 
     order.payments = order.payments.map((el) =>
       el._id.toString() === paymentId.toString()
-        ? { ...el, isApproved: true }
+        ? { ...el, isApproved: true, depositedAmount: depositedAmount }
         : el
     );
 
@@ -423,6 +429,8 @@ const sendEmail = async (req, res) => {
 
 const uploadPaymentProof = async (req, res) => {
   const { orderId, paymentId, proof } = req.body;
+
+  console.log("uploading payment proof", orderId, paymentId);
 
   if (!orderId || !paymentId || !proof) {
     return res

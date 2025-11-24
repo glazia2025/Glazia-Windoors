@@ -36,6 +36,8 @@ const PaymentProofModal = (props) => {
 
   const [userRole, setUserRole] = useState(null);
   const [finalPaymentDueDate, setFinalPaymentDueDate] = useState(null);
+  const [paymentVal, setPaymentVal] = useState(0);
+  const [depositedAmount, setDepositedAmount] = useState("");
   const [onCompletionStep, setOnCompletionStep] = useState(false);
   const [driverInfo, setDriverInfo] = useState({
     name: "",
@@ -67,6 +69,7 @@ const PaymentProofModal = (props) => {
     setTaxInvoice(null);
     setIsConfirmed(false);
     setFinalPaymentDueDate(null);
+    setDepositedAmount("");
     setErrors({});
   };
 
@@ -80,6 +83,14 @@ const PaymentProofModal = (props) => {
       handleErrors(
         "finalPaymentDueDate",
         "Please select the final payment's due date"
+      );
+      return;
+    }
+
+    if (!depositedAmount || depositedAmount <= 0) {
+      handleErrors(
+        "depositedAmount",
+        "Please enter the deposited amount"
       );
       return;
     }
@@ -167,6 +178,7 @@ const PaymentProofModal = (props) => {
         {
           payment,
           finalPaymentDueDate,
+          depositedAmount: parseFloat(depositedAmount),
           driverInfo,
           eWayBill: eWayBillBase64,
           taxInvoice: taxInvoiceBase64,
@@ -422,14 +434,65 @@ const PaymentProofModal = (props) => {
                             }
                           />
 
+                          <MDBInput
+                            className="mt-2"
+                            type="text"
+                            id="paymentValue"
+                            label="Payment Value"
+                            value={paymentVal}
+                            onChange={(e) => {
+                              setPaymentVal(e.target.value);
+                            }}
+                          />
+
+                          <MDBInput
+                            className="mt-2"
+                            type="number"
+                            id="depositedAmount"
+                            label="Deposited Amount *"
+                            value={depositedAmount}
+                            onChange={(e) => {
+                              setDepositedAmount(e.target.value);
+                              handleErrors("depositedAmount", null);
+                            }}
+                            min="0"
+                            step="0.01"
+                          />
+
                           {errors.finalPaymentDueDate && (
                             <p className="text-danger small fst-italic mt-2">
                               {errors.finalPaymentDueDate}
                             </p>
                           )}
+
+                          {errors.depositedAmount && (
+                            <p className="text-danger small fst-italic mt-2">
+                              {errors.depositedAmount}
+                            </p>
+                          )}
                         </div>
                       ) : (
-                        <></>
+                        <div className="mb-5">
+                          <MDBInput
+                            className="mt-2"
+                            type="number"
+                            id="depositedAmount"
+                            label="Deposited Amount *"
+                            value={depositedAmount}
+                            onChange={(e) => {
+                              setDepositedAmount(e.target.value);
+                              handleErrors("depositedAmount", null);
+                            }}
+                            min="0"
+                            step="0.01"
+                          />
+
+                          {errors.depositedAmount && (
+                            <p className="text-danger small fst-italic mt-2">
+                              {errors.depositedAmount}
+                            </p>
+                          )}
+                        </div>
                       )}
 
                       <label className="form-label text-dark fw-bold fs-6">

@@ -15,7 +15,7 @@ router.get('/getOrders', isUser, getOrders);
 router.get('/get-profile-heirarchy', isUser, getProfileHierarchy);
 router.get('/get-hardware-heirarchy', isUser, getHardwareHeirarchy);
 router.post('/send-email', isUser, sendEmail);
-router.post('/upload-payment-proof', isUser, express.json({ limit: "50mb" }), uploadPaymentProof)
+router.post('/upload-payment-proof', express.json({ limit: "50mb" }), uploadPaymentProof)
 router.get('/getProducts', getProducts);
 
 module.exports = router;

@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const { Nalco } = require('../models/Order');
 require('dotenv').config();
@@ -269,4 +270,71 @@ const listUsers = async (req, res) => {
   }
 };
 
-module.exports = { createUser, getUser, updateUser, getNalco, getNalcoGraph, updateDynamicPricing, getDynamicPricing, listUsers };
+const createTransporter = () => {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,            // TLS port
+    secure: false,        // use STARTTLS
+    auth: {
+      user: process.env.EMAIL_USER,      // your Gmail address
+      pass: process.env.EMAIL_PASSWORD,  // Gmail App Password (16 characters)
+    }
+  });
+};
+
+// Send 2FA code via email
+const sendContactMail = async (firstName, lastName, email, phoneNumber, company, subject, message) => {
+  try {
+    const transporter = createTransporter();
+    
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: 'sales@glazia.in',
+      subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Thank you for contacting Glazia!</h2>
+          <p>Name: ${firstName} ${lastName}</p>
+          <p>Email: ${email}</p>
+          <p>Phone: ${phoneNumber}</p>
+          <p>Company: ${company}</p>
+          <p>Message:</p>
+          <div style="padding: 20px; text-align: center; margin: 20px 0;">
+            ${message}
+          </div>
+        </div>
+      `,
+    };
+
+    const copyMailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: `Copy - ${subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Thank you for contacting Glazia!</h2>
+          <p>Name: ${firstName} ${lastName}</p>
+          <p>Email: ${email}</p>
+          <p>Phone: ${phoneNumber}</p>
+          <p>Company: ${company}</p>
+          <p>Message:</p>
+          <div style="padding: 20px; text-align: center; margin: 20px 0;">
+            ${message}
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    const copyInfo = await transporter.sendMail(copyMailOptions);
+    console.log('Contact email sent successfully:', info.messageId, copyInfo.messageId);
+    return true;
+  } catch (error) {
+    console.error('Error sending 2FA code:', error);
+    return false;
+  }
+};
+
+
+module.exports = { createUser, getUser, updateUser, getNalco, getNalcoGraph, updateDynamicPricing, getDynamicPricing, listUsers, sendContactMail };
