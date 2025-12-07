@@ -20,6 +20,7 @@ app.use(
       "https://glazia.in",
       "https://www.glazia.in",
       "http://localhost:3000",
+      "http://localhost:3001",
       "https://splendid-begonia-cbc292.netlify.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -35,11 +36,14 @@ connectDB();
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/admin-form");
 const userRoutes = require("./routes/userRoutes");
+const profileRoutes = require("./routes/profileRoutes");
 
 // Use routes
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/profile", profileRoutes);
+
 
 // Root route for testing
 app.get("/", (req, res) => {

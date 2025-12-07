@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const dbURI = process.env.MONGO_URI;
+const dbURI = process.env.MONGO_URI || 'mongodb+srv://glaziain:Glazia%40123@glazia.elx92.mongodb.net/?retryWrites=true&w=majority&appName=glazia';
 
 const connectDB = async () => {
   try {
