@@ -2,94 +2,165 @@ import React, { useEffect, useState } from "react";
 import {
   MDBCard,
   MDBCardBody,
-  MDBTabs,
-  MDBTabsItem,
-  MDBTabsLink,
   MDBTypography,
   MDBBtn,
   MDBInput,
   MDBIcon,
   MDBFile,
-  MDBSwitch
+  MDBSwitch,
+  MDBModal,
+  MDBModalDialog,
+  MDBModalContent,
+  MDBModalHeader,
+  MDBModalTitle,
+  MDBModalBody,
+  MDBModalFooter,
 } from "mdb-react-ui-kit";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  setActiveOption,
-  setActiveProfile,
-} from "../../../redux/selectionSlice";
 import api, { BASE_API_URL } from "../../../utils/api";
-import Search from "../../Search";
 import ImageZoom from "../../UserDashboard/ImageZoom";
+import { toast } from "react-toastify";
 import "./ProfileTable.css";
 
 const ProfileTable = () => {
-  const dispatch = useDispatch();
-  const { activeProfile, activeOption } = useSelector(
-    (state) => state.selection
-  );
-  const [profileOptions, setProfileOptions] = useState({});
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [profileData, setProfileData] = useState({});
-  const [editableProduct, setEditableProduct] = useState(null);
+  const [masterData, setMasterData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState({});
+  const [expandedSizes, setExpandedSizes] = useState({});
+  const [editableProduct, setEditableProduct] = useState(null);
 
-  const productsToDisplay =
-    searchResults.length > 0
-      ? searchResults
-      : profileOptions[activeProfile]?.products[activeOption];
+  // Modal states
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showSizeModal, setShowSizeModal] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
+
+  // Form states for creating new items
+  const [newCategory, setNewCategory] = useState({ name: "", description: "", enabled: true });
+  const [newSize, setNewSize] = useState({ categoryId: "", label: "", rate: 0, enabled: true });
+  const [newProduct, setNewProduct] = useState({
+    sizeId: "", sapCode: "", part: "", description: "",
+    degree: "", per: "", kgm: 0, length: 0, image: "", enabled: true
+  });
 
   useEffect(() => {
-    fetchProducts();
+    fetchMasterData();
   }, []);
 
-  const fetchProducts = async () => {
-    const token = localStorage.getItem("authToken");
+  // Fetch full master data (categories -> sizes -> products)
+  const fetchMasterData = async () => {
+    setIsLoading(true);
     try {
-      const response = await api.get(`${BASE_API_URL}/admin/getProducts`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setProfileData(response.data.categories);
+      const response = await api.get(`${BASE_API_URL}/profile/full`);
+      setMasterData(response.data);
     } catch (err) {
-      console.error("Error fetching products", err);
+      console.error("Error fetching master data", err);
+      toast.error("Failed to fetch data");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    setProfileOptions(profileData);
-    if (!activeProfile && Object.keys(profileData).length > 0) {
-      const firstProfile = Object.keys(profileData)[0];
-      dispatch(setActiveProfile(firstProfile));
-      dispatch(setActiveOption(profileData[firstProfile]?.options[0]));
-    }
-  }, [profileData]);
+  // Toggle category expand/collapse
+  const toggleCategoryExpand = (categoryId) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [categoryId]: !prev[categoryId],
+    }));
+  };
 
-  const handleSearch = async (e) => {
-    typeof e?.preventDefault === "function" && e?.preventDefault();
+  // Toggle size expand/collapse
+  const toggleSizeExpand = (sizeId) => {
+    setExpandedSizes((prev) => ({
+      ...prev,
+      [sizeId]: !prev[sizeId],
+    }));
+  };
+
+  // ==================== CATEGORY CRUD ====================
+  const handleCreateCategory = async () => {
     try {
-      const token = localStorage.getItem("authToken");
-      const response = await api.get(`${BASE_API_URL}/admin/search-product`, {
-        params: {
-          sapCode: searchQuery,
-          description: searchQuery,
-          profile: activeProfile,
-          option: activeOption,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setSearchResults(response.data.products);
-    } catch (error) {
-      console.error("Error searching products:", error);
+      await api.post(`${BASE_API_URL}/profile/category`, newCategory);
+      toast.success("Category created successfully");
+      setShowCategoryModal(false);
+      setNewCategory({ name: "", description: "", enabled: true });
+      fetchMasterData();
+    } catch (err) {
+      console.error("Error creating category", err);
+      toast.error("Failed to create category");
     }
   };
 
-  const searchProduct = (value) => {
-    setSearchResults([]);
-    setSearchQuery(value);
+  const handleToggleCategoryEnabled = async (categoryId) => {
+    try {
+      await api.put(`${BASE_API_URL}/profile/category/${categoryId}/toggle-enabled`);
+      toast.success("Category status updated");
+      fetchMasterData();
+    } catch (err) {
+      console.error("Error toggling category", err);
+      toast.error("Failed to update category status");
+    }
+  };
+
+  // ==================== SIZE CRUD ====================
+  const openSizeModal = (categoryId) => {
+    setNewSize({ ...newSize, categoryId });
+    setShowSizeModal(true);
+  };
+
+  const handleCreateSize = async () => {
+    try {
+      await api.post(`${BASE_API_URL}/profile/size`, newSize);
+      toast.success("Size created successfully");
+      setShowSizeModal(false);
+      setNewSize({ categoryId: "", label: "", rate: 0, enabled: true });
+      fetchMasterData();
+    } catch (err) {
+      console.error("Error creating size", err);
+      toast.error("Failed to create size");
+    }
+  };
+
+  const handleToggleSizeEnabled = async (sizeId) => {
+    try {
+      await api.put(`${BASE_API_URL}/profile/size/${sizeId}/toggle-enabled`);
+      toast.success("Size status updated");
+      fetchMasterData();
+    } catch (err) {
+      console.error("Error toggling size", err);
+      toast.error("Failed to update size status");
+    }
+  };
+
+  // ==================== PRODUCT CRUD ====================
+  const openProductModal = (sizeId) => {
+    setNewProduct({ ...newProduct, sizeId });
+    setShowProductModal(true);
+  };
+
+  const handleCreateProduct = async () => {
+    try {
+      await api.post(`${BASE_API_URL}/profile/product`, newProduct);
+      toast.success("Product created successfully");
+      setShowProductModal(false);
+      setNewProduct({
+        sizeId: "", sapCode: "", part: "", description: "",
+        degree: "", per: "", kgm: 0, length: 0, image: "", enabled: true
+      });
+      fetchMasterData();
+    } catch (err) {
+      console.error("Error creating product", err);
+      toast.error("Failed to create product");
+    }
+  };
+
+  const handleToggleProductEnabled = async (productId) => {
+    try {
+      await api.put(`${BASE_API_URL}/profile/product/${productId}/toggle-enabled`);
+      toast.success("Product status updated");
+      fetchMasterData();
+    } catch (err) {
+      console.error("Error toggling product", err);
+      toast.error("Failed to update product status");
+    }
   };
 
   const handleEditClick = (product) => {
@@ -99,7 +170,7 @@ const ProfileTable = () => {
   const handleInputChange = (e) => {
     const { name, files } = e.target;
 
-    if (name === "image" && files.length > 0) {
+    if (name === "image" && files && files.length > 0) {
       const file = files[0];
       const reader = new FileReader();
 
@@ -121,422 +192,557 @@ const ProfileTable = () => {
     }
   };
 
-  const handleSave = async () => {
-    const token = localStorage.getItem("authToken");
-    try {
-      const response = await api.put(
-        `${BASE_API_URL}/admin/edit-product/${activeProfile}/${activeOption}/${editableProduct._id}`,
-        editableProduct,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      fetchProducts();
-      setEditableProduct(null); // Exit editing mode
-    } catch (err) {
-      console.error("Error saving product", err);
+  const handleNewProductInputChange = (e) => {
+    const { name, files } = e.target;
+
+    if (name === "image" && files && files.length > 0) {
+      const file = files[0];
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        const base64Image = event.target.result;
+        setNewProduct((prevState) => ({
+          ...prevState,
+          [name]: base64Image,
+        }));
+      };
+
+      reader.readAsDataURL(file);
+    } else {
+      const { value } = e.target;
+      setNewProduct((prevState) => ({
+        ...prevState,
+        [name]: value,
+      }));
     }
   };
 
-  const handleVisibility = async (product) => {
-    const token = localStorage.getItem("authToken");
-    try {
-      const response = await api.put(
-        `${BASE_API_URL}/admin/edit-product/${activeProfile}/${activeOption}/${product._id}`,
-        product,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      fetchProducts();// Exit editing mode
-    } catch (err) {
-      console.error("Error saving product", err);
-    }
-  };
+  // Render product row
+  const renderProductRow = (product, index, sizeRate) => {
+    const isEditing = editableProduct?._id === product._id;
 
-  const handleSubCatVisibility = async (product) => {
-    const token = localStorage.getItem("authToken");
-    try {
-      const response = await api.post(
-        `${BASE_API_URL}/admin/toggle-profile-availability`,
-        product,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      fetchProducts();// Exit editing mode
-    } catch (err) {
-      console.error("Error saving product", err);
-    }
-  };
-
-   const handleCatVisibility = async (product) => {
-    const token = localStorage.getItem("authToken");
-    try {
-      const response = await api.post(
-        `${BASE_API_URL}/admin/toggle-cat`,
-        product,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      fetchProducts();// Exit editing mode
-    } catch (err) {
-      console.error("Error saving product", err);
-    }
-  };
-
-  const handleDelete = async (productId) => {
-    const token = localStorage.getItem("authToken");
-    try {
-      await api.delete(
-        `${BASE_API_URL}/admin/delete-product/${activeProfile}/${activeOption}/${productId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      fetchProducts();
-      // Remove product from the state after successful deletion
-      setProfileOptions((prevOptions) => {
-        const updatedProducts = prevOptions[activeProfile]?.products[
-          activeOption
-        ].filter((product) => product.id !== productId);
-        return {
-          ...prevOptions,
-          [activeProfile]: {
-            ...prevOptions[activeProfile],
-            products: {
-              ...prevOptions[activeProfile].products,
-              [activeOption]: updatedProducts,
-            },
-          },
-        };
-      });
-    } catch (err) {
-      console.error("Error deleting product", err);
-    }
+    return (
+      <tr key={product._id} className={isEditing ? 'editable-row' : ''}>
+        <td className="col-sno">{index + 1}</td>
+        <td className="col-image">
+          {isEditing ? (
+            <MDBFile
+              name="image"
+              size="sm"
+              onChange={handleInputChange}
+              id="formFileSm"
+              className="editable-file"
+            />
+          ) : product.image ? (
+            <ImageZoom productImage={product.image} />
+          ) : (
+            "N.A"
+          )}
+        </td>
+        <td className="col-sapcode">
+          {isEditing ? (
+            <MDBInput
+              name="sapCode"
+              value={editableProduct.sapCode || ""}
+              onChange={handleInputChange}
+              className="editable-input"
+              size="sm"
+            />
+          ) : (
+            <span title={product.sapCode}>{product.sapCode || "N.A"}</span>
+          )}
+        </td>
+        <td className="col-part">
+          {isEditing ? (
+            <MDBInput
+              name="part"
+              value={editableProduct.part || ""}
+              onChange={handleInputChange}
+              className="editable-input"
+              size="sm"
+            />
+          ) : (
+            <span title={product.part}>{product.part || "N.A"}</span>
+          )}
+        </td>
+        <td className="col-description">
+          {isEditing ? (
+            <MDBInput
+              name="description"
+              value={editableProduct.description || ""}
+              onChange={handleInputChange}
+              className="editable-input"
+              size="sm"
+            />
+          ) : (
+            <span title={product.description}>{product.description || "N.A"}</span>
+          )}
+        </td>
+        <td className="col-degree">
+          {isEditing ? (
+            <MDBInput
+              name="degree"
+              value={editableProduct.degree || ""}
+              onChange={handleInputChange}
+              className="editable-input"
+              size="sm"
+            />
+          ) : (
+            <span title={product.degree}>{product.degree || "N.A"}</span>
+          )}
+        </td>
+        <td className="col-rate">
+          <span>{sizeRate || "N.A"}</span>
+        </td>
+        <td className="col-per">
+          {isEditing ? (
+            <MDBInput
+              name="per"
+              value={editableProduct.per || ""}
+              onChange={handleInputChange}
+              className="editable-input"
+              size="sm"
+            />
+          ) : (
+            <span title={product.per}>{product.per || "N.A"}</span>
+          )}
+        </td>
+        <td className="col-kgm">
+          {isEditing ? (
+            <MDBInput
+              name="kgm"
+              value={editableProduct.kgm || ""}
+              onChange={handleInputChange}
+              className="editable-input"
+              size="sm"
+              type="number"
+              step="0.01"
+            />
+          ) : (
+            <span title={product.kgm}>{product.kgm || "N.A"}</span>
+          )}
+        </td>
+        <td className="col-length">
+          {isEditing ? (
+            <MDBInput
+              name="length"
+              value={editableProduct.length || ""}
+              onChange={handleInputChange}
+              className="editable-input"
+              size="sm"
+              type="number"
+            />
+          ) : (
+            <span title={product.length}>{product.length || "N.A"}</span>
+          )}
+        </td>
+        <td className="col-actions">
+          <div className="actions-container">
+            {isEditing ? (
+              <>
+                <MDBBtn
+                  color="success"
+                  size="sm"
+                  className="action-btn"
+                  onClick={() => {
+                    // Save logic would go here when update API is added
+                    toast.info("Update API not yet implemented");
+                    setEditableProduct(null);
+                  }}
+                  title="Save changes"
+                >
+                  <MDBIcon far icon="save" />
+                </MDBBtn>
+                <MDBBtn
+                  color="secondary"
+                  size="sm"
+                  className="action-btn"
+                  onClick={() => setEditableProduct(null)}
+                  title="Cancel editing"
+                >
+                  <MDBIcon fas icon="times" />
+                </MDBBtn>
+              </>
+            ) : (
+              <MDBBtn
+                color="warning"
+                size="sm"
+                className="action-btn"
+                onClick={() => handleEditClick(product)}
+                title="Edit product"
+              >
+                <MDBIcon fas icon="pen" />
+              </MDBBtn>
+            )}
+            <MDBSwitch
+              checked={product.enabled}
+              onChange={() => handleToggleProductEnabled(product._id)}
+              className="visibility-switch"
+              title="Toggle visibility"
+            />
+          </div>
+        </td>
+      </tr>
+    );
   };
 
   return (
-    <>
-      <MDBTabs className="mb-4 d-flex align-items-center gap-2">
-        {Object.keys(profileOptions).map((profile) => (
-          <MDBTabsItem key={profile}>
-            <MDBTabsLink
-              className="rounded-2"
-              active={activeProfile === profile}
-              onClick={() => {
-                dispatch(setActiveProfile(profile));
-                dispatch(setActiveOption(profileOptions[profile]?.options[0]));
-              }}
-            >
-              {profile}
-            </MDBTabsLink>
-          </MDBTabsItem>
-        ))}
-      </MDBTabs>
-      {/* <hr /> */}
-      {activeProfile && (
-        <div className="d-flex flex-row align-items-center justify-content-between mb-4">
-          <MDBTabs className="d-flex align-items-center gap-2">
-            {profileOptions[activeProfile]?.options.map((option) => (
-              <MDBTabsItem key={option}>
-                <MDBTabsLink
-                  className="rounded-2"
-                  active={activeOption === option}
-                  onClick={() => dispatch(setActiveOption(option))}
-                >
-                  {option}
-                </MDBTabsLink>
-              </MDBTabsItem>
-            ))}
-          </MDBTabs>
-          <MDBSwitch
-            checked={profileOptions[activeProfile]?.catEnabled}
-            onChange={e => {
-              const updatedProduct = {
-                categoryKey: activeProfile,
-              };
-              handleCatVisibility(updatedProduct);
-            }}
-            label="Enable/Disable Category"
-            className="mb-3"
-            id="enable-disable-category"
-          />
-          <MDBSwitch
-            defaultChecked={profileOptions[activeProfile]?.enabled[activeOption]}
-            onChange={e => {
-              const updatedProduct = {
-                category: activeProfile,
-                enabled: {...profileOptions[activeProfile]?.enabled, [activeOption]: e.target.checked},
-              };
-              handleSubCatVisibility(updatedProduct);
-            }}
-            label="Enable/Disable Sub-Category"
-            className="mb-3"
-            id="enable-disable-switch"
-          />
+    <div className="profile-management">
+      {/* Header with Add Category Button */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <MDBTypography tag="h4" className="mb-0">
+          <MDBIcon fas icon="layer-group" className="me-2" />
+          Profile Management
+        </MDBTypography>
+        <MDBBtn color="primary" onClick={() => setShowCategoryModal(true)}>
+          <MDBIcon fas icon="plus" className="me-2" />
+          Add Category
+        </MDBBtn>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-2">Loading data...</p>
         </div>
-        
+      ) : masterData.length === 0 ? (
+        <div className="text-center py-5">
+          <MDBIcon fas icon="folder-open" size="3x" className="text-muted mb-3" />
+          <p className="text-muted">No categories found. Create one to get started.</p>
+        </div>
+      ) : (
+        <div className="categories-container">
+          {masterData.map((categoryBlock) => {
+            const category = categoryBlock.category;
+            const sizes = categoryBlock.sizes || [];
+            const isCategoryExpanded = expandedCategories[category._id];
+
+            return (
+              <MDBCard key={category._id} className="mb-3 category-card">
+                {/* Category Header */}
+                <div
+                  className={`category-header p-3 d-flex justify-content-between align-items-center ${!category.enabled ? 'disabled-item' : ''}`}
+                  style={{ cursor: 'pointer', backgroundColor: '#f8f9fa' }}
+                >
+                  <div
+                    className="d-flex align-items-center flex-grow-1"
+                    onClick={() => toggleCategoryExpand(category._id)}
+                  >
+                    <MDBIcon
+                      fas
+                      icon={isCategoryExpanded ? "chevron-down" : "chevron-right"}
+                      className="me-3"
+                    />
+                    <div>
+                      <MDBTypography tag="h5" className="mb-0 d-flex align-items-center">
+                        <MDBIcon fas icon="folder" className="me-2 text-warning" />
+                        {category.name}
+                        <span className={`ms-2 badge ${category.enabled ? 'bg-success' : 'bg-secondary'}`}>
+                          {category.enabled ? 'Active' : 'Inactive'}
+                        </span>
+                      </MDBTypography>
+                      {category.description && (
+                        <small className="text-muted">{category.description}</small>
+                      )}
+                    </div>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <MDBSwitch
+                      checked={category.enabled}
+                      onChange={() => handleToggleCategoryEnabled(category._id)}
+                      id={`cat-switch-${category._id}`}
+                      title="Toggle category"
+                    />
+                    <MDBBtn
+                      color="success"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openSizeModal(category._id);
+                      }}
+                      title="Add Size"
+                    >
+                      <MDBIcon fas icon="plus" className="me-1" />
+                      Add Size
+                    </MDBBtn>
+                  </div>
+                </div>
+                {/* Sizes Container (Collapsible) */}
+                {isCategoryExpanded && (
+                  <MDBCardBody className="p-0">
+                    {sizes.length === 0 ? (
+                      <div className="text-center py-3 text-muted">
+                        <MDBIcon fas icon="ruler" className="me-2" />
+                        No sizes found for this category
+                      </div>
+                    ) : (
+                      sizes.map((sizeBlock) => {
+                        const size = sizeBlock.size;
+                        const products = sizeBlock.products || [];
+                        const isSizeExpanded = expandedSizes[size._id];
+
+                        return (
+                          <div key={size._id} className="size-block ms-4 border-start">
+                            {/* Size Header */}
+                            <div
+                              className={`size-header p-2 d-flex justify-content-between align-items-center ${!size.enabled ? 'disabled-item' : ''}`}
+                              style={{ cursor: 'pointer', backgroundColor: '#f1f3f5' }}
+                            >
+                              <div
+                                className="d-flex align-items-center flex-grow-1"
+                                onClick={() => toggleSizeExpand(size._id)}
+                              >
+                                <MDBIcon
+                                  fas
+                                  icon={isSizeExpanded ? "chevron-down" : "chevron-right"}
+                                  className="me-2"
+                                />
+                                <div>
+                                  <span className="fw-bold">
+                                    <MDBIcon fas icon="ruler" className="me-2 text-info" />
+                                    {size.label || 'Unnamed Size'}
+                                  </span>
+                                  <span className={`ms-2 badge ${size.enabled ? 'bg-success' : 'bg-secondary'}`} style={{ fontSize: '0.7rem' }}>
+                                    {size.enabled ? 'Active' : 'Inactive'}
+                                  </span>
+                                  {size.rate && (
+                                    <span className="ms-2 text-muted small">
+                                      Rate: ₹{size.rate}
+                                    </span>
+                                  )}
+                                  <span className="ms-2 text-muted small">
+                                    ({products.length} products)
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="d-flex align-items-center gap-2">
+                                <MDBSwitch
+                                  checked={size.enabled}
+                                  onChange={() => handleToggleSizeEnabled(size._id)}
+                                  id={`size-switch-${size._id}`}
+                                  title="Toggle size"
+                                />
+                                <MDBBtn
+                                  color="info"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openProductModal(size._id);
+                                  }}
+                                  title="Add Product"
+                                >
+                                  <MDBIcon fas icon="plus" className="me-1" />
+                                  Add Product
+                                </MDBBtn>
+                              </div>
+                            </div>
+                            {/* Products Table (Collapsible) */}
+                            {isSizeExpanded && (
+                              <div className="products-container ms-4 p-2">
+                                {products.length === 0 ? (
+                                  <div className="text-center py-2 text-muted">
+                                    <MDBIcon fas icon="box-open" className="me-2" />
+                                    No products found for this size
+                                  </div>
+                                ) : (
+                                  <div className="table-responsive" style={{ maxHeight: '400px' }}>
+                                    <table className="table table-bordered profile-table table-sm">
+                                      <thead>
+                                        <tr>
+                                          <th className="col-sno">S No.</th>
+                                          <th className="col-image">Image</th>
+                                          <th className="col-sapcode">SAP Code</th>
+                                          <th className="col-part">Part</th>
+                                          <th className="col-description">Description</th>
+                                          <th className="col-degree">90°/45°</th>
+                                          <th className="col-rate">Rate</th>
+                                          <th className="col-per">Per</th>
+                                          <th className="col-kgm">Kg/m</th>
+                                          <th className="col-length">Length</th>
+                                          <th className="col-actions">Actions</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {products.map((product, index) =>
+                                          renderProductRow(product, index, size.rate)
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </MDBCardBody>
+                )}
+              </MDBCard>
+            );
+          })}
+        </div>
       )}
 
-      {activeOption && (
-        <MDBCard className="mt-4">
-          <MDBCardBody className="p-0">
-            <div
-              className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 sticky-top bg-white p-3 border-bottom"
-              style={{ top: "0", zIndex: 1 }}
-            >
-              <div className="d-flex align-items-center mb-2 mb-md-0">
-                <MDBTypography
-                  tag="h4"
-                  className="mb-0"
-                  style={{ marginRight: "20px" }}
-                >
-                  Products ({productsToDisplay?.length || 0})
-                </MDBTypography>
+      {/* Create Category Modal */}
+      <MDBModal open={showCategoryModal} onClose={() => setShowCategoryModal(false)} tabIndex="-1">
+        <MDBModalDialog>
+          <MDBModalContent>
+            <MDBModalHeader>
+              <MDBModalTitle>Create New Category</MDBModalTitle>
+              <MDBBtn className="btn-close" color="none" onClick={() => setShowCategoryModal(false)}></MDBBtn>
+            </MDBModalHeader>
+            <MDBModalBody>
+              <MDBInput
+                label="Category Name"
+                className="mb-3"
+                value={newCategory.name}
+                onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+              />
+              <MDBInput
+                label="Description"
+                className="mb-3"
+                value={newCategory.description}
+                onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+              />
+              <MDBSwitch
+                label="Enabled"
+                checked={newCategory.enabled}
+                onChange={(e) => setNewCategory({ ...newCategory, enabled: e.target.checked })}
+              />
+            </MDBModalBody>
+            <MDBModalFooter>
+              <MDBBtn color="secondary" onClick={() => setShowCategoryModal(false)}>Cancel</MDBBtn>
+              <MDBBtn color="primary" onClick={handleCreateCategory}>Create Category</MDBBtn>
+            </MDBModalFooter>
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
+
+      {/* Create Size Modal */}
+      <MDBModal open={showSizeModal} onClose={() => setShowSizeModal(false)} tabIndex="-1">
+        <MDBModalDialog>
+          <MDBModalContent>
+            <MDBModalHeader>
+              <MDBModalTitle>Create New Size</MDBModalTitle>
+              <MDBBtn className="btn-close" color="none" onClick={() => setShowSizeModal(false)}></MDBBtn>
+            </MDBModalHeader>
+            <MDBModalBody>
+              <MDBInput
+                label="Size Label"
+                className="mb-3"
+                value={newSize.label}
+                onChange={(e) => setNewSize({ ...newSize, label: e.target.value })}
+              />
+              <MDBInput
+                label="Rate"
+                type="number"
+                className="mb-3"
+                value={newSize.rate}
+                onChange={(e) => setNewSize({ ...newSize, rate: parseFloat(e.target.value) || 0 })}
+              />
+              <MDBSwitch
+                label="Enabled"
+                checked={newSize.enabled}
+                onChange={(e) => setNewSize({ ...newSize, enabled: e.target.checked })}
+              />
+            </MDBModalBody>
+            <MDBModalFooter>
+              <MDBBtn color="secondary" onClick={() => setShowSizeModal(false)}>Cancel</MDBBtn>
+              <MDBBtn color="primary" onClick={handleCreateSize}>Create Size</MDBBtn>
+            </MDBModalFooter>
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
+
+      {/* Create Product Modal */}
+      <MDBModal open={showProductModal} onClose={() => setShowProductModal(false)} tabIndex="-1">
+        <MDBModalDialog size="lg">
+          <MDBModalContent>
+            <MDBModalHeader>
+              <MDBModalTitle>Create New Product</MDBModalTitle>
+              <MDBBtn className="btn-close" color="none" onClick={() => setShowProductModal(false)}></MDBBtn>
+            </MDBModalHeader>
+            <MDBModalBody>
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <MDBInput
+                    label="SAP Code"
+                    value={newProduct.sapCode}
+                    onChange={(e) => setNewProduct({ ...newProduct, sapCode: e.target.value })}
+                  />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <MDBInput
+                    label="Part"
+                    value={newProduct.part}
+                    onChange={(e) => setNewProduct({ ...newProduct, part: e.target.value })}
+                  />
+                </div>
+                <div className="col-md-12 mb-3">
+                  <MDBInput
+                    label="Description"
+                    value={newProduct.description}
+                    onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                  />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <MDBInput
+                    label="Degree (90°/45°)"
+                    value={newProduct.degree}
+                    onChange={(e) => setNewProduct({ ...newProduct, degree: e.target.value })}
+                  />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <MDBInput
+                    label="Per"
+                    value={newProduct.per}
+                    onChange={(e) => setNewProduct({ ...newProduct, per: e.target.value })}
+                  />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <MDBInput
+                    label="Kg/m"
+                    type="number"
+                    step="0.01"
+                    value={newProduct.kgm}
+                    onChange={(e) => setNewProduct({ ...newProduct, kgm: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <MDBInput
+                    label="Length"
+                    type="number"
+                    value={newProduct.length}
+                    onChange={(e) => setNewProduct({ ...newProduct, length: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="col-md-12 mb-3">
+                  <MDBFile
+                    label="Product Image"
+                    name="image"
+                    onChange={handleNewProductInputChange}
+                  />
+                </div>
+                <div className="col-md-12">
+                  <MDBSwitch
+                    label="Enabled"
+                    checked={newProduct.enabled}
+                    onChange={(e) => setNewProduct({ ...newProduct, enabled: e.target.checked })}
+                  />
+                </div>
               </div>
-              <div className="w-100 w-md-auto">
-                <Search
-                  searchQuery={searchQuery}
-                  setSearchQuery={searchProduct}
-                  handleSearch={handleSearch}
-                />
-              </div>
-            </div>
-            <div className="table-responsive" style={{ maxHeight: '70vh', position: 'relative' }}>
-              <table className="table table-bordered profile-table">
-                <thead>
-                  <tr>
-                    <th className="col-sno">S No.</th>
-                    <th className="col-image">Image</th>
-                    <th className="col-sapcode">SAP Code</th>
-                    <th className="col-part">Part</th>
-                    <th className="col-description">Description</th>
-                    <th className="col-degree">90°/45°</th>
-                    <th className="col-rate">Rate</th>
-                    <th className="col-per">Per</th>
-                    <th className="col-kgm">Kg/m</th>
-                    <th className="col-length">Length</th>
-                    <th className="col-actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {productsToDisplay?.length === 0 ? (
-                    <tr>
-                      <td colSpan="11" className="table-empty">
-                        No products found. Try adjusting your search criteria.
-                      </td>
-                    </tr>
-                  ) : (
-                    productsToDisplay?.map((product, index) => (
-                      <tr
-                        key={product.id}
-                        className={editableProduct?.id === product.id ? 'editable-row' : ''}
-                      >
-                        <td className="col-sno">{index + 1}</td>
-                      <td className="col-image">
-                        {editableProduct?.id === product.id ? (
-                          <MDBFile
-                            name="image"
-                            size="sm"
-                            onChange={handleInputChange}
-                            id="formFileSm"
-                            className="editable-file"
-                          />
-                        ) : product.image ? (
-                          <ImageZoom productImage={product.image} />
-                        ) : (
-                          "N.A"
-                        )}
-                      </td>
-                      <td className="col-sapcode">
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="sapCode"
-                            value={editableProduct.sapCode}
-                            onChange={handleInputChange}
-                            className="editable-input"
-                            size="sm"
-                          />
-                        ) : (
-                          <span title={product.sapCode}>{product.sapCode || "N.A"}</span>
-                        )}
-                      </td>
-                      <td className="col-part">
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="part"
-                            value={editableProduct.part}
-                            onChange={handleInputChange}
-                            className="editable-input"
-                            size="sm"
-                          />
-                        ) : (
-                          <span title={product.part}>{product.part || "N.A"}</span>
-                        )}
-                      </td>
-                      <td className="col-description">
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="description"
-                            value={editableProduct.description}
-                            onChange={handleInputChange}
-                            className="editable-input"
-                            size="sm"
-                          />
-                        ) : (
-                          <span title={product.description}>{product.description || "N.A"}</span>
-                        )}
-                      </td>
-                      <td className="col-degree">
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="degree"
-                            value={editableProduct.degree}
-                            onChange={handleInputChange}
-                            className="editable-input"
-                            size="sm"
-                          />
-                        ) : (
-                          <span title={product.degree}>{product.degree || "N.A"}</span>
-                        )}
-                      </td>
-                      <td className="col-rate">
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="rate"
-                            value={profileOptions[activeProfile]?.rate?.[activeOption] || ''}
-                            onChange={handleInputChange}
-                            className="editable-input"
-                            size="sm"
-                            type="number"
-                          />
-                        ) : (
-                          <span title={profileOptions[activeProfile]?.rate?.[activeOption]}>
-                            {profileOptions[activeProfile]?.rate?.[activeOption] || "N.A"}
-                          </span>
-                        )}
-                      </td>
-                      <td className="col-per">
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="per"
-                            value={editableProduct.per}
-                            onChange={handleInputChange}
-                            className="editable-input"
-                            size="sm"
-                          />
-                        ) : (
-                          <span title={product.per}>{product.per || "N.A"}</span>
-                        )}
-                      </td>
-                      <td className="col-kgm">
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="kgm"
-                            value={editableProduct.kgm}
-                            onChange={handleInputChange}
-                            className="editable-input"
-                            size="sm"
-                            type="number"
-                            step="0.01"
-                          />
-                        ) : (
-                          <span title={product.kgm}>{product.kgm || "N.A"}</span>
-                        )}
-                      </td>
-                      <td className="col-length">
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="length"
-                            value={editableProduct.length}
-                            onChange={handleInputChange}
-                            className="editable-input"
-                            size="sm"
-                            type="number"
-                          />
-                        ) : (
-                          <span title={product.length}>{product.length || "N.A"}</span>
-                        )}
-                      </td>
-                      <td className="col-actions">
-                        <div className="actions-container">
-                          {editableProduct?.id === product.id ? (
-                            <>
-                              <MDBBtn
-                                color="success"
-                                size="sm"
-                                className="action-btn"
-                                onClick={handleSave}
-                                title="Save changes"
-                              >
-                                <MDBIcon far icon="save" />
-                              </MDBBtn>
-                              <MDBBtn
-                                color="secondary"
-                                size="sm"
-                                className="action-btn"
-                                onClick={() => setEditableProduct(null)}
-                                title="Cancel editing"
-                              >
-                                <MDBIcon fas icon="times" />
-                              </MDBBtn>
-                            </>
-                          ) : (
-                            <MDBBtn
-                              color="warning"
-                              size="sm"
-                              className="action-btn"
-                              onClick={() => handleEditClick(product)}
-                              title="Edit product"
-                            >
-                              <MDBIcon fas icon="pen" />
-                            </MDBBtn>
-                          )}
-                          <MDBBtn
-                            color="danger"
-                            size="sm"
-                            className="action-btn"
-                            onClick={() => handleDelete(product._id)}
-                            title="Delete product"
-                          >
-                            <MDBIcon fas icon="trash" />
-                          </MDBBtn>
-                          <MDBSwitch
-                            defaultChecked={product.isEnabled}
-                            onChange={e => {
-                              const updatedProduct = {
-                                ...product,
-                                isEnabled: e.target.checked,
-                              };
-                              handleVisibility(updatedProduct);
-                            }}
-                            className="visibility-switch"
-                            title="Toggle visibility"
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </MDBCardBody>
-        </MDBCard>
-      )}
-    </>
+            </MDBModalBody>
+            <MDBModalFooter>
+              <MDBBtn color="secondary" onClick={() => setShowProductModal(false)}>Cancel</MDBBtn>
+              <MDBBtn color="primary" onClick={handleCreateProduct}>Create Product</MDBBtn>
+            </MDBModalFooter>
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
+    </div>
   );
 };
 

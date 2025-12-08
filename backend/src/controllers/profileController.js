@@ -191,3 +191,95 @@ exports.getFullMasterData = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+/* =====================================================
+   TOGGLE ENABLED CONTROLLERS
+===================================================== */
+
+// Toggle Category enabled field
+exports.toggleCategoryEnabled = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: "Category ID is required" });
+    }
+
+    const category = await Category.findById(id);
+
+    if (!category) {
+      return res.status(404).json({ error: "Category not found" });
+    }
+
+    // Toggle the enabled field
+    category.enabled = !category.enabled;
+    await category.save();
+
+    res.json({
+      success: true,
+      message: `Category enabled status toggled successfully`,
+      category
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Toggle Product enabled field
+exports.toggleProductEnabled = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: "Product ID is required" });
+    }
+
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    // Toggle the enabled field
+    product.enabled = !product.enabled;
+    await product.save();
+
+    res.json({
+      success: true,
+      message: `Product enabled status toggled successfully`,
+      product
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Toggle Size enabled field
+exports.toggleSizeEnabled = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: "Size ID is required" });
+    }
+
+    const size = await Size.findById(id);
+
+    if (!size) {
+      return res.status(404).json({ error: "Size not found" });
+    }
+
+    // Toggle the enabled field
+    size.enabled = !size.enabled;
+    await size.save();
+
+    res.json({
+      success: true,
+      message: `Size enabled status toggled successfully`,
+      size
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

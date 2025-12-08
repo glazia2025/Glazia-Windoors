@@ -10,7 +10,8 @@ const ProductSchema = new mongoose.Schema(
     per: String,
     kgm: Number,
     length: Number,
-    image: String
+    image: String,
+    enabled: Boolean
   },
   { timestamps: true }
 );

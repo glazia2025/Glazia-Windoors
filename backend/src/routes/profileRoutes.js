@@ -19,4 +19,9 @@ router.get("/products", master.getProducts);
 // MASTER STRUCTURED DATA
 router.get("/full", master.getFullMasterData);
 
+// TOGGLE ENABLED APIs
+router.put("/category/:id/toggle-enabled", master.toggleCategoryEnabled);
+router.put("/product/:id/toggle-enabled", master.toggleProductEnabled);
+router.put("/size/:id/toggle-enabled", master.toggleSizeEnabled);
+
 module.exports = router;
