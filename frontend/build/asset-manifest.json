@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/static/css/main.5a36236c.css",
-    "main.js": "/static/js/main.7c44f2fe.js",
+    "main.css": "/static/css/main.87507362.css",
+    "main.js": "/static/js/main.08f5da2a.js",
     "static/js/337.e46b2912.chunk.js": "/static/js/337.e46b2912.chunk.js",
     "static/js/455.6cffe6bd.chunk.js": "/static/js/455.6cffe6bd.chunk.js",
     "static/js/213.042bb37f.chunk.js": "/static/js/213.042bb37f.chunk.js",
@@ -10,15 +10,15 @@
     "static/media/glazia_logo.png": "/static/media/glazia_logo.484c51da4d2d25857176.png",
     "static/media/product_image.jpeg": "/static/media/product_image.61b92324f06d5a6a029c.jpeg",
     "index.html": "/index.html",
-    "main.5a36236c.css.map": "/static/css/main.5a36236c.css.map",
-    "main.7c44f2fe.js.map": "/static/js/main.7c44f2fe.js.map",
+    "main.87507362.css.map": "/static/css/main.87507362.css.map",
+    "main.08f5da2a.js.map": "/static/js/main.08f5da2a.js.map",
     "337.e46b2912.chunk.js.map": "/static/js/337.e46b2912.chunk.js.map",
     "455.6cffe6bd.chunk.js.map": "/static/js/455.6cffe6bd.chunk.js.map",
     "213.042bb37f.chunk.js.map": "/static/js/213.042bb37f.chunk.js.map",
     "488.7213179a.chunk.js.map": "/static/js/488.7213179a.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.5a36236c.css",
-    "static/js/main.7c44f2fe.js"
+    "static/css/main.87507362.css",
+    "static/js/main.08f5da2a.js"
   ]
 }

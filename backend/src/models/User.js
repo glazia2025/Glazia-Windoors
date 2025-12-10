@@ -27,7 +27,10 @@ const userSchema = new mongoose.Schema({
     default: {
       hardware: {},
       profiles: {}
-    }
+    },
+    authorizedPerson: { type: String, required: true, default: '' },
+    authorizedPersonDesignation: { type: String, required: true, default: '' },
+    logo: String
   }
 });
 
