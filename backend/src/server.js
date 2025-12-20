@@ -37,12 +37,16 @@ const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/admin-form");
 const userRoutes = require("./routes/userRoutes");
 const profileRoutes = require("./routes/profileRoutes");
+const quotationRoutes = require("./routes/quotationRoutes");
+const quotationAdminRoutes = require("./routes/quotationAdminRoutes");
 
 // Use routes
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/admin/quotations", quotationAdminRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/quotations", quotationRoutes);
 
 
 // Root route for testing

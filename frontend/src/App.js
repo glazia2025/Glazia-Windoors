@@ -34,6 +34,7 @@ import ContactUsPage from "./components/ContactUs/ContactUs";
 import BlogPage from "./components/Blogs/Blogs";
 import BlogDetailPage from "./components/BlogDetail/BlogDetail";
 import PrivacyPolicyPage from "./components/PrivacyPolicy/PrivacyPolicy";
+import QuotationAdminPage from "./components/AdminDashboard/QuotationAdmin/QuotationAdminPage";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -211,6 +212,17 @@ function App() {
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <UserOrders />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+
+          <Route
+            path="/admin/dashboard/quotations"
+            element={
+              localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
+                <QuotationAdminPage />
               ) : (
                 <Navigate to="/" />
               )
