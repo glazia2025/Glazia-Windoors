@@ -5,11 +5,13 @@ const master = require("../controllers/profileController");
 // CATEGORY APIs
 router.post("/category", master.createCategory);
 router.get("/categories", master.getCategories);
+router.put("/category/:id", master.updateCategory);
 router.get("/category/:id/full", master.getCategoryFull);
 
 // SIZE APIs
 router.post("/size", master.createSize);
 router.get("/sizes/category/:categoryId", master.getSizesByCategory);
+router.put("/size/:id", master.updateSize);
 router.get("/size/:sizeId/products", master.getProductsForSize);
 
 // PRODUCT APIs

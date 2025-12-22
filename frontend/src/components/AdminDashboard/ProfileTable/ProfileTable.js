@@ -32,6 +32,8 @@ const ProfileTable = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSizeModal, setShowSizeModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [showEditSizeModal, setShowEditSizeModal] = useState(false);
 
   // Form states for creating new items
   const [newCategory, setNewCategory] = useState({ name: "", description: "", enabled: true });
@@ -40,6 +42,8 @@ const ProfileTable = () => {
     sizeId: "", sapCode: "", part: "", description: "",
     degree: "", per: "", kgm: 0, length: 0, image: "", enabled: true
   });
+  const [editableCategory, setEditableCategory] = useState({ id: "", name: "", description: "" });
+  const [editableSize, setEditableSize] = useState({ id: "", label: "" });
 
   useEffect(() => {
     fetchMasterData();
@@ -100,6 +104,30 @@ const ProfileTable = () => {
     }
   };
 
+  const openEditCategoryModal = (category) => {
+    setEditableCategory({
+      id: category._id,
+      name: category.name || "",
+      description: category.description || ""
+    });
+    setShowEditCategoryModal(true);
+  };
+
+  const handleUpdateCategory = async () => {
+    try {
+      await api.put(`${BASE_API_URL}/profile/category/${editableCategory.id}`, {
+        name: editableCategory.name,
+        description: editableCategory.description
+      });
+      toast.success("Category updated successfully");
+      setShowEditCategoryModal(false);
+      fetchMasterData();
+    } catch (err) {
+      console.error("Error updating category", err);
+      toast.error("Failed to update category");
+    }
+  };
+
   // ==================== SIZE CRUD ====================
   const openSizeModal = (categoryId) => {
     setNewSize({ ...newSize, categoryId });
@@ -127,6 +155,28 @@ const ProfileTable = () => {
     } catch (err) {
       console.error("Error toggling size", err);
       toast.error("Failed to update size status");
+    }
+  };
+
+  const openEditSizeModal = (size) => {
+    setEditableSize({
+      id: size._id,
+      label: size.label || ""
+    });
+    setShowEditSizeModal(true);
+  };
+
+  const handleUpdateSize = async () => {
+    try {
+      await api.put(`${BASE_API_URL}/profile/size/${editableSize.id}`, {
+        label: editableSize.label
+      });
+      toast.success("Size updated successfully");
+      setShowEditSizeModal(false);
+      fetchMasterData();
+    } catch (err) {
+      console.error("Error updating size", err);
+      toast.error("Failed to update size");
     }
   };
 
@@ -449,6 +499,17 @@ const ProfileTable = () => {
                     </div>
                   </div>
                   <div className="d-flex align-items-center gap-2">
+                    <MDBBtn
+                      color="warning"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditCategoryModal(category);
+                      }}
+                      title="Edit category"
+                    >
+                      <MDBIcon fas icon="pen" />
+                    </MDBBtn>
                     <MDBSwitch
                       checked={category.enabled}
                       onChange={() => handleToggleCategoryEnabled(category._id)}
@@ -518,6 +579,17 @@ const ProfileTable = () => {
                                 </div>
                               </div>
                               <div className="d-flex align-items-center gap-2">
+                                <MDBBtn
+                                  color="warning"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditSizeModal(size);
+                                  }}
+                                  title="Edit size"
+                                >
+                                  <MDBIcon fas icon="pen" />
+                                </MDBBtn>
                                 <MDBSwitch
                                   checked={size.enabled}
                                   onChange={() => handleToggleSizeEnabled(size._id)}
@@ -621,6 +693,36 @@ const ProfileTable = () => {
         </MDBModalDialog>
       </MDBModal>
 
+      {/* Edit Category Modal */}
+      <MDBModal open={showEditCategoryModal} onClose={() => setShowEditCategoryModal(false)} tabIndex="-1">
+        <MDBModalDialog>
+          <MDBModalContent>
+            <MDBModalHeader>
+              <MDBModalTitle>Edit Category</MDBModalTitle>
+              <MDBBtn className="btn-close" color="none" onClick={() => setShowEditCategoryModal(false)}></MDBBtn>
+            </MDBModalHeader>
+            <MDBModalBody>
+              <MDBInput
+                label="Category Name"
+                className="mb-3"
+                value={editableCategory.name}
+                onChange={(e) => setEditableCategory({ ...editableCategory, name: e.target.value })}
+              />
+              <MDBInput
+                label="Description"
+                className="mb-3"
+                value={editableCategory.description}
+                onChange={(e) => setEditableCategory({ ...editableCategory, description: e.target.value })}
+              />
+            </MDBModalBody>
+            <MDBModalFooter>
+              <MDBBtn color="secondary" onClick={() => setShowEditCategoryModal(false)}>Cancel</MDBBtn>
+              <MDBBtn color="primary" onClick={handleUpdateCategory}>Save Changes</MDBBtn>
+            </MDBModalFooter>
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
+
       {/* Create Size Modal */}
       <MDBModal open={showSizeModal} onClose={() => setShowSizeModal(false)} tabIndex="-1">
         <MDBModalDialog>
@@ -652,6 +754,30 @@ const ProfileTable = () => {
             <MDBModalFooter>
               <MDBBtn color="secondary" onClick={() => setShowSizeModal(false)}>Cancel</MDBBtn>
               <MDBBtn color="primary" onClick={handleCreateSize}>Create Size</MDBBtn>
+            </MDBModalFooter>
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
+
+      {/* Edit Size Modal */}
+      <MDBModal open={showEditSizeModal} onClose={() => setShowEditSizeModal(false)} tabIndex="-1">
+        <MDBModalDialog>
+          <MDBModalContent>
+            <MDBModalHeader>
+              <MDBModalTitle>Edit Size</MDBModalTitle>
+              <MDBBtn className="btn-close" color="none" onClick={() => setShowEditSizeModal(false)}></MDBBtn>
+            </MDBModalHeader>
+            <MDBModalBody>
+              <MDBInput
+                label="Size Label"
+                className="mb-3"
+                value={editableSize.label}
+                onChange={(e) => setEditableSize({ ...editableSize, label: e.target.value })}
+              />
+            </MDBModalBody>
+            <MDBModalFooter>
+              <MDBBtn color="secondary" onClick={() => setShowEditSizeModal(false)}>Cancel</MDBBtn>
+              <MDBBtn color="primary" onClick={handleUpdateSize}>Save Changes</MDBBtn>
             </MDBModalFooter>
           </MDBModalContent>
         </MDBModalDialog>

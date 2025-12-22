@@ -28,6 +28,39 @@ exports.getCategories = async (req, res) => {
   }
 };
 
+// Update Category
+exports.updateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: "Category ID is required" });
+    }
+
+    const update = {};
+    if (name !== undefined) update.name = name;
+    if (description !== undefined) update.description = description;
+
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({ error: "No fields to update" });
+    }
+
+    const category = await Category.findByIdAndUpdate(id, update, {
+      new: true,
+      runValidators: true
+    });
+
+    if (!category) {
+      return res.status(404).json({ error: "Category not found" });
+    }
+
+    res.json(category);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // Full category → sizes → products structured response
 exports.getCategoryFull = async (req, res) => {
   try {
@@ -91,6 +124,36 @@ exports.getSizesByCategory = async (req, res) => {
   try {
     const sizes = await Size.find({ categoryId: req.params.categoryId });
     res.json(sizes);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Update Size
+exports.updateSize = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { label } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: "Size ID is required" });
+    }
+
+    if (label === undefined) {
+      return res.status(400).json({ error: "No fields to update" });
+    }
+
+    const size = await Size.findByIdAndUpdate(
+      id,
+      { label },
+      { new: true, runValidators: true }
+    );
+
+    if (!size) {
+      return res.status(404).json({ error: "Size not found" });
+    }
+
+    res.json(size);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
