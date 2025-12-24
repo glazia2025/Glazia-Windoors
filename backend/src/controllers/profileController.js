@@ -211,6 +211,54 @@ exports.getProducts = async (req, res) => {
   }
 };
 
+// Update Product
+exports.updateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      sapCode,
+      part,
+      description,
+      degree,
+      per,
+      kgm,
+      length,
+      image
+    } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: "Product ID is required" });
+    }
+
+    const update = {};
+    if (sapCode !== undefined) update.sapCode = sapCode;
+    if (part !== undefined) update.part = part;
+    if (description !== undefined) update.description = description;
+    if (degree !== undefined) update.degree = degree;
+    if (per !== undefined) update.per = per;
+    if (kgm !== undefined) update.kgm = kgm;
+    if (length !== undefined) update.length = length;
+    if (image !== undefined) update.image = image;
+
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({ error: "No fields to update" });
+    }
+
+    const product = await Product.findByIdAndUpdate(id, update, {
+      new: true,
+      runValidators: true
+    });
+
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    res.json(product);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 
 /* =====================================================
    MASTER API: FULL DATA STRUCTURE

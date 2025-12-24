@@ -17,6 +17,7 @@ router.get("/size/:sizeId/products", master.getProductsForSize);
 // PRODUCT APIs
 router.post("/product", master.createProduct);
 router.get("/products", master.getProducts);
+router.put("/product/:id", master.updateProduct);
 
 // MASTER STRUCTURED DATA
 router.get("/full", master.getFullMasterData);

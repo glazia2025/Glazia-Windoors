@@ -213,6 +213,27 @@ const ProfileTable = () => {
     }
   };
 
+  const handleUpdateProduct = async () => {
+    try {
+      await api.put(`${BASE_API_URL}/profile/product/${editableProduct._id}`, {
+        sapCode: editableProduct.sapCode,
+        part: editableProduct.part,
+        description: editableProduct.description,
+        degree: editableProduct.degree,
+        per: editableProduct.per,
+        kgm: editableProduct.kgm,
+        length: editableProduct.length,
+        image: editableProduct.image
+      });
+      toast.success("Product updated successfully");
+      setEditableProduct(null);
+      fetchMasterData();
+    } catch (err) {
+      console.error("Error updating product", err);
+      toast.error("Failed to update product");
+    }
+  };
+
   const handleEditClick = (product) => {
     setEditableProduct({ ...product });
   };
@@ -394,11 +415,7 @@ const ProfileTable = () => {
                   color="success"
                   size="sm"
                   className="action-btn"
-                  onClick={() => {
-                    // Save logic would go here when update API is added
-                    toast.info("Update API not yet implemented");
-                    setEditableProduct(null);
-                  }}
+                  onClick={handleUpdateProduct}
                   title="Save changes"
                 >
                   <MDBIcon far icon="save" />
