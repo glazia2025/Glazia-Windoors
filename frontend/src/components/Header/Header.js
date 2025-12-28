@@ -292,6 +292,17 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
                 <MDBNavbarItem>
                   {userRole === "admin" && (
                     <MDBNavbarLink
+                      onClick={() => navigate("/admin/dashboard/users")}
+                      className="fw-semibold text-dark"
+                    >
+                      Users
+                    </MDBNavbarLink>
+                  )}
+                </MDBNavbarItem>
+
+                <MDBNavbarItem>
+                  {userRole === "admin" && (
+                    <MDBNavbarLink
                       onClick={() => navigate("/admin/dashboard/add-product")}
                       className="fw-semibold text-dark"
                     >

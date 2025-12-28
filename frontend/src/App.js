@@ -35,6 +35,7 @@ import BlogPage from "./components/Blogs/Blogs";
 import BlogDetailPage from "./components/BlogDetail/BlogDetail";
 import PrivacyPolicyPage from "./components/PrivacyPolicy/PrivacyPolicy";
 import QuotationAdminPage from "./components/AdminDashboard/QuotationAdmin/QuotationAdminPage";
+import UserManagement from "./components/AdminDashboard/UserManagement/UserManagement";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -223,6 +224,16 @@ function App() {
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <QuotationAdminPage />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/admin/dashboard/users"
+            element={
+              localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
+                <UserManagement />
               ) : (
                 <Navigate to="/" />
               )

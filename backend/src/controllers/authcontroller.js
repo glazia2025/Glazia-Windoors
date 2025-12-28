@@ -126,7 +126,9 @@ const verifyOTP = async (req, res) => {
 
     if (record) {
       await Otp.deleteOne({ phone: phoneNumber });
-      const existingUser = await User.findOne({ phoneNumber });
+      const existingUser = await User.findOne({
+        $or: [{ phoneNumber }, { phoneNumbers: phoneNumber }],
+      });
 
       if (existingUser) {
         const token = jwt.sign(

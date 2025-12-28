@@ -15,11 +15,12 @@ const sendNalcoMessageToUsers = async (nalcoPrice) => {
     const users = await User.find();
     console.log(`Found ${users.length} users to notify`);
     for(const user of users) {
-      if (user.phoneNumber) {
+      const targetNumber = user.phoneNumber || (user.phoneNumbers && user.phoneNumbers[0]);
+      if (targetNumber) {
           const axios = require('axios');
           let data = JSON.stringify({
             "messaging_product": "whatsapp",
-            "to": `91${user.phoneNumber}`,
+            "to": `91${targetNumber}`,
             "type": "template",
             "template": {
               "name": "daily_update",

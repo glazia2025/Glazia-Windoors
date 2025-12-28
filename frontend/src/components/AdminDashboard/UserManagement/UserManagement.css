@@ -1,0 +1,7 @@
+.user-management-wrapper .mdb-table {
+  color: #1f2a44;
+}
+
+.user-management-wrapper .table > :not(caption) > * > * {
+  vertical-align: middle;
+}

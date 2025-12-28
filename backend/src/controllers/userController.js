@@ -7,13 +7,69 @@ require('dotenv').config();
 // Secret for JWT (you should store this in your .env file)
 const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key'; // Replace with a more secure secret
 
+const normalizePhoneNumbers = (phoneNumbers, phoneNumber) => {
+  const rawNumbers = [];
+  if (Array.isArray(phoneNumbers)) {
+    rawNumbers.push(...phoneNumbers);
+  } else if (typeof phoneNumbers === 'string') {
+    rawNumbers.push(phoneNumbers);
+  }
+  if (phoneNumber) {
+    rawNumbers.push(phoneNumber);
+  }
+
+  const uniqueNumbers = new Set(
+    rawNumbers
+      .map((number) => String(number).trim())
+      .filter((number) => number.length > 0)
+  );
+
+  return Array.from(uniqueNumbers);
+};
+
+const findUserByPhoneNumbers = (phoneNumbers, excludeUserId) => {
+  const query = {
+    $or: [
+      { phoneNumber: { $in: phoneNumbers } },
+      { phoneNumbers: { $in: phoneNumbers } },
+    ],
+  };
+
+  if (excludeUserId) {
+    query._id = { $ne: excludeUserId };
+  }
+
+  return User.findOne(query);
+};
+
 // API to store user data when they log in with mobile number
 const createUser = async (req, res) => {
-  const { name, email, gstNumber, pincode, city, state, address, phoneNumber, paUrl, authorizedPerson, authorizedPersonDesignation, logo } = req.body;
+  const {
+    name,
+    email,
+    gstNumber,
+    pincode,
+    city,
+    state,
+    address,
+    phoneNumber,
+    phoneNumbers,
+    paUrl,
+    authorizedPerson,
+    authorizedPersonDesignation,
+    logo,
+  } = req.body;
+
+  const normalizedPhoneNumbers = normalizePhoneNumbers(phoneNumbers, phoneNumber);
+  const primaryPhoneNumber = normalizedPhoneNumbers[0];
+
+  if (!primaryPhoneNumber) {
+    return res.status(400).json({ message: 'At least one phone number is required' });
+  }
 
   // Check if the user already exists
   try {
-    const existingUser = await User.findOne({ phoneNumber });
+    const existingUser = await findUserByPhoneNumbers(normalizedPhoneNumbers);
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
@@ -27,7 +83,8 @@ const createUser = async (req, res) => {
       city,
       state,
       address,
-      phoneNumber,
+      phoneNumber: primaryPhoneNumber,
+      phoneNumbers: normalizedPhoneNumbers,
       paUrl,
       authorizedPerson,
       authorizedPersonDesignation,
@@ -39,7 +96,7 @@ const createUser = async (req, res) => {
 
     // Generate a JWT token for the new user
     const token = jwt.sign(
-      { userId: newUser._id, phoneNumber, role: 'user' }, // Include relevant data like userId and role
+      { userId: newUser._id, phoneNumber: primaryPhoneNumber, role: 'user' }, // Include relevant data like userId and role
       JWT_SECRET,
       { expiresIn: '1h' } // Token expiration (optional, 1 hour in this case)
     );
@@ -110,7 +167,7 @@ const updateUser = async (req, res) => {
     }
 
     // Update the user's profile fields
-    const { name, email, gstNumber, pincode, city, state, address, phoneNumber } = req.body;
+    const { name, email, gstNumber, pincode, city, state, address, phoneNumber, phoneNumbers } = req.body;
     if (name) user.name = name;
     if (email) user.email = email;
     if (gstNumber) user.gstNumber = gstNumber;
@@ -118,7 +175,27 @@ const updateUser = async (req, res) => {
     if (city) user.city = city;
     if (state) user.state = state;
     if (address) user.address = address;
-    if (phoneNumber) user.phoneNumber = phoneNumber;
+
+    let nextPhoneNumbers = null;
+    if (phoneNumbers !== undefined) {
+      nextPhoneNumbers = normalizePhoneNumbers(phoneNumbers, phoneNumber);
+    } else if (phoneNumber) {
+      nextPhoneNumbers = normalizePhoneNumbers([phoneNumber]);
+    }
+
+    if (nextPhoneNumbers) {
+      if (!nextPhoneNumbers.length) {
+        return res.status(400).json({ message: 'At least one phone number is required' });
+      }
+
+      const conflictingUser = await findUserByPhoneNumbers(nextPhoneNumbers, user._id);
+      if (conflictingUser) {
+        return res.status(400).json({ message: 'Phone number already in use' });
+      }
+
+      user.phoneNumbers = nextPhoneNumbers;
+      user.phoneNumber = nextPhoneNumbers[0];
+    }
 
     // Save the updated user data
     await user.save();
@@ -260,6 +337,7 @@ const listUsers = async (req, res) => {
       name: 1,
       email: 1,
       phoneNumber: 1,
+      phoneNumbers: 1,
       city: 1,
       state: 1,
       gstNumber: 1,
