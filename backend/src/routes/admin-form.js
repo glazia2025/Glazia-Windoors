@@ -23,6 +23,7 @@ const {
 } = require("../controllers/hardwareController");
 const { updateNalco, approvePayment, completeOrder, updatePaymentDueDate } = require("../controllers/orderController");
 const { getNalco, getNalcoGraph, updateDynamicPricing, getDynamicPricing, listUsers } = require("../controllers/userController");
+const { listLeads, updateLead, deleteLead } = require("../controllers/authcontroller");
 const isUser = require("../middleware/userMiddleware");
 const router = express.Router();
 
@@ -68,5 +69,8 @@ router.post('/toggle-cat', toggleCatEnabled);
 router.put('/update-dynamic-pricing/:userId', isAdmin, updateDynamicPricing);
 router.get('/get-dynamic-pricing/:userId', isAdmin, getDynamicPricing);
 router.get('/users', isAdmin, listUsers);
+router.get('/leads', isAdmin, listLeads);
+router.put('/leads/:leadId', isAdmin, updateLead);
+router.delete('/leads/:leadId', isAdmin, deleteLead);
 
 module.exports = router;

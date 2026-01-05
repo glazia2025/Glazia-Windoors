@@ -57,7 +57,6 @@ const createUser = async (req, res) => {
     paUrl,
     authorizedPerson,
     authorizedPersonDesignation,
-    logo,
   } = req.body;
 
   const normalizedPhoneNumbers = normalizePhoneNumbers(phoneNumbers, phoneNumber);
@@ -87,8 +86,7 @@ const createUser = async (req, res) => {
       phoneNumbers: normalizedPhoneNumbers,
       paUrl,
       authorizedPerson,
-      authorizedPersonDesignation,
-      logo
+      authorizedPersonDesignation
     });
 
     // Save the new user

@@ -4,6 +4,7 @@ const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const TrackPhone = require('../models/TrackPhone');
 require('dotenv').config();
 
 const otpStore = {};
@@ -182,4 +183,80 @@ const adminLogin = async (req, res) => {
   });
 };
 
-module.exports = { sendWhatsAppOTP, verifyOTP, adminLogin };
+const trackPhone = async (req, res) => {
+  const { phone, reason } = req.body;
+
+  try {
+    const newTrack = new TrackPhone({
+      phone,
+      reason,
+    });
+
+    const savedTrack = await newTrack.save();
+
+    return res.status(200).json({ message: 'Phone tracked successfully' });
+  } catch (error) {
+    console.error('Error tracking phone:', error);
+    return res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+};
+
+const listLeads = async (req, res) => {
+  try {
+    const leads = await TrackPhone.find().sort({ createdAt: -1 });
+    return res.status(200).json({ leads });
+  } catch (error) {
+    console.error('Error fetching leads:', error);
+    return res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+};
+
+const updateLead = async (req, res) => {
+  const { leadId } = req.params;
+  const { status, reason } = req.body;
+
+  try {
+    const update = {};
+    if (typeof status !== "undefined") update.status = status;
+    if (typeof reason !== "undefined") update.reason = reason;
+
+    const lead = await TrackPhone.findByIdAndUpdate(leadId, update, {
+      new: true,
+      runValidators: true,
+    });
+    if (!lead) {
+      return res.status(404).json({ message: 'Lead not found' });
+    }
+
+    return res.status(200).json({ message: 'Lead updated', lead });
+  } catch (error) {
+    console.error('Error updating lead:', error);
+    return res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+};
+
+const deleteLead = async (req, res) => {
+  const { leadId } = req.params;
+
+  try {
+    const lead = await TrackPhone.findByIdAndDelete(leadId);
+    if (!lead) {
+      return res.status(404).json({ message: 'Lead not found' });
+    }
+
+    return res.status(200).json({ message: 'Lead deleted' });
+  } catch (error) {
+    console.error('Error deleting lead:', error);
+    return res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+};
+
+module.exports = {
+  sendWhatsAppOTP,
+  verifyOTP,
+  adminLogin,
+  trackPhone,
+  listLeads,
+  updateLead,
+  deleteLead,
+};

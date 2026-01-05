@@ -1,4 +1,6 @@
+const mongoose = require("mongoose");
 const Quotation = require("../models/Quotation/Quotation");
+const User = require("../models/User");
 const System = require("../models/Quotation/System");
 const Series = require("../models/Quotation/Series");
 const OptionSet = require("../models/Quotation/OptionSet");
@@ -29,6 +31,35 @@ const mapToArray = (map) => {
     name,
     rate: numberOr(rate, 0),
   }));
+};
+
+const buildQuotationPrefix = (name = "") => {
+  const compact = name.replace(/[^a-zA-Z]/g, "").toUpperCase();
+  const initials = (compact.slice(0, 2) || "XX").padEnd(2, "X");
+  return `QU${initials}`;
+};
+
+const getNextQuotationId = async (userId) => {
+  let name = "";
+  if (userId) {
+    const user = await User.findById(userId).select("name").lean();
+    name = user?.name || "";
+  }
+
+  const prefix = buildQuotationPrefix(name);
+  const latest = await Quotation.findOne({
+    "quotationDetails.id": new RegExp(`^${prefix}`),
+  })
+    .sort({ createdAt: -1 })
+    .select({ "quotationDetails.id": 1 })
+    .lean();
+
+  const lastId = latest?.quotationDetails?.id || "";
+  const suffix = Number(lastId.slice(prefix.length));
+  const nextValue = Number.isFinite(suffix) && suffix > 0 ? suffix + 1 : 1;
+  const nextSuffix = String(nextValue).padStart(3, "0");
+
+  return `${prefix}${nextSuffix}`;
 };
 
 const fetchOptionValues = async (type, systemDoc) => {
@@ -310,11 +341,16 @@ const createQuotation = async (req, res) => {
   } = req.body;
 
   try {
+    const generatedId = await getNextQuotationId(req.user?.userId);
+    console.log('generatedId', generatedId);
     const quotation = await Quotation.create({
       user: req.user?.userId,
       items,
       customerDetails,
-      quotationDetails,
+      quotationDetails: {
+        ...quotationDetails,
+      generatedId,
+      },
       breakdown,
     });
 
@@ -326,13 +362,11 @@ const createQuotation = async (req, res) => {
 };
 
 const listQuotations = async (req, res) => {
-  const { systemType, series, description, userId: queryUserId } = req.query;
+  const { systemType, series, description } = req.query;
   const filter = {};
 
   if (req.user?.role !== "admin") {
     filter.user = req.user?.userId;
-  } else if (queryUserId) {
-    filter.user = queryUserId;
   }
 
   if (systemType) filter.systemType = systemType;
@@ -352,6 +386,10 @@ const listQuotations = async (req, res) => {
 
 const getQuotationById = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid quotation id" });
+    }
+
     const quotation = await Quotation.findById(req.params.id).lean();
     if (!quotation) {
       return res.status(404).json({ message: "Quotation not found" });
@@ -375,6 +413,10 @@ const getQuotationById = async (req, res) => {
 
 const updateQuotationById = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid quotation id" });
+    }
+
     const quotation = await Quotation.findById(req.params.id).lean();
     if (!quotation) {
       return res.status(404).json({ message: "Quotation not found" });

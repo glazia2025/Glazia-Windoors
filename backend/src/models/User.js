@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema({
         type: Map,
         of: Number,
         default: {}
-      },
+      }, 
       profiles: {
         type: Map,
         of: Number,
@@ -30,8 +30,7 @@ const userSchema = new mongoose.Schema({
       profiles: {}
     },
     authorizedPerson: { type: String, required: true, default: '' },
-    authorizedPersonDesignation: { type: String, required: true, default: '' },
-    logo: String
+    authorizedPersonDesignation: { type: String, required: true, default: '' }
   }
 });
 

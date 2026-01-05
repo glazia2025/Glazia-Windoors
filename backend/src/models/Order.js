@@ -1,5 +1,12 @@
 const mongoose = require("mongoose");
 
+const counterSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  seq: { type: Number, default: 0 },
+});
+
+const Counter = mongoose.model("Counter", counterSchema);
+
 // Define the user schema
 const userSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -31,6 +38,7 @@ const paymentSchema = new mongoose.Schema({
 // Define the user order schema
 const userOrderSchema = new mongoose.Schema(
   {
+    orderId: { type: Number, unique: true, index: true },
     user: { type: userSchema, required: true },
     products: { type: [orderSchema], required: true },
     payments: [{ type: paymentSchema }],
@@ -53,6 +61,24 @@ const userOrderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+userOrderSchema.pre("save", async function (next) {
+  if (!this.isNew || this.orderId) {
+    return next();
+  }
+
+  try {
+    const counter = await Counter.findOneAndUpdate(
+      { name: "userOrder" },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
+    this.orderId = counter.seq;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+});
 
 const nalcoSchema = new mongoose.Schema({
   nalcoPrice: { type: Number, required: true },

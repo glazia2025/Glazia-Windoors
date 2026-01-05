@@ -13,6 +13,11 @@ const {
   updateQuotationById,
 } = require("../controllers/quotationController");
 
+const {
+  getQuotationConfig,
+  createOrUpdateQuotationConfig,
+} = require("../controllers/quotationConfig");
+
 router.get("/systems", getSystems);
 router.get("/systems/:systemType/series", getSeries);
 router.get(
@@ -21,9 +26,11 @@ router.get(
 );
 router.get("/options", getOptionLists);
 router.post("/rate-preview", previewRate);
-router.post("/", createQuotation);
-router.get("/", listQuotations);
-router.get("/:id", getQuotationById);
-router.post("/:id", updateQuotationById);
+router.post("/", isUser, createQuotation);
+router.get("/", isUser, listQuotations);
+router.get("/config", isUser, getQuotationConfig);
+router.post("/config", isUser, createOrUpdateQuotationConfig);
+router.get("/:id", isUser, getQuotationById);
+router.post("/:id", isUser, updateQuotationById);
 
 module.exports = router;

@@ -4,6 +4,7 @@ const { createUser, getUser, updateUser } = require('../controllers/userControll
 const { createOrder, getOrders, sendEmail, createPayment, uploadPaymentProof } = require('../controllers/orderController');
 const { getHardwareHeirarchy } = require('../controllers/hardwareController');
 const isUser = require('../middleware/userMiddleware');
+const { trackPhone } = require('../controllers/authcontroller');
 const router = express.Router();
 
 router.post('/register', createUser);
@@ -17,5 +18,6 @@ router.get('/get-hardware-heirarchy', isUser, getHardwareHeirarchy);
 router.post('/send-email', isUser, sendEmail);
 router.post('/upload-payment-proof', express.json({ limit: "50mb" }), uploadPaymentProof)
 router.get('/getProducts', getProducts);
+router.post('/track-phone', trackPhone);
 
 module.exports = router;

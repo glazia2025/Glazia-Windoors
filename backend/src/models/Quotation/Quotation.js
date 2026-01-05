@@ -25,6 +25,33 @@ const quotationSchema = new mongoose.Schema(
         amount: { type: Number, default: 0 },
         refImage: { type: String },
         remarks: { type: String },
+        subItems: {
+          type: [
+            {
+            refCode: { type: String },
+            location: { type: String },
+            width: { type: Number, default: 0 },
+            height: { type: Number, default: 0 },
+            area: { type: Number, default: 0 },
+            systemType: { type: String },
+            series: { type: String },
+            description: { type: String },
+            colorFinish: { type: String },
+            glassSpec: { type: String },
+            handleType: { type: String },
+            handleColor: { type: String },
+            handleCount: { type: Number, default: 0 },
+            meshPresent: { type: Boolean, default: false },
+            meshType: { type: String },
+            rate: { type: Number, default: 0 },
+            quantity: { type: Number, default: 1 },
+            amount: { type: Number, default: 0 },
+            refImage: { type: String },
+            remarks: { type: String },
+        }
+          ],
+          required: false,
+        }
       },
     ],
     customerDetails: {
@@ -55,6 +82,7 @@ const quotationSchema = new mongoose.Schema(
       totalAmount: { type: Number },
       profitPercentage: { type: Number, default: 0 },
     },
+    generatedId: { type: String, unique: true },
   },
   { timestamps: true }
 );
