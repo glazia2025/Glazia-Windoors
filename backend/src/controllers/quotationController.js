@@ -47,14 +47,17 @@ const getNextQuotationId = async (userId) => {
   }
 
   const prefix = buildQuotationPrefix(name);
+  console.log("prefix", prefix);
   const latest = await Quotation.findOne({
-    "quotationDetails.id": new RegExp(`^${prefix}`),
+    "generatedId": new RegExp(`^${prefix}`),
   })
     .sort({ createdAt: -1 })
-    .select({ "quotationDetails.id": 1 })
+    .select({ "generatedId": 1 })
     .lean();
 
-  const lastId = latest?.quotationDetails?.id || "";
+  console.log("latest", latest);
+
+  const lastId = latest?.generatedId || "";
   const suffix = Number(lastId.slice(prefix.length));
   const nextValue = Number.isFinite(suffix) && suffix > 0 ? suffix + 1 : 1;
   const nextSuffix = String(nextValue).padStart(3, "0");
@@ -338,6 +341,7 @@ const createQuotation = async (req, res) => {
     items = [],
     customerDetails = {},
     quotationDetails = {},
+    globalConfig = {},
   } = req.body;
 
   try {
@@ -348,9 +352,12 @@ const createQuotation = async (req, res) => {
       items,
       customerDetails,
       quotationDetails: {
-        ...quotationDetails,
-      generatedId,
+        ...quotationDetails
       },
+
+      generatedId,
+
+      globalConfig,
       breakdown,
     });
 

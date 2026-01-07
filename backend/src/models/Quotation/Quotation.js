@@ -82,6 +82,17 @@ const quotationSchema = new mongoose.Schema(
       totalAmount: { type: Number },
       profitPercentage: { type: Number, default: 0 },
     },
+    globalConfig: {
+      logo: { type: String },
+      terms: { type: String },
+      prerequisites: { type: String },
+      additionalCosts: {
+        installation: { type: Number, default: 0 },
+        transport: { type: Number, default: 0 },
+        loadingUnloading: { type: Number, default: 0 },
+        discountPercent: { type: Number, default: 0 },
+      }
+    },
     generatedId: { type: String, unique: true },
   },
   { timestamps: true }

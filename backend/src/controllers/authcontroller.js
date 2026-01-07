@@ -104,7 +104,7 @@ const sendWhatsAppOTP = async (req, res) => {
   console.log("otp", otp);
 
   try {
-    sendLoginOtp(otp, phoneNumber);
+    // sendLoginOtp(otp, phoneNumber);
 
     await Otp.findOneAndUpdate(
       { phone: phoneNumber },
