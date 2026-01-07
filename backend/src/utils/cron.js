@@ -166,7 +166,7 @@ const runJob = async () => {
     
   }
 };
-runJob();
+// runJob();
 
 cron.schedule("0 10 * * *", runJob, {
   timezone: "Asia/Kolkata",
