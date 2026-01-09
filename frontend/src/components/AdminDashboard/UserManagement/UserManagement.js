@@ -14,6 +14,7 @@ import {
   MDBTypography,
 } from "mdb-react-ui-kit";
 import api, { BASE_API_URL } from "../../../utils/api";
+import ParterAgreement from "../../UserDetailsForm/PartnerAgreement/PartnerAgreement";
 import "./UserManagement.css";
 
 const emptyForm = {
@@ -26,6 +27,8 @@ const emptyForm = {
   address: "",
   phoneNumber: "",
   extraPhoneNumbers: "",
+  authorisedPerson: "",
+  authorisedPersonDesignation: "",
 };
 
 const parseExtraNumbers = (raw) => {
@@ -42,6 +45,8 @@ const UserManagement = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState(emptyForm);
+  const [showAgreement, setShowAgreement] = useState(false);
+  const [paBlob, setPaBlob] = useState(null);
 
   const token = localStorage.getItem("authToken");
 
@@ -70,6 +75,29 @@ const UserManagement = () => {
 
   const handleChange = (field) => (event) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
+    if (showAgreement || paBlob) {
+      setShowAgreement(false);
+      setPaBlob(null);
+    }
+  };
+
+  const handleGenerateAgreement = () => {
+    if (
+      !form.name ||
+      !form.email ||
+      !form.gstNumber ||
+      !form.pincode ||
+      !form.city ||
+      !form.state ||
+      !form.address ||
+      !form.phoneNumber
+    ) {
+      setError("Fill all required fields before generating the agreement.");
+      return;
+    }
+
+    setError("");
+    setShowAgreement(true);
   };
 
   const handleSubmit = async (event) => {
@@ -78,29 +106,43 @@ const UserManagement = () => {
     setError("");
 
     try {
+      if (!paBlob) {
+        setError("Generate the partner agreement before creating the user.");
+        return;
+      }
+
       const extraNumbers = parseExtraNumbers(form.extraPhoneNumbers);
 
-      await api.post(
-        `${BASE_API_URL}/user/register`,
-        {
-          name: form.name,
-          email: form.email,
-          gstNumber: form.gstNumber,
-          pincode: form.pincode,
-          city: form.city,
-          state: form.state,
-          address: form.address,
-          phoneNumber: form.phoneNumber,
-          phoneNumbers: extraNumbers.length ? extraNumbers : undefined,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const formData = new FormData();
+      formData.append("name", form.name);
+      formData.append("email", form.email);
+      formData.append("gstNumber", form.gstNumber);
+      formData.append("pincode", form.pincode);
+      formData.append("city", form.city);
+      formData.append("state", form.state);
+      formData.append("address", form.address);
+      formData.append("phoneNumber", form.phoneNumber);
+      formData.append('authorizedPerson', form.authorisedPerson);
+      formData.append('authorizedPersonDesignation', form.authorisedPersonDesignation);
+
+      extraNumbers.forEach((number) => formData.append("phoneNumbers", number));
+      formData.append(
+        "paPdf",
+        new File([paBlob], "partner-agreement.pdf", {
+          type: "application/pdf",
+        })
       );
 
+      await api.post(`${BASE_API_URL}/user/register`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       setForm(emptyForm);
+      setShowAgreement(false);
+      setPaBlob(null);
       await fetchUsers();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create user");
@@ -198,6 +240,24 @@ const UserManagement = () => {
                     disabled={formLoading}
                   />
                 </MDBCol>
+                <MDBCol md="6" className="mb-3">
+                  <MDBInput
+                    label="Authorised Person"
+                    value={form.authorisedPerson}
+                    onChange={handleChange("authorisedPerson")}
+                    required
+                    disabled={formLoading}
+                  />
+                </MDBCol>
+                <MDBCol md="6" className="mb-3">
+                  <MDBInput
+                    label="Authorised Person Designation"
+                    value={form.authorisedPersonDesignation}
+                    onChange={handleChange("authorisedPersonDesignation")}
+                    required
+                    disabled={formLoading}
+                  />
+                </MDBCol>
                 <MDBCol md="12" className="mb-3">
                   <MDBInput
                     label="Address"
@@ -206,6 +266,31 @@ const UserManagement = () => {
                     required
                     disabled={formLoading}
                   />
+                </MDBCol>
+                <MDBCol md="12" className="mb-3">
+                  <div className="d-flex align-items-center gap-3 flex-wrap">
+                    <MDBBtn
+                      color="secondary"
+                      type="button"
+                      disabled={formLoading}
+                      onClick={handleGenerateAgreement}
+                    >
+                      Generate Partner Agreement
+                    </MDBBtn>
+                    {showAgreement && (
+                      <ParterAgreement
+                        userName={form.name}
+                        completeAddress={form.address}
+                        gstNumber={form.gstNumber}
+                        pincode={form.pincode}
+                        city={form.city}
+                        state={form.state}
+                        phoneNumber={form.phoneNumber}
+                        email={form.email}
+                        setBlob={setPaBlob}
+                      />
+                    )}
+                  </div>
                 </MDBCol>
               </MDBRow>
               <div className="d-flex justify-content-end">
@@ -256,12 +341,13 @@ const UserManagement = () => {
                     <th>GST</th>
                     <th>City</th>
                     <th>State</th>
+                    <th>Partner Agreement</th>
                   </tr>
                 </MDBTableHead>
                 <MDBTableBody>
                   {userRows.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="text-center py-4 text-muted">
+                      <td colSpan="8" className="text-center py-4 text-muted">
                         No users available
                       </td>
                     </tr>
@@ -279,6 +365,24 @@ const UserManagement = () => {
                         <td>{user.gstNumber || "-"}</td>
                         <td>{user.city || "-"}</td>
                         <td>{user.state || "-"}</td>
+                        <td>
+                          {user.paUrl ? (
+                            <div className="d-flex gap-2">
+                              <a
+                                href={user.paUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                View
+                              </a>
+                              <a href={user.paUrl} download>
+                                Download
+                              </a>
+                            </div>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
                       </tr>
                     ))
                   )}

@@ -1,5 +1,13 @@
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
+} = require('@aws-sdk/client-s3');
+const crypto = require('crypto');
+const path = require('path');
 const User = require('../models/User');
 const { Nalco } = require('../models/Order');
 require('dotenv').config();
@@ -42,6 +50,44 @@ const findUserByPhoneNumbers = (phoneNumbers, excludeUserId) => {
   return User.findOne(query);
 };
 
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || '',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+});
+
+const buildS3PublicUrl = (bucket, region, key) => {
+  const baseUrl = process.env.AWS_S3_BASE_URL || '';
+  return `${baseUrl}/${key}`;
+};
+
+const deleteExistingPaFiles = async (bucket, prefix) => {
+  let continuationToken;
+  do {
+    const response = await s3Client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      })
+    );
+
+    const keys = (response.Contents || []).map((item) => ({ Key: item.Key }));
+    if (keys.length) {
+      await s3Client.send(
+        new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: { Objects: keys, Quiet: true },
+        })
+      );
+    }
+
+    continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
+  } while (continuationToken);
+};
+
 // API to store user data when they log in with mobile number
 const createUser = async (req, res) => {
   const {
@@ -54,10 +100,11 @@ const createUser = async (req, res) => {
     address,
     phoneNumber,
     phoneNumbers,
-    paUrl,
     authorizedPerson,
     authorizedPersonDesignation,
   } = req.body;
+
+  console.log(req.body, req.file, 'Request');
 
   const normalizedPhoneNumbers = normalizePhoneNumbers(phoneNumbers, phoneNumber);
   const primaryPhoneNumber = normalizedPhoneNumbers[0];
@@ -73,6 +120,32 @@ const createUser = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    let paUrl;
+    if (req.file) {
+      const bucket = process.env.AWS_S3_BUCKET || '';
+      const region = process.env.AWS_REGION || '';
+      if (!bucket || !region) {
+        return res.status(500).json({ message: 'S3 is not configured' });
+      }
+
+      const ext = path.extname(req.file.originalname || '').toLowerCase() || '.pdf';
+      const objectPrefix = `${primaryPhoneNumber}/`;
+      await deleteExistingPaFiles(bucket, objectPrefix);
+
+      const objectKey = `${objectPrefix}${crypto.randomUUID()}${ext}`;
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: objectKey,
+          Body: req.file.buffer,
+          ContentType: req.file.mimetype || 'application/pdf',
+          ACL: 'public-read'
+        })
+      );
+
+      paUrl = buildS3PublicUrl(bucket, region, objectKey);
+    }
+
     // Create a new user
     const newUser = new User({
       name,
@@ -84,9 +157,9 @@ const createUser = async (req, res) => {
       address,
       phoneNumber: primaryPhoneNumber,
       phoneNumbers: normalizedPhoneNumbers,
-      paUrl,
       authorizedPerson,
-      authorizedPersonDesignation
+      authorizedPersonDesignation,
+      paUrl,
     });
 
     // Save the new user

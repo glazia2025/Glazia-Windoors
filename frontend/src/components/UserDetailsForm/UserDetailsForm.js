@@ -5,7 +5,6 @@ import { MDBBtn, MDBContainer, MDBRow, MDBCol, MDBCard, MDBCardBody, MDBInput, M
 import './UserDetailsForm.css';
 import api from '../../utils/api';
 import ParterAgreement from './PartnerAgreement/PartnerAgreement';
-import { supabase } from '../../utils/supabase';
 
 const UserDetailsForm = ({ receivedPhoneNumber }) => {
   const [userName, setUserName] = useState('');
@@ -135,40 +134,36 @@ function getStateFromGST(gstin) {
           return;
         }
 
-         const { data, error } = await supabase
-          .storage
-          .from('pa')
-          .upload(userName, blob, {
-            cacheControl: '3600',
-            upsert: false
-          })
-          console.log(data, error, 'supabase logs');
-          if (data) {
-            const paUrl = `https://kttdnoylgmnftrulhieg.supabase.co/storage/v1/object/public/pa/${encodeURIComponent(data.path)}`;
-             try {
-              // Make API call to save user details
-              const body = {
-                name: userName,
-                email,
-                gstNumber,
-                city,
-                state,
-                address: completeAddress,
-                phoneNumber: phoneNumber || '',
-                pincode,
-                paUrl
-              }
-              
-              const response = await api.post('/user/register', body);
-              localStorage.setItem('authToken', response.data.token);
-              setMessage('User details saved successfully!');
-              console.log("from form");
-              navigate('/user/home');  // Redirect to the user's orders page or another page
-            } catch (error) {
-              setMessage('');
-              setErrorMessage('Failed to save details. Please try again.');
-            }
-          }
+        if (!blob) {
+          setErrorMessage('Partner Agreement is still generating. Please try again in a moment.');
+          return;
+        }
+
+        try {
+          const formData = new FormData();
+          formData.append('name', userName);
+          formData.append('email', email);
+          formData.append('gstNumber', gstNumber);
+          formData.append('city', city);
+          formData.append('state', state);
+          formData.append('address', completeAddress);
+          formData.append('phoneNumber', phoneNumber || '');
+          formData.append('pincode', pincode);
+
+          const pdfFile = new File([blob], 'partner-agreement.pdf', { type: 'application/pdf' });
+          formData.append('paPdf', pdfFile);
+
+          const response = await api.post('/user/register', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          localStorage.setItem('authToken', response.data.token);
+          setMessage('User details saved successfully!');
+          console.log("from form");
+          navigate('/user/home');  // Redirect to the user's orders page or another page
+        } catch (error) {
+          setMessage('');
+          setErrorMessage('Failed to save details. Please try again.');
+        }
     }
   };
 
