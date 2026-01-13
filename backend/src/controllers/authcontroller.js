@@ -190,6 +190,7 @@ const trackPhone = async (req, res) => {
     const newTrack = new TrackPhone({
       phone,
       reason,
+      status: 'new'
     });
 
     const savedTrack = await newTrack.save();
