@@ -2,16 +2,13 @@ const Product = require("../models/Profiles/Product");
 const HardwareOptions = require("../models/Hardware");
 const { escapeRegExp } = require("../utils/common");
 
-const DEFAULT_LIMIT = 20;
-const MAX_LIMIT = 50;
-
 const buildSapRegex = (value) => {
   return new RegExp(`^${escapeRegExp(value)}`, "i");
 };
 
 const globalSearch = async (req, res) => {
-  const { q, name, sapCode, limit } = req.query;
-  const term = (q || name || sapCode || "").trim();
+  const { search } = req.query;
+  const term = search.trim();
 
   if (!term) {
     return res
@@ -19,7 +16,7 @@ const globalSearch = async (req, res) => {
       .json({ message: "Provide q, name, or sapCode to search" });
   }
 
-  const parsedLimit = Math.min(Number(limit) || DEFAULT_LIMIT, MAX_LIMIT);
+  const parsedLimit = Math.min(Number(4));
   const useText = true;
 
   const orProduct = [
