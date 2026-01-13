@@ -186,6 +186,11 @@ const adminLogin = async (req, res) => {
 const trackPhone = async (req, res) => {
   const { phone, reason } = req.body;
 
+  const track = await TrackPhone.findOne({ phone });
+  if (track) {
+    return res.status(200).json({ message: 'Phone already tracked' });
+  }
+
   try {
     const newTrack = new TrackPhone({
       phone,

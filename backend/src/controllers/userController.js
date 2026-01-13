@@ -51,15 +51,15 @@ const findUserByPhoneNumbers = (phoneNumbers, excludeUserId) => {
 };
 
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || '',
+  region: process.env.AWS_REGION,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
 });
 
 const buildS3PublicUrl = (bucket, region, key) => {
-  const baseUrl = process.env.AWS_S3_BASE_URL || '';
+  const baseUrl = process.env.AWS_S3_BASE_URL;
   return `${baseUrl}/${key}`;
 };
 
@@ -122,8 +122,8 @@ const createUser = async (req, res) => {
 
     let paUrl;
     if (req.file) {
-      const bucket = process.env.AWS_S3_BUCKET || '';
-      const region = process.env.AWS_REGION || '';
+      const bucket = process.env.AWS_S3_BUCKET;
+      const region = process.env.AWS_REGION;
       if (!bucket || !region) {
         return res.status(500).json({ message: 'S3 is not configured' });
       }
