@@ -12,6 +12,9 @@ const singleHardwareSchema = new mongoose.Schema({
   image: { type: String, required: false },
 });
 
+singleHardwareSchema.index({ sapCode: 1 });
+singleHardwareSchema.index({ sapCode: "text", perticular: "text" });
+
 const HardwareOptions = mongoose.model('HardwareOptions', singleHardwareSchema, 'hardware');
 
 module.exports = HardwareOptions;

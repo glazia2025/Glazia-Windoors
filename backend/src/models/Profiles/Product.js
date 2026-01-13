@@ -16,4 +16,7 @@ const ProductSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+ProductSchema.index({ sapCode: 1 });
+ProductSchema.index({ sapCode: "text", part: "text", description: "text" });
+
 module.exports = mongoose.model("Product", ProductSchema);
