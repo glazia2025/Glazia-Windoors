@@ -25,10 +25,10 @@ const userSchema = new mongoose.Schema({
       }
     },
     required: false,
-    default: {
+    default: () => ({
       hardware: {},
       profiles: {}
-    },
+    }),
     authorizedPerson: { type: String, required: true, default: '' },
     authorizedPersonDesignation: { type: String, required: true, default: '' }
   }

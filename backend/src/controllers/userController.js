@@ -9,6 +9,8 @@ const {
 const crypto = require('crypto');
 const path = require('path');
 const User = require('../models/User');
+const HardwareOptions = require('../models/Hardware');
+const Category = require('../models/Profiles/Category');
 const { Nalco } = require('../models/Order');
 require('dotenv').config();
 
@@ -61,6 +63,60 @@ const s3Client = new S3Client({
 const buildS3PublicUrl = (bucket, region, key) => {
   const baseUrl = process.env.AWS_S3_BASE_URL;
   return `${baseUrl}/${key}`;
+};
+
+const normalizeLabels = (labels) => {
+  if (!Array.isArray(labels)) {
+    return [];
+  }
+  const uniqueLabels = new Set(
+    labels
+      .filter((label) => label !== undefined && label !== null)
+      .map((label) => String(label).trim())
+      .filter((label) => label.length > 0)
+  );
+  return Array.from(uniqueLabels);
+};
+
+const normalizePricingSource = (source) => {
+  if (!source) {
+    return {};
+  }
+  if (source instanceof Map) {
+    return Object.fromEntries(source);
+  }
+  return source;
+};
+
+const mergePricing = (labels, ...sources) => {
+  const merged = {};
+  labels.forEach((label) => {
+    merged[label] = 0;
+  });
+  sources.forEach((source) => {
+    const normalized = normalizePricingSource(source);
+    if (!normalized || typeof normalized !== 'object') {
+      return;
+    }
+    Object.entries(normalized).forEach(([key, value]) => {
+      if (value !== undefined) {
+        merged[key] = value;
+      }
+    });
+  });
+  return merged;
+};
+
+const getDynamicPricingLabels = async () => {
+  const [hardwareLabels, profileLabels] = await Promise.all([
+    HardwareOptions.distinct('subCategory'),
+    Category.distinct('name'),
+  ]);
+
+  return {
+    hardwareLabels: normalizeLabels(hardwareLabels),
+    profileLabels: normalizeLabels(profileLabels),
+  };
 };
 
 const deleteExistingPaFiles = async (bucket, prefix) => {
@@ -146,6 +202,12 @@ const createUser = async (req, res) => {
       paUrl = buildS3PublicUrl(bucket, region, objectKey);
     }
 
+    const { hardwareLabels, profileLabels } = await getDynamicPricingLabels();
+    const dynamicPricing = {
+      hardware: mergePricing(hardwareLabels),
+      profiles: mergePricing(profileLabels),
+    };
+
     // Create a new user
     const newUser = new User({
       name,
@@ -160,6 +222,7 @@ const createUser = async (req, res) => {
       authorizedPerson,
       authorizedPersonDesignation,
       paUrl,
+      dynamicPricing,
     });
 
     // Save the new user
@@ -334,6 +397,8 @@ const updateDynamicPricing = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    const { hardwareLabels, profileLabels } = await getDynamicPricingLabels();
+
     // Initialize dynamicPricing if it doesn't exist
     if (!user.dynamicPricing) {
       user.dynamicPricing = {
@@ -347,7 +412,16 @@ const updateDynamicPricing = async (req, res) => {
       if (typeof hardware !== 'object') {
         return res.status(400).json({ message: 'Hardware pricing must be an object' });
       }
-      user.dynamicPricing.hardware = hardware;
+      user.dynamicPricing.hardware = mergePricing(
+        hardwareLabels,
+        user.dynamicPricing.hardware,
+        hardware
+      );
+    } else {
+      user.dynamicPricing.hardware = mergePricing(
+        hardwareLabels,
+        user.dynamicPricing.hardware
+      );
     }
 
     // Update profiles pricing
@@ -355,7 +429,16 @@ const updateDynamicPricing = async (req, res) => {
       if (typeof profiles !== 'object') {
         return res.status(400).json({ message: 'Profiles pricing must be an object' });
       }
-      user.dynamicPricing.profiles = profiles;
+      user.dynamicPricing.profiles = mergePricing(
+        profileLabels,
+        user.dynamicPricing.profiles,
+        profiles
+      );
+    } else {
+      user.dynamicPricing.profiles = mergePricing(
+        profileLabels,
+        user.dynamicPricing.profiles
+      );
     }
 
     await user.save();
@@ -385,9 +468,10 @@ const getDynamicPricing = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const dynamicPricing = user.dynamicPricing || {
-      hardware: {},
-      profiles: {}
+    const { hardwareLabels, profileLabels } = await getDynamicPricingLabels();
+    const dynamicPricing = {
+      hardware: mergePricing(hardwareLabels, user.dynamicPricing?.hardware),
+      profiles: mergePricing(profileLabels, user.dynamicPricing?.profiles),
     };
 
     res.status(200).json({
