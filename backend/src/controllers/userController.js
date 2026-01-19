@@ -11,6 +11,7 @@ const path = require('path');
 const User = require('../models/User');
 const HardwareOptions = require('../models/Hardware');
 const Category = require('../models/Profiles/Category');
+const Size = require('../models/Profiles/Size');
 const { Nalco } = require('../models/Order');
 require('dotenv').config();
 
@@ -108,14 +109,35 @@ const mergePricing = (labels, ...sources) => {
 };
 
 const getDynamicPricingLabels = async () => {
-  const [hardwareLabels, profileLabels] = await Promise.all([
+  const [hardwareLabels, profileCategories, profileSizes] = await Promise.all([
     HardwareOptions.distinct('subCategory'),
-    Category.distinct('name'),
+    Category.find({}, { name: 1 }).lean(),
+    Size.find({}, { label: 1, categoryId: 1 }).lean(),
   ]);
+
+  const categoryNameById = new Map(
+    profileCategories
+      .filter((category) => category?.name)
+      .map((category) => [String(category._id), category.name])
+  );
+
+  const sizeLabels = profileSizes
+    .map((size) => {
+      const sizeLabel = size?.label ? String(size.label).trim() : '';
+      if (!sizeLabel) {
+        return null;
+      }
+      const categoryName = categoryNameById.get(String(size.categoryId));
+      return categoryName ? `${categoryName} - ${sizeLabel}` : sizeLabel;
+    })
+    .filter((label) => label);
 
   return {
     hardwareLabels: normalizeLabels(hardwareLabels),
-    profileLabels: normalizeLabels(profileLabels),
+    profileLabels: normalizeLabels([
+      ...profileCategories.map((category) => category?.name),
+      ...sizeLabels,
+    ]),
   };
 };
 
