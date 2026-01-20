@@ -294,8 +294,17 @@ const getUser = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    const { hardwareLabels, profileLabels } = await getDynamicPricingLabels();
+    const dynamicPricing = {
+      hardware: mergePricing(hardwareLabels, user.dynamicPricing?.hardware),
+      profiles: mergePricing(profileLabels, user.dynamicPricing?.profiles),
+    };
+
+    const userResponse = user.toObject();
+    userResponse.dynamicPricing = dynamicPricing;
+
     // Send the user data in the response
-    res.status(200).json({ user });
+    res.status(200).json({ user: userResponse });
   } catch (error) {
     console.error('Error verifying token or fetching user:', error);
     if (error.name === 'TokenExpiredError') {
