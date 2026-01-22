@@ -227,6 +227,7 @@ const OrderList = ({ selectedStatus }) => {
               <thead>
                 <tr>
                   <th>Order ID</th>
+                  <th>User Name</th>
                   <th>Items</th>
                   <th>Delivery Type</th>
                   <th>Status</th>
@@ -239,6 +240,7 @@ const OrderList = ({ selectedStatus }) => {
                 {orders.map((order) => (
                   <tr key={order._id} className="bg-light">
                     <td>#{order._id.slice(0, 4)}...{order._id.slice(-4)}</td>
+                    <td>{order.user.name}</td>
                     <td>
                       {order.products[0].description}
                       {order.products.length > 1 &&
