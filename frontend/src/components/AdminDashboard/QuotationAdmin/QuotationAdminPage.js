@@ -107,6 +107,8 @@ const QuotationAdminPage = () => {
     series: "",
     description: "",
     userId: "",
+    phone: "",
+
   });
 
   const filteredSeries = useMemo(
@@ -215,25 +217,35 @@ const QuotationAdminPage = () => {
     }
   };
 
-  const fetchQuotations = async (overrideFilters = {}) => {
-    const filters = { ...quotationFilters, ...overrideFilters };
-    const params = buildQueryParams({
-      systemType: filters.systemType || undefined,
-      series: filters.series || undefined,
-      description: filters.description || undefined,
-      userId: filters.userId || undefined,
-    });
+  
+const fetchQuotations = async (overrideFilters = {}) => {
+  const filters = { ...quotationFilters, ...overrideFilters };
 
-    try {
-      const { data } = await api.get(
-        `${BASE_API_URL}/quotations${params}`,
-        authConfig
-      );
-      setQuotations(data.quotations || []);
-    } catch (error) {
-      console.error("Unable to load quotations", error);
-    }
-  };
+  const query = new URLSearchParams();
+
+  if (filters.phone && filters.phone.trim() !== "") {
+    query.append("phone", filters.phone.trim());
+  }
+
+  const url =
+    query.toString()
+      ? `${BASE_API_URL}/admin/quotations?${query.toString()}`
+      : `${BASE_API_URL}/admin/quotations`;
+
+  try {
+    const { data } = await api.get(url, authConfig);
+    setQuotations(data.quotations || []);
+  } catch (error) {
+    console.error("Unable to load quotations", error);
+  }
+};
+
+
+
+
+
+
+
 
   const refreshAllMasterData = async () => {
     await Promise.all([
@@ -1719,52 +1731,20 @@ const QuotationAdminPage = () => {
       </div>
 
       <div className="qa-form qa-filter-grid">
+       
         <input
-          type="text"
-          placeholder="System type"
-          value={quotationFilters.systemType}
-          onChange={(e) =>
-            setQuotationFilters((prev) => ({
-              ...prev,
-              systemType: e.target.value,
-            }))
-          }
-        />
-        <input
-          type="text"
-          placeholder="Series"
-          value={quotationFilters.series}
-          onChange={(e) =>
-            setQuotationFilters((prev) => ({
-              ...prev,
-              series: e.target.value,
-            }))
-          }
-        />
-        <input
-          type="text"
-          placeholder="Description"
-          value={quotationFilters.description}
-          onChange={(e) =>
-            setQuotationFilters((prev) => ({
-              ...prev,
-              description: e.target.value,
-            }))
-          }
-        />
-        <input
-          type="text"
-          placeholder="User ID (optional)"
-          value={quotationFilters.userId}
-          onChange={(e) =>
-            setQuotationFilters((prev) => ({
-              ...prev,
-              userId: e.target.value,
-            }))
-          }
-        />
+  type="text"
+  placeholder="Phone number"
+  value={quotationFilters.phone}
+  onChange={(e) =>
+    setQuotationFilters((prev) => ({
+      ...prev,
+      phone: e.target.value,
+    }))
+  }
+/>
         <div className="qa-form-actions">
-          <MDBBtn color="primary" size="sm" onClick={fetchQuotations}>
+          <MDBBtn color="primary" size="sm"  onClick={() => fetchQuotations({ ...quotationFilters})}>
             <MDBIcon fas icon="search" className="me-1" />
             Apply filters
           </MDBBtn>
@@ -1777,6 +1757,8 @@ const QuotationAdminPage = () => {
                 series: "",
                 description: "",
                 userId: "",
+                phone: "",
+
               };
               setQuotationFilters(cleared);
               fetchQuotations(cleared);
@@ -1788,48 +1770,75 @@ const QuotationAdminPage = () => {
       </div>
 
       <div className="qa-table-wrapper">
+        {/* // new table add */}
         <table className="qa-table">
-          <thead>
-            <tr>
-              <th>Ref</th>
-              <th>System / Series</th>
-              <th>Description</th>
-              <th>Qty</th>
-              <th>Amount</th>
-              <th>User</th>
-              <th>Location</th>
-              <th>Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {quotations.map((quote) => (
-              <tr key={quote._id}>
-                <td className="qa-title">{quote.refCode || "—"}</td>
-                <td>
-                  <div className="qa-title">{quote.systemType}</div>
-                  <div className="qa-meta">{quote.series}</div>
-                </td>
-                <td>{quote.description}</td>
-                <td>{quote.quantity}</td>
-                <td>
-                  <strong>{quote.amount}</strong>
-                </td>
-                <td className="qa-meta">
-                  {quote.user || quote.userId || "N/A"}
-                </td>
-                <td className="qa-meta">{quote.location || "—"}</td>
-                <td className="qa-meta">
-                  {quote.createdAt
-                    ? new Date(quote.createdAt).toLocaleDateString()
-                    : "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!quotations.length && (
-          <div className="qa-empty">No quotations match the filters.</div>
-        )}
+  <thead>
+    <tr>
+      <th>Quotation ID</th>
+      <th>Customer</th>
+      <th>Date</th>
+      <th>Profit (%)</th>
+      <th>Amount (₹)</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {quotations?.length > 0 ? (
+      quotations.map((quote) => (
+        <tr key={quote._id}>
+          {/* QUOTATION ID */}
+          <td className="qa-title">
+            {quote.generatedId || "—"}
+          </td>
+
+          {/* CUSTOMER */}
+          <td>
+            <div className="qa-title">
+              {quote.customerDetails?.name || "—"}
+            </div>
+            {quote.customerDetails?.email && (
+              <div className="qa-meta">
+                {quote.customerDetails.email}
+              </div>
+            )}
+          </td>
+
+          {/* DATE */}
+          <td className="qa-meta">
+            {quote.quotationDetails?.date
+              ? new Date(quote.quotationDetails.date).toLocaleDateString()
+              : quote.createdAt
+              ? new Date(quote.createdAt).toLocaleDateString()
+              : "—"}
+          </td>
+
+          {/* PROFIT */}
+          <td className="qa-meta">
+            {quote.breakdown?.profitPercentage !== undefined
+              ? `${quote.breakdown.profitPercentage}%`
+              : "—"}
+          </td>
+
+          {/* AMOUNT */}
+          <td>
+            <strong>
+              {quote.breakdown?.totalAmount !== undefined
+                ? `₹ ${quote.breakdown.totalAmount.toLocaleString()}`
+                : "—"}
+            </strong>
+          </td>
+        </tr>
+      ))
+    ) : (
+      <tr>
+        <td colSpan={5} className="qa-meta" style={{ textAlign: "center" }}>
+          No quotations found
+        </td>
+      </tr>
+    )}
+  </tbody>
+</table>
+       
       </div>
     </div>
   );

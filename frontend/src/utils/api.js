@@ -4,8 +4,8 @@ import "react-toastify/dist/ReactToastify.css";
 import store from "../redux/store";
 import { startLoading, stopLoading } from "../redux/loadingSlice";
 
-// export const BASE_API_URL = "http://localhost:5000/api";
-export const BASE_API_URL = "https://api.glazia.in/api";
+ export const BASE_API_URL = "http://localhost:5555/api";
+// export const BASE_API_URL = "https://api.glazia.in/api";
 
 export const buildQueryParams = (params) => {
   let queryStr;
@@ -36,6 +36,25 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+// api.interceptors.request.use(
+//   (config) => {
+//     activeRequests += 1;
+//     if (activeRequests === 1) {
+//       store.dispatch(startLoading());
+//     }
+
+//     // 🔥 ADD THIS PART
+//     const token = localStorage.getItem("authToken");
+//     if (token) {
+//       config.headers.Authorization = `Bearer ${token}`;
+//     }
+
+//     return config;
+//   },
+//   (error) => Promise.reject(error)
+// );
+
+
 
 // Response interceptor
 api.interceptors.response.use(
