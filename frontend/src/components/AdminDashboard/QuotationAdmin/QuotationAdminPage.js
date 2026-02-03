@@ -102,14 +102,7 @@ const QuotationAdminPage = () => {
   });
   const [editingHandleOptionId, setEditingHandleOptionId] = useState(null);
 
-  const [quotationFilters, setQuotationFilters] = useState({
-    systemType: "",
-    series: "",
-    description: "",
-    userId: "",
-    phone: "",
-
-  });
+  const [phoneFilter, setphoneFilter] = useState("");
 
   const filteredSeries = useMemo(
     () =>
@@ -217,17 +210,12 @@ const QuotationAdminPage = () => {
     }
   };
 
-  
-const fetchQuotations = async (overrideFilters = {}) => {
-  const filters = { ...quotationFilters, ...overrideFilters };
-
+const fetchQuotations = async () => {
   const query = new URLSearchParams();
-
-  if (filters.phone && filters.phone.trim() !== "") {
-    query.append("phone", filters.phone.trim());
+  if (phoneFilter && phoneFilter.trim() !== "") {
+    query.append("phone", phoneFilter.trim());
   }
-
-  const url =
+   const url =
     query.toString()
       ? `${BASE_API_URL}/admin/quotations?${query.toString()}`
       : `${BASE_API_URL}/admin/quotations`;
@@ -239,13 +227,6 @@ const fetchQuotations = async (overrideFilters = {}) => {
     console.error("Unable to load quotations", error);
   }
 };
-
-
-
-
-
-
-
 
   const refreshAllMasterData = async () => {
     await Promise.all([
@@ -1735,16 +1716,14 @@ const fetchQuotations = async (overrideFilters = {}) => {
         <input
   type="text"
   placeholder="Phone number"
-  value={quotationFilters.phone}
-  onChange={(e) =>
-    setQuotationFilters((prev) => ({
-      ...prev,
-      phone: e.target.value,
-    }))
+  value={phoneFilter}
+  onChange={(e) =>setphoneFilter(e.target.value)
+
+   
   }
 />
         <div className="qa-form-actions">
-          <MDBBtn color="primary" size="sm"  onClick={() => fetchQuotations({ ...quotationFilters})}>
+          <MDBBtn color="primary" size="sm"  onClick={() => fetchQuotations()}>
             <MDBIcon fas icon="search" className="me-1" />
             Apply filters
           </MDBBtn>
@@ -1752,16 +1731,8 @@ const fetchQuotations = async (overrideFilters = {}) => {
             color="light"
             size="sm"
             onClick={() => {
-              const cleared = {
-                systemType: "",
-                series: "",
-                description: "",
-                userId: "",
-                phone: "",
-
-              };
-              setQuotationFilters(cleared);
-              fetchQuotations(cleared);
+             setphoneFilter("");
+              fetchQuotations();
             }}
           >
             Clear
