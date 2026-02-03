@@ -528,6 +528,7 @@ const listUsers = async (req, res) => {
       state: 1,
       gstNumber: 1,
       dynamicPricing: 1,
+      createdAt: 1,
     }).sort({ name: 1 });
 
     res.status(200).json({ users });
