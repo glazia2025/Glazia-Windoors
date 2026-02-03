@@ -205,9 +205,6 @@ const getDescriptions = async (req, res) => {
       .lean();
 
     console.log('systemDoc, seriesDoc', systemDoc, seriesDoc);
-
-    
-
     const rateDocs = await BaseRate.find(
       { systemType, series },
       "description rates"
@@ -367,7 +364,6 @@ const createQuotation = async (req, res) => {
     res.status(500).json({ message: "Error creating quotation" });
   }
 };
-
 const listQuotations = async (req, res) => {
   const { systemType, series, description } = req.query;
   const filter = {};
