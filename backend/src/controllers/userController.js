@@ -17,31 +17,6 @@ require('dotenv').config();
 
 // Secret for JWT (you should store this in your .env file)
 const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key'; // Replace with a more secure secret
-// ---------------- date for old users (OLD USERS) ----------------
-const addCreatedAtToOldUsers = async () => {
-  try {
-    const fixedDate = new Date("2026-02-03T00:00:00.000Z");
-    console.log(fixedDate);
-
-    const result = await User.updateMany(
-      {}, //  sab users
-      {
-        $set: {
-          createdAt: fixedDate,
-          updatedAt: fixedDate,
-        },
-      }
-    );
-
-    console.log("Users updated with default createdAt:", result.modifiedCount);
-  } catch (error) {
-    console.error("Error updating createdAt:", error);
-  }
-};
-
-
-// ---------------------------------------------------------------
-
 
 const normalizePhoneNumbers = (phoneNumbers, phoneNumber) => {
   const rawNumbers = [];
@@ -544,7 +519,6 @@ const getDynamicPricing = async (req, res) => {
 // List all users for admin with basic details and dynamic pricing summary
 const listUsers = async (req, res) => {
   try {
-    await addCreatedAtToOldUsers();
     const users = await User.find({}, {
       name: 1,
       email: 1,
@@ -581,7 +555,7 @@ const createTransporter = () => {
 const sendContactMail = async (firstName, lastName, email, phoneNumber, company, subject, message) => {
   try {
     const transporter = createTransporter();
-
+    
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: 'sales@glazia.in',
