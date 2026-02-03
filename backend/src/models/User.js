@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema({
   phoneNumber: { type: String, required: true, unique: true }, // This is the primary mobile number for login
   phoneNumbers: { type: [String], default: [] }, // Additional login numbers (includes primary)
   paUrl: {type: String, required: false, default: null, unique: true},
+
+  
   dynamicPricing: {
     type: {
       hardware: {
@@ -32,7 +34,13 @@ const userSchema = new mongoose.Schema({
     authorizedPerson: { type: String, required: true, default: '' },
     authorizedPersonDesignation: { type: String, required: true, default: '' }
   }
-});
+},
+{
+    timestamps: true //  NEW USERS AUTO HANDLE
+  }
+
+
+);
 
 userSchema.index({ phoneNumbers: 1 }, { unique: true });
 
