@@ -205,9 +205,6 @@ const getDescriptions = async (req, res) => {
       .lean();
 
     console.log('systemDoc, seriesDoc', systemDoc, seriesDoc);
-
-    
-
     const rateDocs = await BaseRate.find(
       { systemType, series },
       "description rates"
@@ -368,59 +365,28 @@ const createQuotation = async (req, res) => {
   }
 };
 const listQuotations = async (req, res) => {
+  const { systemType, series, description } = req.query;
+  const filter = {};
+
+  if (req.user?.role !== "admin") {
+    filter.user = req.user?.userId;
+  }
+
+  if (systemType) filter.systemType = systemType;
+  if (series) filter.series = series;
+  if (description) filter.description = description;
+
   try {
-    //  safety check
-    if (!req.user?.userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const { systemType, series, description } = req.query;
-
-    // 👤 normal user → sirf apni quotations
-    let quotations = await Quotation.find({
-      user: req.user.userId,
-    })
-      .populate("user", "name phoneNumber email")
+    const quotations = await Quotation.find(filter)
       .sort({ createdAt: -1 })
       .lean();
-
-    // 🔍 item-level filters (JS level – safe & clear)
-    if (systemType || series || description) {
-      quotations = quotations.filter((q) =>
-        q.items?.some((item) => {
-          if (
-            systemType &&
-            !item.systemType?.toLowerCase().includes(systemType.toLowerCase())
-          ) {
-            return false;
-          }
-
-          if (
-            series &&
-            !item.series?.toLowerCase().includes(series.toLowerCase())
-          ) {
-            return false;
-          }
-
-          if (
-            description &&
-            !item.description
-              ?.toLowerCase()
-              .includes(description.toLowerCase())
-          ) {
-            return false;
-          }
-
-          return true;
-        })
-      );
-    }
     res.json({ quotations });
   } catch (error) {
-    console.error("Error fetching user quotations:", error);
+    console.error("Error fetching quotations:", error);
     res.status(500).json({ message: "Error fetching quotations" });
   }
 };
+
 const getQuotationById = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
