@@ -2,6 +2,10 @@ const express = require("express");
 const router = express.Router();
 const isAdmin = require("../middleware/adminMiddleware");
 const {
+  listQuotationsByPhone,
+} = require("../controllers/quotationAdminController.js");
+
+const {
   createSystem,
   listSystems,
   updateSystem,
@@ -73,5 +77,11 @@ router.post("/handle-options", isAdmin, createHandleOption);
 router.get("/handle-options", isAdmin, listHandleOptions);
 router.put("/handle-options/:id", isAdmin, updateHandleOption);
 router.delete("/handle-options/:id", isAdmin, deleteHandleOption);
+
+router.get(
+  "/",
+  isAdmin,
+  listQuotationsByPhone
+);
 
 module.exports = router;

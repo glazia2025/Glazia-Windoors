@@ -367,173 +367,60 @@ const createQuotation = async (req, res) => {
     res.status(500).json({ message: "Error creating quotation" });
   }
 };
-// const listQuotations = async (req, res) => {
-//   console.log("ROLE:", req.user?.role);
-// console.log("USER ID:", req.user?.userId);
-
-//   const { systemType, series, description, phone } = req.query;
-//   let filter = {};
-
-//   try {
-//     //  Non-admin → sirf apni quotations
-//     if (req.user?.role !== "admin") {
-//       filter.user = req.user.userId;
-//     }
-
-//     //  Admin → fabricator phoneNumber se filter
-//     if (phone && req.user?.role === "admin") {
-//       const user = await User.findOne({ phoneNumber: phone }).select("_id");
-
-//       if (!user) {
-//         return res.json({ quotations: [] }); // koi fabricator nahi mila
-//       }
-
-//       filter.user = user._id;
-//     }
-
-//     // optional filters
-//     if (systemType) filter.systemType = systemType;
-//     if (series) filter.series = series;
-//     if (description) filter.description = description;
-
-//     const quotations = await Quotation.find(filter)
-//       .populate("user", "name phoneNumber email")
-//       .sort({ createdAt: -1 })
-//       .lean();
-
-//     res.json({ quotations });
-//   } catch (error) {
-//     console.error("Error fetching quotations:", error);
-//     res.status(500).json({ message: "Error fetching quotations" });
-//   }
-// };
-// const listQuotations = async (req, res) => {
-//   const { systemType, series, description, phone } = req.query;
-
-//   try {
-//     let filter = {};
-
-//     // 👤 normal user
-//     if (req.user?.role !== "admin") {
-//       filter.user = req.user.userId;
-//     }
-
-//     // 👑 admin + fabricator phone
-//     if (req.user?.role === "admin" && phone) {
-//       const users = await User.find({
-//         phoneNumber: { $regex: phone, $options: "i" },
-//       }).select("_id");
-
-//       if (!users.length) {
-//         return res.json({ quotations: [] });
-//       }
-
-//       filter.user = { $in: users.map((u) => u._id) };
-//     }
-
-//     const itemFilter = {};
-
-//     if (systemType) {
-//       itemFilter.systemType = { $regex: systemType, $options: "i" };
-//     }
-//     if (series) {
-//       itemFilter.series = { $regex: series, $options: "i" };
-//     }
-//     if (description) {
-//       itemFilter.description = { $regex: description, $options: "i" };
-//     }
-
-//     if (Object.keys(itemFilter).length > 0) {
-//       filter.items = { $elemMatch: itemFilter };
-//     }
-
-//     console.log("FINAL FILTER 👉", JSON.stringify(filter, null, 2));
-
-//     const quotations = await Quotation.find(filter)
-//       .populate("user", "name phoneNumber email")
-//       .sort({ createdAt: -1 })
-//       .lean();
-
-//     res.json({ quotations });
-//   } catch (error) {
-//     console.error("Error fetching quotations:", error);
-//     res.status(500).json({ message: "Error fetching quotations" });
-//   }
-// };
 const listQuotations = async (req, res) => {
-  console.log(" API HIT");
-console.log("ROLE =", req.user?.role);
-console.log("QUERY =", req.query);
-
-  const { systemType, series, description, phone } = req.query;
-
   try {
-    let filter = {};
-
-    //  admin + fabricator phone
-    if (req.user?.role === "admin" && phone) {
-      const users = await User.find({
-        phoneNumber: { $regex: phone, $options: "i" },
-      }).select("_id");
-
-      if (!users.length) {
-        return res.json({ quotations: [] });
-      }
-
-      filter.user = { $in: users.map((u) => u._id) };
+    //  safety check
+    if (!req.user?.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    //  normal user
-    if (req.user?.role !== "admin") {
-      filter.user = req.user.userId;
-    }
+    const { systemType, series, description } = req.query;
 
-    //  STEP 1: Mongo se base quotations lao
-    let quotations = await Quotation.find(filter)
+    // 👤 normal user → sirf apni quotations
+    let quotations = await Quotation.find({
+      user: req.user.userId,
+    })
       .populate("user", "name phoneNumber email")
       .sort({ createdAt: -1 })
       .lean();
 
-    //  STEP 2: JS level item filtering (SAFE)
+    // 🔍 item-level filters (JS level – safe & clear)
     if (systemType || series || description) {
       quotations = quotations.filter((q) =>
         q.items?.some((item) => {
           if (
             systemType &&
             !item.systemType?.toLowerCase().includes(systemType.toLowerCase())
-          )
+          ) {
             return false;
+          }
 
           if (
             series &&
             !item.series?.toLowerCase().includes(series.toLowerCase())
-          )
+          ) {
             return false;
+          }
 
           if (
             description &&
             !item.description
               ?.toLowerCase()
               .includes(description.toLowerCase())
-          )
+          ) {
             return false;
+          }
 
           return true;
         })
       );
     }
-
     res.json({ quotations });
   } catch (error) {
-    console.error("Error fetching quotations:", error);
+    console.error("Error fetching user quotations:", error);
     res.status(500).json({ message: "Error fetching quotations" });
   }
 };
-// 
-
-
-
-
 const getQuotationById = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
