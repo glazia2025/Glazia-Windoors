@@ -1745,8 +1745,10 @@ const fetchQuotations = async () => {
         <table className="qa-table">
   <thead>
     <tr>
+      <th>S.No</th>
       <th>Quotation ID</th>
       <th>Customer</th>
+      <th>User</th>
       <th>Date</th>
       <th>Profit (%)</th>
       <th>Amount (₹)</th>
@@ -1755,8 +1757,13 @@ const fetchQuotations = async () => {
 
   <tbody>
     {quotations?.length > 0 ? (
-      quotations.map((quote) => (
+      quotations.map((quote,index) => (
         <tr key={quote._id}>
+
+          {/* Serial nummber */}
+          <td className="qa-meta">
+            {index+1}
+          </td>
           {/* QUOTATION ID */}
           <td className="qa-title">
             {quote.generatedId || "—"}
@@ -1773,7 +1780,10 @@ const fetchQuotations = async () => {
               </div>
             )}
           </td>
-
+          {/* Username */}
+          <td className="qa-title">
+          {quote.user?.name || "—"}
+        </td>
           {/* DATE */}
           <td className="qa-meta">
             {quote.quotationDetails?.date
