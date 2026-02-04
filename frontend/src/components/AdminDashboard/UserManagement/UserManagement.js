@@ -332,62 +332,54 @@ const UserManagement = () => {
               </div>
             ) : (
               <MDBTable responsive hover className="mb-0">
-                <MDBTableHead className="bg-light">
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Additional Phones</th>
-                    <th>GST</th>
-                    <th>City</th>
-                    <th>State</th>
-                    <th>Partner Agreement</th>
-                  </tr>
-                </MDBTableHead>
-                <MDBTableBody>
-                  {userRows.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" className="text-center py-4 text-muted">
-                        No users available
-                      </td>
-                    </tr>
-                  ) : (
-                    userRows.map((user) => (
-                      <tr key={user._id}>
-                        <td>{user.name}</td>
-                        <td>{user.email}</td>
-                        <td>{user.phoneNumber}</td>
-                        <td>
-                          {(user.phoneNumbers || [])
-                            .filter((num) => num !== user.phoneNumber)
-                            .join(", ") || "-"}
-                        </td>
-                        <td>{user.gstNumber || "-"}</td>
-                        <td>{user.city || "-"}</td>
-                        <td>{user.state || "-"}</td>
-                        <td>
-                          {user.paUrl ? (
-                            <div className="d-flex gap-2">
-                              <a
-                                href={user.paUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                View
-                              </a>
-                              <a href={user.paUrl} download>
-                                Download
-                              </a>
-                            </div>
-                          ) : (
-                            "-"
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </MDBTableBody>
-              </MDBTable>
+  <MDBTableHead className="bg-light">
+    <tr>
+      <th>S.No</th>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Phone</th>
+      <th>Additional Phones</th>
+      <th>GST</th>
+      <th>City</th>
+      <th>State</th>
+      <th>Created At</th>
+    </tr>
+  </MDBTableHead>
+
+  <MDBTableBody>
+    {userRows.length === 0 ? (
+      <tr>
+        <td colSpan="9" className="text-center py-4 text-muted">
+          No users available
+        </td>
+      </tr>
+    ) : (
+      userRows.map((user, index) => ( 
+        <tr key={user._id}>
+          <td>{index + 1}</td>
+          <td>{user.name}</td>
+          <td>{user.email}</td>
+          <td>{user.phoneNumber}</td>
+          <td>
+            {(user.phoneNumbers || [])
+              .filter((num) => num !== user.phoneNumber)
+              .join(", ") || "-"}
+          </td>
+          <td>{user.gstNumber || "-"}</td>
+          <td>{user.city || "-"}</td>
+          <td>{user.state || "-"}</td>
+          <td>
+            {user.createdAt
+              ? new Date(user.createdAt).toLocaleDateString()
+              : "-"}
+          </td>
+        </tr>
+      ))
+    )}
+  </MDBTableBody>
+</MDBTable>
+
+
             )}
           </MDBCardBody>
         </MDBCard>
