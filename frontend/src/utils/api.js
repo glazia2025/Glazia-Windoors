@@ -36,25 +36,6 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 );
-// api.interceptors.request.use(
-//   (config) => {
-//     activeRequests += 1;
-//     if (activeRequests === 1) {
-//       store.dispatch(startLoading());
-//     }
-
-//     // 🔥 ADD THIS PART
-//     const token = localStorage.getItem("authToken");
-//     if (token) {
-//       config.headers.Authorization = `Bearer ${token}`;
-//     }
-
-//     return config;
-//   },
-//   (error) => Promise.reject(error)
-// );
-
-
 
 // Response interceptor
 api.interceptors.response.use(
