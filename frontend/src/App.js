@@ -40,6 +40,8 @@ import UserManagement from "./components/AdminDashboard/UserManagement/UserManag
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isSliderOpen, setIsSliderOpen] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+
 
   const navigate = useNavigate();
   const isLoading = useSelector((state) => state.loader.isLoading);
@@ -53,26 +55,13 @@ function App() {
     if (decoded) {
       setUserRole(decoded.role);
       setIsLoggedIn(true);
-
-      if (isInitialLoad) {
-        console.log("culrp");
-        if (decoded.role === "admin") {
-          navigate("/admin/dashboard/orders");
-        } else {
-          navigate("/user/home");
-        }
-        setIsInitialLoad(false);
-      }
     } else {
       setIsLoggedIn(false);
-      if (!isInitialLoad) {
-        navigate(
-          localStorage.getItem("userRole") === "admin" ? "/admin/login" : "/"
-        );
-      }
       setUserRole(null);
     }
-  }, [navigate]);
+
+    setAuthChecked(true); //  VERY IMPORTANT
+  }, []);
 
   const setUserRole = (role) => {
     localStorage.setItem("userRole", role);
@@ -105,7 +94,9 @@ function App() {
       }
     }
   };
-
+  if (!authChecked) {
+    return null; // ya loader
+  }
   return (
     <div style={{ overflowX: "hidden", fontFamily: "Nunito Sans" }}>
       <ToastContainer
@@ -164,7 +155,7 @@ function App() {
                 path="/about"
                 element={<AboutUsPage setUserRole={setUserRole} />}
               />
-               <Route
+              <Route
                 path="/products_and_services"
                 element={<ProductsServicesPage setUserRole={setUserRole} />}
               />
