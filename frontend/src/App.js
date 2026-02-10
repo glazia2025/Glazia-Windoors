@@ -135,6 +135,22 @@ function App() {
       )}
       <div className="app-container position-relative">
         <Routes>
+          <Route
+            path="/"
+            element={
+              isLoggedIn ? (
+                localStorage.getItem("userRole") === "admin" ? (
+                  <Navigate to="/admin/dashboard/orders" replace />
+                ) : (
+                  <Navigate to="/user/home" replace />
+                )
+              ) : (
+                <UserLoginForm setUserRole={setUserRole} />
+              )
+            }
+          />
+
+
           {/* Admin Login Route */}
           {!isLoggedIn && (
             <>
@@ -147,10 +163,7 @@ function App() {
                   />
                 }
               />
-              <Route
-                path="/"
-                element={<UserLoginForm setUserRole={setUserRole} />}
-              />
+              
               <Route
                 path="/about"
                 element={<AboutUsPage setUserRole={setUserRole} />}
