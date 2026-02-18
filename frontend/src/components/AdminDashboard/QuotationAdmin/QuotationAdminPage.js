@@ -805,7 +805,8 @@ const fetchQuotations = async () => {
           <button
             key={tab.id}
             className={`qa-tab ${activeTab === tab.id ? "active" : ""}`}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => 
+              setActiveTab(tab.id) }
           >
             <MDBIcon fas icon={tab.icon} className="me-2" />
             {tab.label}
