@@ -35,6 +35,8 @@ const entriesFromMap = (value) => Object.entries(toPlainObject(value));
 const GLOBAL_OPTION_TYPES = ["colorFinish", "meshType", "glassSpec"];
 
 const QuotationAdminPage = () => {
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [activeTab, setActiveTab] = useState("quotations");
   const [systems, setSystems] = useState([]);
   const [series, setSeries] = useState([]);
@@ -44,6 +46,7 @@ const QuotationAdminPage = () => {
   const [handleRules, setHandleRules] = useState([]);
   const [handleOptions, setHandleOptions] = useState([]);
   const [quotations, setQuotations] = useState([]);
+  const [totalQuotations, setTotalQuotations] = useState(0);
 
   const [systemForm, setSystemForm] = useState({
     name: "",
@@ -101,8 +104,8 @@ const QuotationAdminPage = () => {
     silverRate: "",
   });
   const [editingHandleOptionId, setEditingHandleOptionId] = useState(null);
-
   const [phoneFilter, setphoneFilter] = useState("");
+  const [limit, setLimit] = useState(20);
 
   const filteredSeries = useMemo(
     () =>
@@ -210,23 +213,31 @@ const QuotationAdminPage = () => {
     }
   };
 
-const fetchQuotations = async () => {
-  const query = new URLSearchParams();
-  if (phoneFilter && phoneFilter.trim() !== "") {
-    query.append("phone", phoneFilter.trim());
-  }
-   const url =
-    query.toString()
-      ? `${BASE_API_URL}/admin/quotations?${query.toString()}`
-      : `${BASE_API_URL}/admin/quotations`;
 
-  try {
-    const { data } = await api.get(url, authConfig);
-    setQuotations(data.quotations || []);
-  } catch (error) {
-    console.error("Unable to load quotations", error);
-  }
-};
+  const fetchQuotations = async (customPage = page,
+    customPhone = phoneFilter,
+    customLimit = limit
+
+  ) => {
+    const query = new URLSearchParams();
+    query.append("page", customPage);
+    query.append("limit", customLimit);
+
+    if (customPhone && customPhone.trim() !== "") {
+      query.append("phone", customPhone.trim());
+    }
+
+    const url = `${BASE_API_URL}/admin/quotations?${query.toString()}`;
+
+    try {
+      const { data } = await api.get(url, authConfig);
+      setQuotations(data.quotations || []);
+      setTotalQuotations(data.total || 0);
+      setTotalPages(data.totalPages || 1);
+    } catch (error) {
+      console.error("Unable to load quotations", error);
+    }
+  };
 
   const refreshAllMasterData = async () => {
     await Promise.all([
@@ -242,8 +253,11 @@ const fetchQuotations = async () => {
 
   useEffect(() => {
     refreshAllMasterData();
-    fetchQuotations();
   }, []);
+
+  useEffect(() => {
+    fetchQuotations(page);
+  }, [page]);
 
   const resetSystemForm = () => {
     setSystemForm({
@@ -368,10 +382,10 @@ const fetchQuotations = async () => {
       descriptions:
         seriesItem.descriptions?.length > 0
           ? seriesItem.descriptions.map((item) => ({
-              name: item.name || "",
-              handleCount: item.handleCount ?? "",
-              handleTypes: (item.handleTypes || []).join(", "),
-            }))
+            name: item.name || "",
+            handleCount: item.handleCount ?? "",
+            handleTypes: (item.handleTypes || []).join(", "),
+          }))
           : [{ name: "", handleCount: "", handleTypes: "" }],
     });
   };
@@ -789,7 +803,7 @@ const fetchQuotations = async () => {
     ];
 
     const tabCounts = {
-      quotations: quotations.length,
+      quotations: totalQuotations,
       systems: systems.length,
       series: series.length,
       optionSets: optionSets.length,
@@ -805,8 +819,8 @@ const fetchQuotations = async () => {
           <button
             key={tab.id}
             className={`qa-tab ${activeTab === tab.id ? "active" : ""}`}
-            onClick={() => 
-              setActiveTab(tab.id) }
+            onClick={() =>
+              setActiveTab(tab.id)}
           >
             <MDBIcon fas icon={tab.icon} className="me-2" />
             {tab.label}
@@ -1713,18 +1727,21 @@ const fetchQuotations = async () => {
       </div>
 
       <div className="qa-form qa-filter-grid">
-       
-        <input
-  type="text"
-  placeholder="Phone number"
-  value={phoneFilter}
-  onChange={(e) =>setphoneFilter(e.target.value)
 
-   
-  }
-/>
+        <input
+          type="text"
+          placeholder="Phone number"
+          value={phoneFilter}
+          onChange={(e) => setphoneFilter(e.target.value)
+
+
+          }
+        />
         <div className="qa-form-actions">
-          <MDBBtn color="primary" size="sm"  onClick={() => fetchQuotations()}>
+          <MDBBtn color="primary" size="sm" onClick={() => {
+            setPage(1);
+            fetchQuotations(1)
+          }}>
             <MDBIcon fas icon="search" className="me-1" />
             Apply filters
           </MDBBtn>
@@ -1732,11 +1749,72 @@ const fetchQuotations = async () => {
             color="light"
             size="sm"
             onClick={() => {
-             setphoneFilter("");
-              fetchQuotations();
+              setphoneFilter("");
+              setPage(1);
+              fetchQuotations(1, "");
             }}
           >
             Clear
+          </MDBBtn>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            background: "#f8f9fa",
+            padding: "6px 12px",
+            borderRadius: "8px",
+          }}
+        >
+          <span
+            style={{
+              fontWeight: 500,
+              fontSize: "13px",
+              color: "#495057",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Rows per page
+          </span>
+
+          <select
+            value={limit}
+            onChange={(e) => setLimit(Number(e.target.value))}
+            style={{
+              width: "60px",
+              minWidth: "60px",
+              maxWidth: "60px",
+              padding: "4px 6px",
+              borderRadius: "6px",
+              border: "1px solid #ced4da",
+              fontSize: "13px",
+              height: "30px",
+            }}
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={15}>15</option>
+            <option value={20}>20</option>
+          </select>
+
+          <MDBBtn
+            size="sm"
+            color="primary"
+            style={{
+              padding: "5px 12px",
+              fontSize: "12px",
+              borderRadius: "6px",
+              height: "32px"
+            }}
+            onClick={() => {
+              const newLimit = Number(limit);
+              setPage(1);
+              fetchQuotations(1, phoneFilter, newLimit);
+            }}
+          >
+            Show
           </MDBBtn>
         </div>
       </div>
@@ -1744,83 +1822,98 @@ const fetchQuotations = async () => {
       <div className="qa-table-wrapper">
         {/* // new table add */}
         <table className="qa-table">
-  <thead>
-    <tr>
-      <th>S.No</th>
-      <th>Quotation ID</th>
-      <th>Customer</th>
-      <th>User</th>
-      <th>Date</th>
-      <th>Profit (%)</th>
-      <th>Amount (₹)</th>
-    </tr>
-  </thead>
+          <thead>
+            <tr>
+              <th>S.No</th>
+              <th>Quotation ID</th>
+              <th>Customer</th>
+              <th>User</th>
+              <th>Date</th>
+              <th>Profit (%)</th>
+              <th>Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {quotations?.length > 0 ? (
+              quotations.map((quote, index) => (
+                <tr key={quote._id}>
+                  {/* Serial nummber */}
+                  <td className="qa-meta">
+                    {(page - 1) * limit + index + 1}
+                  </td>
+                  {/* QUOTATION ID */}
+                  <td className="qa-title">
+                    {quote.generatedId || "—"}
+                  </td>
+                  {/* CUSTOMER */}
+                  <td>
+                    <div className="qa-title">
+                      {quote.customerDetails?.name || "—"}
+                    </div>
+                    {quote.customerDetails?.email && (
+                      <div className="qa-meta">
+                        {quote.customerDetails.email}
+                      </div>
+                    )}
+                  </td>
+                  {/* Username */}
+                  <td className="qa-title">
+                    {quote.user?.name || "—"}
+                  </td>
+                  {/* DATE */}
+                  <td className="qa-meta">
+                    {quote.quotationDetails?.date
+                      ? new Date(quote.quotationDetails.date).toLocaleDateString()
+                      : quote.createdAt
+                        ? new Date(quote.createdAt).toLocaleDateString()
+                        : "—"}
+                  </td>
 
-  <tbody>
-    {quotations?.length > 0 ? (
-      quotations.map((quote,index) => (
-        <tr key={quote._id}>
+                  {/* PROFIT */}
+                  <td className="qa-meta">
+                    {quote.breakdown?.profitPercentage !== undefined
+                      ? `${quote.breakdown.profitPercentage}%`
+                      : "—"}
+                  </td>
 
-          {/* Serial nummber */}
-          <td className="qa-meta">
-            {index+1}
-          </td>
-          {/* QUOTATION ID */}
-          <td className="qa-title">
-            {quote.generatedId || "—"}
-          </td>
-
-          {/* CUSTOMER */}
-          <td>
-            <div className="qa-title">
-              {quote.customerDetails?.name || "—"}
-            </div>
-            {quote.customerDetails?.email && (
-              <div className="qa-meta">
-                {quote.customerDetails.email}
-              </div>
+                  {/* AMOUNT */}
+                  <td>
+                    <strong>
+                      {quote.breakdown?.totalAmount !== undefined
+                        ? `₹ ${quote.breakdown.totalAmount.toLocaleString()}`
+                        : "—"}
+                    </strong>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={5} className="qa-meta" style={{ textAlign: "center" }}>
+                  No quotations found
+                </td>
+              </tr>
             )}
-          </td>
-          {/* Username */}
-          <td className="qa-title">
-          {quote.user?.name || "—"}
-        </td>
-          {/* DATE */}
-          <td className="qa-meta">
-            {quote.quotationDetails?.date
-              ? new Date(quote.quotationDetails.date).toLocaleDateString()
-              : quote.createdAt
-              ? new Date(quote.createdAt).toLocaleDateString()
-              : "—"}
-          </td>
+          </tbody>
+        </table>
+        <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
+          <MDBBtn
+            size="sm"
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+          >
+            Previous
+          </MDBBtn>
 
-          {/* PROFIT */}
-          <td className="qa-meta">
-            {quote.breakdown?.profitPercentage !== undefined
-              ? `${quote.breakdown.profitPercentage}%`
-              : "—"}
-          </td>
+          <span>Page {page} of {totalPages}</span>
 
-          {/* AMOUNT */}
-          <td>
-            <strong>
-              {quote.breakdown?.totalAmount !== undefined
-                ? `₹ ${quote.breakdown.totalAmount.toLocaleString()}`
-                : "—"}
-            </strong>
-          </td>
-        </tr>
-      ))
-    ) : (
-      <tr>
-        <td colSpan={5} className="qa-meta" style={{ textAlign: "center" }}>
-          No quotations found
-        </td>
-      </tr>
-    )}
-  </tbody>
-</table>
-       
+          <MDBBtn
+            size="sm"
+            disabled={page === totalPages}
+            onClick={() => setPage(page + 1)}
+          >
+            Next
+          </MDBBtn>
+        </div>
       </div>
     </div>
   );
@@ -1868,7 +1961,7 @@ const fetchQuotations = async () => {
           },
           {
             label: "Quotations",
-            value: quotations.length,
+            value: totalQuotations,
             icon: "file-invoice-dollar",
             tone: "cyan",
             note: "Filtered results",
