@@ -98,4 +98,14 @@ const quotationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+quotationSchema.index({ user: 1, createdAt: -1 });
+
+// Optional but useful for admin filtering:
+quotationSchema.index({ systemType: 1, createdAt: -1 });
+quotationSchema.index({ series: 1, createdAt: -1 });
+quotationSchema.index({ description: 1, createdAt: -1 });
+
+// If admin commonly filters by combos:
+quotationSchema.index({ systemType: 1, series: 1, createdAt: -1 });
+
 module.exports = mongoose.model("Quotation", quotationSchema);

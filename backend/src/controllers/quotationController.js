@@ -365,22 +365,37 @@ const createQuotation = async (req, res) => {
   }
 };
 const listQuotations = async (req, res) => {
-  const { systemType, series, description } = req.query;
-  const filter = {};
+  const { systemType, series, description, page = 1, limit = 20 } = req.query;
 
-  if (req.user?.role !== "admin") {
-    filter.user = req.user?.userId;
-  }
+  const filter = {};
+  if (req.user?.role !== "admin") filter.user = req.user?.userId;
 
   if (systemType) filter.systemType = systemType;
   if (series) filter.series = series;
   if (description) filter.description = description;
 
+  const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+  const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+  const skip = (pageNum - 1) * limitNum;
+
   try {
-    const quotations = await Quotation.find(filter)
-      .sort({ createdAt: -1 })
-      .lean();
-    res.json({ quotations });
+    const [quotations, total] = await Promise.all([
+      Quotation.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .select("_id user customerDetails quotationDetails breakdown generatedId createdAt updatedAt") // keep list light
+        .lean(),
+      Quotation.countDocuments(filter),
+    ]);
+
+    res.json({
+      quotations,
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    });
   } catch (error) {
     console.error("Error fetching quotations:", error);
     res.status(500).json({ message: "Error fetching quotations" });
