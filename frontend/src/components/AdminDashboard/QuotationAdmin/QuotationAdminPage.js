@@ -105,7 +105,7 @@ const QuotationAdminPage = () => {
   });
   const [editingHandleOptionId, setEditingHandleOptionId] = useState(null);
   const [phoneFilter, setphoneFilter] = useState("");
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(10);
 
   const filteredSeries = useMemo(
     () =>
