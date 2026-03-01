@@ -452,6 +452,30 @@ const updateQuotationById = async (req, res) => {
     res.status(500).json({ message: "Error fetching quotation" });
   }
 };
+const deleteQuotationById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid quotation id" });
+    }
+    const quotation = await Quotation.findById(id);
+    if (!quotation) {
+      return res.status(404).json({ message: "Quotation not found" });
+    }
+    // Role based check
+    if (
+      req.user?.role !== "admin" &&
+      quotation.user.toString() !== req.user.userId
+    ) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    await Quotation.findByIdAndDelete(id);
+    res.json({ message: "Quotation deleted successfully" });
+  } catch (error) {
+    console.error("Delete quotation error:", error);
+    res.status(500).json({ message: "Error deleting quotation" });
+  }
+};
 
 module.exports = {
   getSystems,
@@ -463,4 +487,5 @@ module.exports = {
   listQuotations,
   getQuotationById,
   updateQuotationById,
+  deleteQuotationById,
 };

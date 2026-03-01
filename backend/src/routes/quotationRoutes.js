@@ -12,6 +12,7 @@ const {
   listQuotations,
   getQuotationById,
   updateQuotationById,
+   deleteQuotationById,
 } = require("../controllers/quotationController");
 
 const {
@@ -33,5 +34,5 @@ router.get("/config", isUser, getQuotationConfig);
 router.post("/config", isUser, createOrUpdateQuotationConfig);
 router.get("/:id", isUser, getQuotationById);
 router.post("/:id", isUser, updateQuotationById);
-
+router.delete("/:id", isUser, deleteQuotationById);
 module.exports = router;
