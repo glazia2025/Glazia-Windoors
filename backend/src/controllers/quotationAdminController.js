@@ -416,16 +416,9 @@ const deleteHandleRule = async (req, res) => {
 const listQuotationsByPhone = async (req, res) => {
   console.log("ADMIN QUOTATION API HIT");
   console.log("QUERY =", req.query);
-<<<<<<< HEAD
-
-  const { phone, page = 1, limit = 20 } = req.query;
-  const currentPage = parseInt(page);
-  const perPage = parseInt(limit);
-=======
   const { phone, page = 1, limit = 20 } = req.query;
   const currentPage = Math.max(parseInt(page) || 1, 1);
 const perPage = Math.min(Math.max(parseInt(limit) || 20, 1), 100);
->>>>>>> 22a273d03de5db9ceda3a6594cfd24fedf12264b
   try {
     if (req.user?.role !== "admin") {
       return res.status(403).json({ message: "Forbidden" });
@@ -445,15 +438,8 @@ const perPage = Math.min(Math.max(parseInt(limit) || 20, 1), 100);
       }
       filter.user = { $in: users.map((u) => u._id) };
     }
-<<<<<<< HEAD
-
     //  Total count (for pagination)
     const total = await Quotation.countDocuments(filter);
-
-=======
-    //  Total count (for pagination)
-    const total = await Quotation.countDocuments(filter);
->>>>>>> 22a273d03de5db9ceda3a6594cfd24fedf12264b
     //  Paginated + lightweight data
     const quotations = await Quotation.find(filter)
       .select(
