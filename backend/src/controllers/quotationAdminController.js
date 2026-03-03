@@ -8,7 +8,6 @@ const HandleOption = require("../models/Quotation/HandleOption");
 const User = require("../models/User");
 const Quotation = require("../models/Quotation/Quotation");
 
-
 const { normalizeRateMap, restoreRateMap } = require("../utils/rateMapUtils");
 
 const normalizeColorMap = (input) =>
@@ -413,43 +412,61 @@ const deleteHandleRule = async (req, res) => {
   }
 };
 // -------- ADMIN QUOTATIONS (PHONE FILTER) --------
+
 const listQuotationsByPhone = async (req, res) => {
-  console.log(" ADMIN QUOTATION API HIT");
+  console.log("ADMIN QUOTATION API HIT");
   console.log("QUERY =", req.query);
 
-  const { phone } = req.query;
-
+  const { phone, page = 1, limit = 20 } = req.query;
+  const currentPage = parseInt(page);
+  const perPage = parseInt(limit);
   try {
     if (req.user?.role !== "admin") {
       return res.status(403).json({ message: "Forbidden" });
     }
-
     let filter = {};
-
     if (phone) {
       const users = await User.find({
         phoneNumber: { $regex: phone, $options: "i" },
       }).select("_id");
 
       if (!users.length) {
-        return res.json({ quotations: [] });
+        return res.json({
+          quotations: [],
+          total: 0,
+          page: currentPage,
+          totalPages: 0,
+        });
       }
 
       filter.user = { $in: users.map((u) => u._id) };
     }
 
+    //  Total count (for pagination)
+    const total = await Quotation.countDocuments(filter);
+
+    //  Paginated + lightweight data
     const quotations = await Quotation.find(filter)
+      .select(
+        "generatedId customerDetails breakdown quotationDetails createdAt user"
+      )
       .populate("user", "name phoneNumber email")
       .sort({ createdAt: -1 })
+      .limit(perPage)
+      .skip((currentPage - 1) * perPage)
       .lean();
+    res.json({
+      quotations,
+      total,
+      page: currentPage,
+      totalPages: Math.ceil(total / perPage),
+    });
 
-    res.json({ quotations });
   } catch (error) {
     console.error("Admin quotation error:", error);
     res.status(500).json({ message: "Error fetching quotations" });
   }
 };
-
 
 module.exports = {
   // systems
