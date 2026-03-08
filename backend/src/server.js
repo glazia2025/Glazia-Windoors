@@ -39,6 +39,7 @@ const userRoutes = require("./routes/userRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const quotationRoutes = require("./routes/quotationRoutes");
 const quotationAdminRoutes = require("./routes/quotationAdminRoutes");
+const userQuotationDataRoutes = require("./routes/userQuotationDataRoutes");
 
 // Use routes
 app.use("/api/auth", authRoutes);
@@ -47,6 +48,7 @@ app.use("/api/admin/quotations", quotationAdminRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/quotations", quotationRoutes);
+app.use("/api/user/quotation-data", userQuotationDataRoutes);
 
 
 // Root route for testing

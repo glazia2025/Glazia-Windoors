@@ -8,6 +8,9 @@ const AreaSlab = require("../models/Quotation/AreaSlab");
 const BaseRate = require("../models/Quotation/BaseRate");
 const HandleRule = require("../models/Quotation/HandleRule");
 const HandleOption = require("../models/Quotation/HandleOption");
+const UserOptionSet = require("../models/Quotation/UserOptionSet");
+const UserDescriptionRate = require("../models/Quotation/UserDescriptionRate");
+const jwt = require("jsonwebtoken");
 
 const numberOr = (value, fallback = 0) => {
   const asNumber = Number(value);
@@ -31,6 +34,26 @@ const mapToArray = (map) => {
     name,
     rate: numberOr(rate, 0),
   }));
+};
+
+const effectiveRateWithAdminFallback = (adminRate, userRate) => {
+  const parsedUserRate = Number(userRate);
+  if (!Number.isFinite(parsedUserRate) || parsedUserRate === 0) {
+    return numberOr(adminRate, 0);
+  }
+  return parsedUserRate;
+};
+
+const getOptionalUserId = (req) => {
+  try {
+    const authHeader = req.header("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "").trim();
+    if (!token) return null;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
+    return decoded?.userId || null;
+  } catch (_error) {
+    return null;
+  }
 };
 
 const buildQuotationPrefix = (name = "") => {
@@ -197,6 +220,7 @@ const getDescriptions = async (req, res) => {
   }
 
   try {
+    const userId = getOptionalUserId(req);
     const systemDoc = await System.findOne({ name: systemType }).lean();
     const seriesDoc = await Series.findOne(
       systemDoc ? { name: series, system: systemDoc._id } : { name: series }
@@ -210,6 +234,13 @@ const getDescriptions = async (req, res) => {
       "description rates"
     ).lean();
 
+    const userRateDocs = userId
+      ? await UserDescriptionRate.find(
+          { user: userId, systemType, series },
+          "description rates"
+        ).lean()
+      : [];
+
     console.log('rateDescriptions', rateDocs);
 
     const dbDescriptions = (seriesDoc?.descriptions || []).map(
@@ -219,6 +250,7 @@ const getDescriptions = async (req, res) => {
     const descriptionList = unique([
       ...dbDescriptions,
       ...rateDocs.map((item) => item.description),
+      ...userRateDocs.map((item) => item.description),
     ]);
 
     const handleRules = await HandleRule.find({
@@ -226,6 +258,11 @@ const getDescriptions = async (req, res) => {
     }).lean();
 
     const rateMap = rateDocs.reduce((acc, doc) => {
+      acc[doc.description] = doc.rates || [];
+      return acc;
+    }, {});
+
+    const userRateMap = userRateDocs.reduce((acc, doc) => {
       acc[doc.description] = doc.rates || [];
       return acc;
     }, {});
@@ -238,11 +275,16 @@ const getDescriptions = async (req, res) => {
         systemType,
         series
       );
+      const adminRates = Array.isArray(rateMap[item]) ? rateMap[item] : [0, 0, 0];
+      const userRates = Array.isArray(userRateMap[item]) ? userRateMap[item] : [0, 0, 0];
+      const effectiveRates = [0, 1, 2].map((idx) =>
+        effectiveRateWithAdminFallback(adminRates[idx], userRates[idx])
+      );
       return {
         name: item,
         handleTypes: handleInfo.types,
         defaultHandleCount: handleInfo.count,
-        baseRates: rateMap[item] || [],
+        baseRates: effectiveRates,
       };
     });
 
@@ -257,20 +299,52 @@ const getOptionLists = async (req, res) => {
   const { systemType } = req.query;
 
   try {
+    const userId = getOptionalUserId(req);
     const [colorFinishes, meshTypes, glassSpecs] = await Promise.all([
       fetchOptionValues("colorFinish", null),
       fetchOptionValues("meshType", null),
       fetchOptionValues("glassSpec", null),
     ]);
 
+    const userOptionSets = userId
+      ? await UserOptionSet.find({
+          user: userId,
+          type: { $in: ["colorFinish", "meshType", "glassSpec"] },
+        }).lean()
+      : [];
+
+      console.log('userOptionSets', userOptionSets);
+
+    const userOptionMap = userOptionSets.reduce((acc, row) => {
+      acc[row.type] = restoreRateMap(row.values);
+      return acc;
+    }, {});
+
+    console.log('userOptionMap', userOptionMap);
+
+    const mergeAdminAndUserRates = (adminItems, type) => {
+      const adminMap = adminItems.reduce((acc, row) => {
+        acc[row.name] = numberOr(row.rate, 0);
+        return acc;
+      }, {});
+      const userMap = userOptionMap[type] || {};
+      const names = unique([...Object.keys(adminMap), ...Object.keys(userMap)]).sort();
+      return names.map((name) => ({
+        name,
+        rate: Object.prototype.hasOwnProperty.call(adminMap, name)
+          ? effectiveRateWithAdminFallback(adminMap[name], userMap[name])
+          : numberOr(userMap[name], 0),
+      }));
+    };
+
     const handleOptions = systemType
       ? await HandleOption.find({ systemType }).lean()
       : [];
 
     res.json({
-      colorFinishes,
-      meshTypes,
-      glassSpecs,
+      colorFinishes: mergeAdminAndUserRates(colorFinishes, "colorFinish"),
+      meshTypes: mergeAdminAndUserRates(meshTypes, "meshType"),
+      glassSpecs: mergeAdminAndUserRates(glassSpecs, "glassSpec"),
       handleOptions: handleOptions.map((h) => ({
         name: h.name,
         colors: mapToArray(h.colors),
