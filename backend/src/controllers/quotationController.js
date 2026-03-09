@@ -8,6 +8,9 @@ const AreaSlab = require("../models/Quotation/AreaSlab");
 const BaseRate = require("../models/Quotation/BaseRate");
 const HandleRule = require("../models/Quotation/HandleRule");
 const HandleOption = require("../models/Quotation/HandleOption");
+const UserOptionSet = require("../models/Quotation/UserOptionSet");
+const UserDescriptionRate = require("../models/Quotation/UserDescriptionRate");
+const jwt = require("jsonwebtoken");
 
 const numberOr = (value, fallback = 0) => {
   const asNumber = Number(value);
@@ -31,6 +34,26 @@ const mapToArray = (map) => {
     name,
     rate: numberOr(rate, 0),
   }));
+};
+
+const effectiveRateWithAdminFallback = (adminRate, userRate) => {
+  const parsedUserRate = Number(userRate);
+  if (!Number.isFinite(parsedUserRate) || parsedUserRate === 0) {
+    return numberOr(adminRate, 0);
+  }
+  return parsedUserRate;
+};
+
+const getOptionalUserId = (req) => {
+  try {
+    const authHeader = req.header("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "").trim();
+    if (!token) return null;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
+    return decoded?.userId || null;
+  } catch (_error) {
+    return null;
+  }
 };
 
 const buildQuotationPrefix = (name = "") => {
@@ -197,6 +220,7 @@ const getDescriptions = async (req, res) => {
   }
 
   try {
+    const userId = getOptionalUserId(req);
     const systemDoc = await System.findOne({ name: systemType }).lean();
     const seriesDoc = await Series.findOne(
       systemDoc ? { name: series, system: systemDoc._id } : { name: series }
@@ -210,6 +234,13 @@ const getDescriptions = async (req, res) => {
       "description rates"
     ).lean();
 
+    const userRateDocs = userId
+      ? await UserDescriptionRate.find(
+          { user: userId, systemType, series },
+          "description rates"
+        ).lean()
+      : [];
+
     console.log('rateDescriptions', rateDocs);
 
     const dbDescriptions = (seriesDoc?.descriptions || []).map(
@@ -219,6 +250,7 @@ const getDescriptions = async (req, res) => {
     const descriptionList = unique([
       ...dbDescriptions,
       ...rateDocs.map((item) => item.description),
+      ...userRateDocs.map((item) => item.description),
     ]);
 
     const handleRules = await HandleRule.find({
@@ -226,6 +258,11 @@ const getDescriptions = async (req, res) => {
     }).lean();
 
     const rateMap = rateDocs.reduce((acc, doc) => {
+      acc[doc.description] = doc.rates || [];
+      return acc;
+    }, {});
+
+    const userRateMap = userRateDocs.reduce((acc, doc) => {
       acc[doc.description] = doc.rates || [];
       return acc;
     }, {});
@@ -238,11 +275,16 @@ const getDescriptions = async (req, res) => {
         systemType,
         series
       );
+      const adminRates = Array.isArray(rateMap[item]) ? rateMap[item] : [0, 0, 0];
+      const userRates = Array.isArray(userRateMap[item]) ? userRateMap[item] : [0, 0, 0];
+      const effectiveRates = [0, 1, 2].map((idx) =>
+        effectiveRateWithAdminFallback(adminRates[idx], userRates[idx])
+      );
       return {
         name: item,
         handleTypes: handleInfo.types,
         defaultHandleCount: handleInfo.count,
-        baseRates: rateMap[item] || [],
+        baseRates: effectiveRates,
       };
     });
 
@@ -257,20 +299,52 @@ const getOptionLists = async (req, res) => {
   const { systemType } = req.query;
 
   try {
+    const userId = getOptionalUserId(req);
     const [colorFinishes, meshTypes, glassSpecs] = await Promise.all([
       fetchOptionValues("colorFinish", null),
       fetchOptionValues("meshType", null),
       fetchOptionValues("glassSpec", null),
     ]);
 
+    const userOptionSets = userId
+      ? await UserOptionSet.find({
+          user: userId,
+          type: { $in: ["colorFinish", "meshType", "glassSpec"] },
+        }).lean()
+      : [];
+
+      console.log('userOptionSets', userOptionSets);
+
+    const userOptionMap = userOptionSets.reduce((acc, row) => {
+      acc[row.type] = restoreRateMap(row.values);
+      return acc;
+    }, {});
+
+    console.log('userOptionMap', userOptionMap);
+
+    const mergeAdminAndUserRates = (adminItems, type) => {
+      const adminMap = adminItems.reduce((acc, row) => {
+        acc[row.name] = numberOr(row.rate, 0);
+        return acc;
+      }, {});
+      const userMap = userOptionMap[type] || {};
+      const names = unique([...Object.keys(adminMap), ...Object.keys(userMap)]).sort();
+      return names.map((name) => ({
+        name,
+        rate: Object.prototype.hasOwnProperty.call(adminMap, name)
+          ? effectiveRateWithAdminFallback(adminMap[name], userMap[name])
+          : numberOr(userMap[name], 0),
+      }));
+    };
+
     const handleOptions = systemType
       ? await HandleOption.find({ systemType }).lean()
       : [];
 
     res.json({
-      colorFinishes,
-      meshTypes,
-      glassSpecs,
+      colorFinishes: mergeAdminAndUserRates(colorFinishes, "colorFinish"),
+      meshTypes: mergeAdminAndUserRates(meshTypes, "meshType"),
+      glassSpecs: mergeAdminAndUserRates(glassSpecs, "glassSpec"),
       handleOptions: handleOptions.map((h) => ({
         name: h.name,
         colors: mapToArray(h.colors),
@@ -365,22 +439,37 @@ const createQuotation = async (req, res) => {
   }
 };
 const listQuotations = async (req, res) => {
-  const { systemType, series, description } = req.query;
-  const filter = {};
+  const { systemType, series, description, page = 1, limit = 20 } = req.query;
 
-  if (req.user?.role !== "admin") {
-    filter.user = req.user?.userId;
-  }
+  const filter = {};
+  if (req.user?.role !== "admin") filter.user = req.user?.userId;
 
   if (systemType) filter.systemType = systemType;
   if (series) filter.series = series;
   if (description) filter.description = description;
 
+  const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+  const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+  const skip = (pageNum - 1) * limitNum;
+
   try {
-    const quotations = await Quotation.find(filter)
-      .sort({ createdAt: -1 })
-      .lean();
-    res.json({ quotations });
+    const [quotations, total] = await Promise.all([
+      Quotation.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .select("_id user customerDetails quotationDetails breakdown generatedId createdAt updatedAt") // keep list light
+        .lean(),
+      Quotation.countDocuments(filter),
+    ]);
+
+    res.json({
+      quotations,
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    });
   } catch (error) {
     console.error("Error fetching quotations:", error);
     res.status(500).json({ message: "Error fetching quotations" });
@@ -437,6 +526,30 @@ const updateQuotationById = async (req, res) => {
     res.status(500).json({ message: "Error fetching quotation" });
   }
 };
+const deleteQuotationById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid quotation id" });
+    }
+    const quotation = await Quotation.findById(id);
+    if (!quotation) {
+      return res.status(404).json({ message: "Quotation not found" });
+    }
+    // Role based check
+    if (
+      req.user?.role !== "admin" &&
+      quotation.user.toString() !== req.user.userId
+    ) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    await Quotation.findByIdAndDelete(id);
+    res.json({ message: "Quotation deleted successfully" });
+  } catch (error) {
+    console.error("Delete quotation error:", error);
+    res.status(500).json({ message: "Error deleting quotation" });
+  }
+};
 
 module.exports = {
   getSystems,
@@ -448,4 +561,5 @@ module.exports = {
   listQuotations,
   getQuotationById,
   updateQuotationById,
+  deleteQuotationById,
 };
