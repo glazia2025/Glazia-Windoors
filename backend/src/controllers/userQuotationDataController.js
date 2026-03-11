@@ -9,7 +9,7 @@ const UserHardware = require("../models/Quotation/UserHardware");
 const UserHardwareRate = require("../models/Quotation/UserHardwareRate");
 const { normalizeRateMap, restoreRateMap } = require("../utils/rateMapUtils");
 
-const ALLOWED_OPTION_TYPES = ["colorFinish", "glassSpec", "meshType"];
+const ALLOWED_OPTION_TYPES = ["colorFinish", "glassSpec", "meshType", "handle"];
 
 const escapeMongoKey = (key = "") =>
   String(key)
@@ -59,6 +59,33 @@ const resolveAdminFallbackRate = (adminRate, userRate) => {
     return Number(adminRate) || 0;
   }
   return asUserRate;
+};
+
+const toSystemKey = (name = "") =>
+  String(name)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+const mergeOptionItems = (adminValues = {}, userValues = {}) => {
+  const allNames = Array.from(new Set([...Object.keys(adminValues), ...Object.keys(userValues)])).sort();
+  return allNames.map((name) => {
+    const adminRate = adminValues[name];
+    const userRate = userValues[name];
+    const hasAdmin = Object.prototype.hasOwnProperty.call(adminValues, name);
+    const hasUser = Object.prototype.hasOwnProperty.call(userValues, name);
+    const rate = hasAdmin ? resolveAdminFallbackRate(adminRate, userRate) : Number(userRate) || 0;
+
+    return {
+      name,
+      rate,
+      adminRate: hasAdmin ? Number(adminRate) || 0 : null,
+      userRate: hasUser ? Number(userRate) || 0 : null,
+      source: hasAdmin ? "admin" : "user",
+      canDelete: !hasAdmin,
+    };
+  });
 };
 
 const doesDescriptionExist = async (systemType, series, description) => {
@@ -207,17 +234,16 @@ const listOptionSets = async (req, res) => {
 
   try {
     const userId = toUserId(req);
-    const type = req.query.type;
-    const types = type ? [type] : ALLOWED_OPTION_TYPES;
-    if (type && !ensureAllowedType(type, res)) return;
+    const types = ALLOWED_OPTION_TYPES;
 
     const [adminDocs, userDocs] = await Promise.all([
-      OptionSet.find({ type: { $in: types }, system: { $exists: false } }).lean(),
+      OptionSet.find({ type: { $in: types } }).populate("system", "name").lean(),
       UserOptionSet.find({ user: userId, type: { $in: types } }).lean(),
     ]);
 
     const adminByType = adminDocs.reduce((acc, doc) => {
-      acc[doc.type] = restoreRateMap(doc.values);
+      if (!acc[doc.type]) acc[doc.type] = [];
+      acc[doc.type].push(doc);
       return acc;
     }, {});
     const userByType = userDocs.reduce((acc, doc) => {
@@ -226,31 +252,23 @@ const listOptionSets = async (req, res) => {
     }, {});
 
     const optionSets = types.map((t) => {
-      const adminValues = adminByType[t] || {};
+      const typeDocs = adminByType[t] || [];
       const userValues = userByType[t] || {};
 
-      const allNames = Array.from(
-        new Set([...Object.keys(adminValues), ...Object.keys(userValues)])
-      ).sort();
+      if (t === "handle") {
+        const items = typeDocs.reduce((acc, doc) => {
+          const adminValues = restoreRateMap(doc.values);
+          const key = toSystemKey(doc.system?.name || "global");
+          acc[key] = mergeOptionItems(adminValues, {});
+          return acc;
+        }, {});
 
-      const items = allNames.map((name) => {
-        const adminRate = adminValues[name];
-        const userRate = userValues[name];
-        const hasAdmin = Object.prototype.hasOwnProperty.call(adminValues, name);
-        const hasUser = Object.prototype.hasOwnProperty.call(userValues, name);
-        const rate = hasAdmin
-          ? resolveAdminFallbackRate(adminRate, userRate)
-          : Number(userRate) || 0;
+        return { type: t, items };
+      }
 
-        return {
-          name,
-          rate,
-          adminRate: hasAdmin ? Number(adminRate) || 0 : null,
-          userRate: hasUser ? Number(userRate) || 0 : null,
-          source: hasAdmin ? "admin" : "user",
-          canDelete: !hasAdmin,
-        };
-      });
+      const globalAdminDoc = typeDocs.find((doc) => !doc.system);
+      const adminValues = restoreRateMap(globalAdminDoc?.values);
+      const items = mergeOptionItems(adminValues, userValues);
 
       return {
         type: t,
