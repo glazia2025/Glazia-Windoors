@@ -19,6 +19,7 @@ app.use(
     origin: [
       "https://glazia.in",
       "https://www.glazia.in",
+      "https://glazia-quotation.vercel.app/",
       "http://localhost:3000",
       "http://localhost:3001",
       "https://splendid-begonia-cbc292.netlify.app"
