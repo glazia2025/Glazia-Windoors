@@ -1172,13 +1172,62 @@ function renderSummaryPage(data) {
     </section>
   `;
 }
+function groupItemsForPDF(items) {
+  const pages = [];
+  let currentPage = [];
+
+  items.forEach((item) => {
+    if (item.isCombination) {
+      // previous page push
+      if (currentPage.length) {
+        pages.push(currentPage);
+        currentPage = [];
+      }
+
+      // combination = single page
+      pages.push([item]);
+    } else {
+      currentPage.push(item);
+
+      // max 2 list in one page
+      if (currentPage.length === 2) {
+        pages.push(currentPage);
+        currentPage = [];
+      }
+    }
+  });
+
+  if (currentPage.length) {
+    pages.push(currentPage);
+  }
+
+  return pages;
+}
 
 function buildPdfHtml(data, user) {
-  const pages = [
-    renderCoverPage(data, user),
-    ...data.items.map((item) => renderItemPage(data, item)),
-    renderSummaryPage(data),
-  ].join("");
+  // const pages = [
+  //   renderCoverPage(data, user),
+  //   ...data.items.map((item) => renderItemPage(data, item)),
+  //   renderSummaryPage(data),
+  // ].join("");
+  const groupedPages = groupItemsForPDF(data.items);
+
+const pages = [
+  renderCoverPage(data, user),
+
+  ...groupedPages.map((group) => {
+    if (group.length === 1 && group[0].isCombination) {
+    return renderItemPage(data, group[0]);
+  }
+    return `
+      <section class="page">
+        ${group.map((item) => renderMainItemCard(item)).join("")}
+      </section>
+    `;
+  }),
+
+  renderSummaryPage(data),
+].join("");
 
   return `
     <!DOCTYPE html>
@@ -1533,7 +1582,7 @@ const generateQuotationPdfController = async (req, res) => {
     const page = await browser.newPage();
 
     await page.setContent(html, {
-      waitUntil: ["domcontentloaded", "networkidle2"],
+      waitUntil: ["domcontentloaded"],
       timeout: 60000,
     });
 
