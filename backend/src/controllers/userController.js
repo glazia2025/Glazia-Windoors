@@ -13,6 +13,7 @@ const HardwareOptions = require('../models/Hardware');
 const Category = require('../models/Profiles/Category');
 const Size = require('../models/Profiles/Size');
 const { Nalco } = require('../models/Order');
+const { AUTH_COOKIE_MAX_AGE_MS, extractAuthToken, setAuthCookie } = require('../utils/authCookies');
 require('dotenv').config();
 
 // Secret for JWT (you should store this in your .env file)
@@ -254,8 +255,10 @@ const createUser = async (req, res) => {
     const token = jwt.sign(
       { userId: newUser._id, phoneNumber: primaryPhoneNumber, role: 'user' }, // Include relevant data like userId and role
       JWT_SECRET,
-      { expiresIn: '1h' } // Token expiration (optional, 1 hour in this case)
+      { expiresIn: '120d' }
     );
+
+    setAuthCookie(req, res, token, AUTH_COOKIE_MAX_AGE_MS);
 
     // Send the response with the token
     res.status(201).json({
@@ -271,14 +274,10 @@ const createUser = async (req, res) => {
 
 // Get User API
 const getUser = async (req, res) => {
-  const authHeader = req.headers.authorization;
-
-  // Check if the Authorization header is provided
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const token = extractAuthToken(req);
+  if (!token) {
     return res.status(401).json({ message: 'Authorization token is missing or invalid' });
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     // Verify the JWT token
@@ -315,8 +314,7 @@ const getUser = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1]; // Extract token from Authorization header
-
+  const token = extractAuthToken(req);
   if (!token) {
     return res.status(401).json({ message: 'Authorization token is required' });
   }

@@ -1,8 +1,9 @@
 const jwt = require('jsonwebtoken');
+const { extractAuthToken } = require('../utils/authCookies');
 require('dotenv').config();
 
 const isUser = (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+  const token = extractAuthToken(req);
 
   if (!token) {
     return res.status(403).json({ message: 'Access denied, token missing!' });

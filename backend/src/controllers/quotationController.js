@@ -12,6 +12,7 @@ const UserOptionSet = require("../models/Quotation/UserOptionSet");
 const UserDescriptionRate = require("../models/Quotation/UserDescriptionRate");
 const jwt = require("jsonwebtoken");
 const puppeteer = require("puppeteer");
+const { extractAuthToken } = require("../utils/authCookies");
 
 const numberOr = (value, fallback = 0) => {
   const asNumber = Number(value);
@@ -47,8 +48,7 @@ const effectiveRateWithAdminFallback = (adminRate, userRate) => {
 
 const getOptionalUserId = (req) => {
   try {
-    const authHeader = req.header("Authorization") || "";
-    const token = authHeader.replace("Bearer ", "").trim();
+    const token = extractAuthToken(req);
     if (!token) return null;
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
     return decoded?.userId || null;
