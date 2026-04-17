@@ -515,10 +515,24 @@ const updateQuotationById = async (req, res) => {
       return res.status(404).json({ message: "Quotation not found" });
     }
 
+    const {
+      breakdown,
+      items = [],
+      customerDetails = {},
+      quotationDetails = {},
+      globalConfig = {},
+    } = req.body;
+
     const updatedQuotation = await Quotation.findByIdAndUpdate(
       req.params.id,
-      req.body,
-      { new: true }
+      {
+        items,
+        customerDetails,
+        quotationDetails,
+        globalConfig,
+        breakdown,
+      },
+      { new: true, runValidators: true }
     );
 
     res.json({ updatedQuotation });
@@ -704,11 +718,16 @@ function normalizeItem(item) {
 
 function computeTotals(items, additionalCosts = {}) {
   const itemSubtotal = items.reduce((sum, item) => sum + toNumber(item.amount), 0);
+  const totalArea = items.reduce(
+    (sum, item) => sum + toNumber(item.area) * Math.max(1, toNumber(item.quantity, 1)),
+    0
+  );
 
-  const installation = toNumber(additionalCosts.installation);
+  const installationRate = toNumber(additionalCosts.installation);
   const transport = toNumber(additionalCosts.transport);
   const loadingUnloading = toNumber(additionalCosts.loadingUnloading);
   const discountPercent = toNumber(additionalCosts.discountPercent);
+  const installation = Number((installationRate * totalArea).toFixed(2));
 
   const extrasTotal = installation + transport + loadingUnloading;
   const beforeDiscount = itemSubtotal + extrasTotal;
@@ -719,6 +738,8 @@ function computeTotals(items, additionalCosts = {}) {
 
   return {
     itemSubtotal: Number(itemSubtotal.toFixed(2)),
+    totalArea: Number(totalArea.toFixed(2)),
+    installationRate: Number(installationRate.toFixed(2)),
     installation: Number(installation.toFixed(2)),
     transport: Number(transport.toFixed(2)),
     loadingUnloading: Number(loadingUnloading.toFixed(2)),
@@ -745,6 +766,8 @@ function prepareQuotationPdfData(quotation) {
     state: safeString(quotation?.customerDetails?.state),
     pincode: safeString(quotation?.customerDetails?.pincode),
   };
+
+  const totalArea = items.reduce((sum, item) => sum + item.area * Math.max(1, item.quantity || 1), 0);
 
   const quotationDetails = {
     id: safeString(
@@ -784,6 +807,7 @@ function prepareQuotationPdfData(quotation) {
     quotationDetails,
     globalConfig,
     items,
+    totalArea,
     breakdown: {
       totalAmount:
         toNumber(quotation?.breakdown?.totalAmount) > 0
@@ -1073,6 +1097,7 @@ function renderItemPage(data, item) {
 function renderSummaryPage(data) {
   const terms = data.quotationDetails.terms || data.globalConfig.terms || "";
   const prerequisites = data.globalConfig.prerequisites || "";
+  const totalArea = data.totalArea
 
   return `
     <section class="page">
@@ -1110,7 +1135,7 @@ function renderSummaryPage(data) {
         </tr>
         <tr>
           <td>Installation</td>
-          <td>${formatCurrency(data.totals.installation)} INR</td>
+          <td>${formatCurrency(data.totals.installation * totalArea)} INR</td>
         </tr>
         <tr>
           <td>Transport</td>
