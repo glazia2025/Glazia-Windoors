@@ -11,8 +11,8 @@ const HandleOption = require("../models/Quotation/HandleOption");
 const UserOptionSet = require("../models/Quotation/UserOptionSet");
 const UserDescriptionRate = require("../models/Quotation/UserDescriptionRate");
 const jwt = require("jsonwebtoken");
-const puppeteer = require("puppeteer");
 const { extractAuthToken } = require("../utils/authCookies");
+const { closePdfBrowser, launchPdfBrowser } = require("../utils/pdfBrowser");
 
 const numberOr = (value, fallback = 0) => {
   const asNumber = Number(value);
@@ -1518,7 +1518,7 @@ function buildPdfHtml(data, user) {
 }
 
 const generateQuotationPdfController = async (req, res) => {
-  let browser;
+  let browserHandle;
 
   try {
     const { id } = req.params;
@@ -1550,10 +1550,8 @@ const generateQuotationPdfController = async (req, res) => {
     const preparedData = prepareQuotationPdfData(quotation);
     const html = buildPdfHtml(preparedData, user);
 
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+    browserHandle = await launchPdfBrowser();
+    const { browser } = browserHandle;
 
     const page = await browser.newPage();
 
@@ -1593,9 +1591,7 @@ const generateQuotationPdfController = async (req, res) => {
       error: error.message,
     });
   } finally {
-    if (browser) {
-      await browser.close();
-    }
+    await closePdfBrowser(browserHandle);
   }
 };
 

@@ -1,6 +1,17 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { MDBBadge, MDBBtn, MDBIcon } from "mdb-react-ui-kit";
-import api, { BASE_API_URL, buildQueryParams } from "../../../utils/api";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  MDBBadge,
+  MDBBtn,
+  MDBIcon,
+  MDBModal,
+  MDBModalBody,
+  MDBModalContent,
+  MDBModalDialog,
+  MDBModalFooter,
+  MDBModalHeader,
+  MDBModalTitle,
+} from "mdb-react-ui-kit";
+import api, { BASE_API_URL } from "../../../utils/api";
 import "./QuotationAdminPage.css";
 
 const splitCsv = (value = "") =>
@@ -34,6 +45,19 @@ const entriesFromMap = (value) => Object.entries(toPlainObject(value));
 
 const GLOBAL_OPTION_TYPES = ["colorFinish", "meshType", "glassSpec"];
 
+const createCuttingLine = () => ({
+  itemType: "profile",
+  sapCode: "",
+  description: "",
+  quantityFormula: "1",
+  dimensionFormula: "",
+  cutAngle: "",
+  position: "",
+  unit: "Pcs",
+  sortOrder: 0,
+  sapCodeSelected: false,
+});
+
 const QuotationAdminPage = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -45,8 +69,15 @@ const QuotationAdminPage = () => {
   const [baseRates, setBaseRates] = useState([]);
   const [handleRules, setHandleRules] = useState([]);
   const [handleOptions, setHandleOptions] = useState([]);
+  const [cuttingDescriptions, setCuttingDescriptions] = useState([]);
+  const [cuttingConfigs, setCuttingConfigs] = useState([]);
   const [quotations, setQuotations] = useState([]);
   const [totalQuotations, setTotalQuotations] = useState(0);
+  const [cuttingSearch, setCuttingSearch] = useState("");
+  const [isCuttingModalOpen, setIsCuttingModalOpen] = useState(false);
+  const [selectedCuttingRow, setSelectedCuttingRow] = useState(null);
+  const [sapAutocomplete, setSapAutocomplete] = useState({});
+  const sapSearchTimers = useRef({});
 
   const [systemForm, setSystemForm] = useState({
     name: "",
@@ -104,6 +135,13 @@ const QuotationAdminPage = () => {
     silverRate: "",
   });
   const [editingHandleOptionId, setEditingHandleOptionId] = useState(null);
+  const [cuttingForm, setCuttingForm] = useState({
+    systemType: "",
+    series: "",
+    description: "",
+    notes: "",
+    lines: [createCuttingLine()],
+  });
   const [phoneFilter, setphoneFilter] = useState("");
   const [limit, setLimit] = useState(10);
 
@@ -119,6 +157,19 @@ const QuotationAdminPage = () => {
     const match = filteredSeries.find((item) => item.name === baseRateForm.series);
     return match?.descriptions || [];
   }, [filteredSeries, baseRateForm.series]);
+
+  const filteredCuttingDescriptions = useMemo(() => {
+    const search = cuttingSearch.trim().toLowerCase();
+    if (!search) return cuttingDescriptions;
+
+    return cuttingDescriptions.filter((row) =>
+      [row.systemType, row.series, row.description]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(search)
+    );
+  }, [cuttingDescriptions, cuttingSearch]);
 
   const authConfig = useMemo(
     () => ({
@@ -213,6 +264,19 @@ const QuotationAdminPage = () => {
     }
   };
 
+  const fetchCuttingScheduleData = async () => {
+    try {
+      const [descriptionResponse, configResponse] = await Promise.all([
+        api.get(`${BASE_API_URL}/admin/quotations/cutting-schedule/descriptions`, authConfig),
+        api.get(`${BASE_API_URL}/admin/quotations/cutting-schedule/configs`, authConfig),
+      ]);
+      setCuttingDescriptions(descriptionResponse.data.descriptions || []);
+      setCuttingConfigs(configResponse.data.configs || []);
+    } catch (error) {
+      console.error("Unable to load cutting schedule data", error);
+    }
+  };
+
 
   const fetchQuotations = async (customPage = page,
     customPhone = phoneFilter,
@@ -248,6 +312,7 @@ const QuotationAdminPage = () => {
       fetchBaseRates(),
       fetchHandleRules(),
       fetchHandleOptions(),
+      fetchCuttingScheduleData(),
     ]);
   };
 
@@ -790,6 +855,263 @@ const QuotationAdminPage = () => {
     </div>
   ));
 
+  const selectCuttingDescription = (row) => {
+    const existing = cuttingConfigs.find(
+      (config) =>
+        config.systemType === row.systemType &&
+        config.series === row.series &&
+        config.description === row.description
+    );
+
+    setCuttingForm({
+      systemType: row.systemType || "",
+      series: row.series || "",
+      description: row.description || "",
+      notes: existing?.notes || "",
+      lines:
+        existing?.lines?.length > 0
+          ? existing.lines.map((line, index) => ({
+              ...createCuttingLine(),
+              ...line,
+              cutAngle: line.cutAngle || line.cutAngleLeft || line.cutAngleRight || "",
+              sortOrder: line.sortOrder ?? index,
+              sapCodeSelected: Boolean(line.sapCode),
+            }))
+          : [createCuttingLine()],
+    });
+    setSelectedCuttingRow({
+      ...row,
+      configId: existing?._id,
+      lineCount: existing?.lines?.length || 0,
+      configured: Boolean(existing),
+    });
+    setIsCuttingModalOpen(true);
+    setSapAutocomplete({});
+  };
+
+  const updateCuttingLine = (index, field, value) => {
+    setCuttingForm((prev) => ({
+      ...prev,
+      lines: prev.lines.map((line, lineIndex) => {
+        if (lineIndex !== index) return line;
+        const nextLine = { ...line, [field]: value };
+        if (field === "itemType" && value === "hardware") {
+          nextLine.dimensionFormula = "";
+          nextLine.cutAngle = "";
+        }
+        if (field === "itemType") {
+          nextLine.sapCode = "";
+          nextLine.sapCodeSelected = false;
+        }
+        return nextLine;
+      }),
+    }));
+  };
+
+  const closeSapAutocomplete = (index) => {
+    setSapAutocomplete((prev) => ({
+      ...prev,
+      [index]: {
+        ...(prev[index] || {}),
+        open: false,
+        loading: false,
+      },
+    }));
+  };
+
+  const handleSapCodeSearch = (index, value, itemType) => {
+    setCuttingForm((prev) => ({
+      ...prev,
+      lines: prev.lines.map((line, lineIndex) =>
+        lineIndex === index
+          ? {
+              ...line,
+              sapCode: value,
+              sapCodeSelected: false,
+            }
+          : line
+      ),
+    }));
+
+    if (sapSearchTimers.current[index]) {
+      window.clearTimeout(sapSearchTimers.current[index]);
+    }
+
+    const query = value.trim();
+    setSapAutocomplete((prev) => ({
+      ...prev,
+      [index]: {
+        query: value,
+        options: [],
+        loading: Boolean(query),
+        open: Boolean(query),
+      },
+    }));
+
+    if (!query) return;
+
+    sapSearchTimers.current[index] = window.setTimeout(async () => {
+      try {
+        const { data } = await api.get(
+          `${BASE_API_URL}/admin/quotations/cutting-schedule/catalog`,
+          {
+            ...authConfig,
+            params: {
+              itemType,
+              sapCode: query,
+            },
+          }
+        );
+        setSapAutocomplete((prev) => ({
+          ...prev,
+          [index]: {
+            query,
+            options: data.products || (data.product ? [data.product] : []),
+            loading: false,
+            open: true,
+          },
+        }));
+      } catch (error) {
+        console.error("Unable to search SAP code", error);
+        setSapAutocomplete((prev) => ({
+          ...prev,
+          [index]: {
+            query,
+            options: [],
+            loading: false,
+            open: true,
+          },
+        }));
+      }
+    }, 250);
+  };
+
+  const getSapProductLabel = (product) =>
+    product?.label || product?.description || product?.perticular || product?.part || product?.sapCode || "";
+
+  const handleSapCodeSelect = (index, product) => {
+    setCuttingForm((prev) => ({
+      ...prev,
+      lines: prev.lines.map((line, lineIndex) =>
+        lineIndex === index
+          ? {
+              ...line,
+              sapCode: product.sapCode || "",
+              description: line.description || getSapProductLabel(product),
+              sapCodeSelected: true,
+            }
+          : line
+      ),
+    }));
+    closeSapAutocomplete(index);
+  };
+
+  const handleSapCodeBlur = (index) => {
+    window.setTimeout(() => {
+      setCuttingForm((prev) => ({
+        ...prev,
+        lines: prev.lines.map((line, lineIndex) =>
+          lineIndex === index && line.sapCode && !line.sapCodeSelected
+            ? {
+                ...line,
+                sapCode: "",
+              }
+            : line
+        ),
+      }));
+      closeSapAutocomplete(index);
+    }, 150);
+  };
+
+  const addCuttingLine = () => {
+    setCuttingForm((prev) => ({
+      ...prev,
+      lines: [...prev.lines, { ...createCuttingLine(), sortOrder: prev.lines.length }],
+    }));
+  };
+
+  const removeCuttingLine = (index) => {
+    setCuttingForm((prev) => ({
+      ...prev,
+      lines: prev.lines.length === 1 ? [createCuttingLine()] : prev.lines.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleCuttingConfigSubmit = async (event) => {
+    event.preventDefault();
+    if (!cuttingForm.systemType || !cuttingForm.series || !cuttingForm.description) return;
+
+    const hasUnselectedSapCode = cuttingForm.lines.some((line) => line.sapCode && !line.sapCodeSelected);
+    if (hasUnselectedSapCode) {
+      setCuttingForm((prev) => ({
+        ...prev,
+        lines: prev.lines.map((line) =>
+          line.sapCode && !line.sapCodeSelected ? { ...line, sapCode: "" } : line
+        ),
+      }));
+      return;
+    }
+
+    try {
+      await api.post(
+        `${BASE_API_URL}/admin/quotations/cutting-schedule/configs`,
+        {
+          ...cuttingForm,
+          lines: cuttingForm.lines.map((line, index) => {
+            const sanitized = { ...line, sortOrder: index };
+            delete sanitized.sapCodeSelected;
+            delete sanitized.cutAngleLeft;
+            delete sanitized.cutAngleRight;
+            return sanitized;
+          }),
+        },
+        authConfig
+      );
+      await fetchCuttingScheduleData();
+      setSelectedCuttingRow((prev) =>
+        prev
+          ? {
+              ...prev,
+              configured: true,
+              lineCount: cuttingForm.lines.length,
+            }
+          : prev
+      );
+      setIsCuttingModalOpen(false);
+    } catch (error) {
+      console.error("Unable to save cutting schedule config", error);
+    }
+  };
+
+  const handleCuttingConfigDelete = async () => {
+    const existing = cuttingConfigs.find(
+      (config) =>
+        config.systemType === cuttingForm.systemType &&
+        config.series === cuttingForm.series &&
+        config.description === cuttingForm.description
+    );
+    if (!existing?._id) return;
+
+    try {
+      await api.delete(`${BASE_API_URL}/admin/quotations/cutting-schedule/configs/${existing._id}`, authConfig);
+      setCuttingForm((prev) => ({ ...prev, notes: "", lines: [createCuttingLine()] }));
+      setSelectedCuttingRow((prev) =>
+        prev
+          ? {
+              ...prev,
+              configured: false,
+              lineCount: 0,
+              configId: undefined,
+            }
+          : prev
+      );
+      setIsCuttingModalOpen(false);
+      await fetchCuttingScheduleData();
+    } catch (error) {
+      console.error("Unable to delete cutting schedule config", error);
+    }
+  };
+
   const renderTabs = () => {
     const tabs = [
       { id: "quotations", label: "Quotations", icon: "file-invoice-dollar" },
@@ -800,6 +1122,7 @@ const QuotationAdminPage = () => {
       { id: "baseRates", label: "Base Rates", icon: "layer-group" },
       { id: "handleRules", label: "Handle Rules", icon: "hand-paper" },
       { id: "handleOptions", label: "Handle Options", icon: "swatchbook" },
+      { id: "cuttingSchedule", label: "Cutting Schedule", icon: "ruler-combined" },
     ];
 
     const tabCounts = {
@@ -811,6 +1134,7 @@ const QuotationAdminPage = () => {
       baseRates: baseRates.length,
       handleRules: handleRules.length,
       handleOptions: handleOptions.length,
+      cuttingSchedule: cuttingConfigs.length,
     };
 
     return (
@@ -1918,6 +2242,301 @@ const QuotationAdminPage = () => {
     </div>
   );
 
+  const renderCuttingScheduleSection = () => {
+    const selectedConfig = cuttingConfigs.find(
+      (config) =>
+        config.systemType === cuttingForm.systemType &&
+        config.series === cuttingForm.series &&
+        config.description === cuttingForm.description
+    );
+
+    return (
+      <div className="qa-card">
+        <div className="qa-card-header">
+          <div>
+            <h4>Cutting Schedule Rules</h4>
+            <p>
+              Configure fabrication items against each quotation description. Profile formulas can use W, H, Q and AREA.
+            </p>
+          </div>
+          <div className="qa-actions">
+            <MDBBtn size="sm" color="light" onClick={fetchCuttingScheduleData}>
+              <MDBIcon fas icon="sync" className="me-2" />
+              Refresh
+            </MDBBtn>
+          </div>
+        </div>
+
+        <div className="qa-cutting-layout">
+          <aside className="qa-cutting-sidebar">
+            <div className="qa-side-card">
+              <div className="qa-side-label">Configured</div>
+              <div className="qa-side-value">{cuttingConfigs.length}</div>
+              <div className="qa-meta">Descriptions with at least one saved rule set.</div>
+            </div>
+            <div className="qa-side-card">
+              <div className="qa-side-label">Pending</div>
+              <div className="qa-side-value">
+                {Math.max(0, cuttingDescriptions.length - cuttingConfigs.length)}
+              </div>
+              <div className="qa-meta">Descriptions still needing fabrication rules.</div>
+            </div>
+            <div className="qa-side-card qa-selected-card">
+              <div className="qa-side-label">Selected</div>
+              {selectedCuttingRow ? (
+                <>
+                  <div className="qa-title">{selectedCuttingRow.description}</div>
+                  <div className="qa-meta">{selectedCuttingRow.systemType} / {selectedCuttingRow.series}</div>
+                  <div className="qa-badges mt-2">
+                    <MDBBadge color={selectedCuttingRow.configured ? "success" : "warning"}>
+                      {selectedCuttingRow.configured ? "Configured" : "Not configured"}
+                    </MDBBadge>
+                    <MDBBadge color="light">{selectedCuttingRow.lineCount || 0} lines</MDBBadge>
+                  </div>
+                </>
+              ) : (
+                <div className="qa-meta">Pick a description from the table to edit its rules.</div>
+              )}
+            </div>
+          </aside>
+
+          <div className="qa-cutting-main">
+            <div className="qa-toolbar">
+              <div className="qa-search">
+                <MDBIcon fas icon="search" />
+                <input
+                  value={cuttingSearch}
+                  onChange={(e) => setCuttingSearch(e.target.value)}
+                  placeholder="Search system, series or description"
+                />
+              </div>
+              <MDBBadge color="light">{filteredCuttingDescriptions.length} shown</MDBBadge>
+            </div>
+
+            <div className="qa-table-wrapper">
+              <table className="qa-table qa-cutting-table">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>System</th>
+                    <th>Series</th>
+                    <th>Description</th>
+                    <th>Rules</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCuttingDescriptions.map((row) => (
+                    <tr
+                      key={`${row.systemType}-${row.series}-${row.description}`}
+                      className={
+                        selectedCuttingRow?.systemType === row.systemType &&
+                        selectedCuttingRow?.series === row.series &&
+                        selectedCuttingRow?.description === row.description
+                          ? "selected"
+                          : ""
+                      }
+                    >
+                      <td>
+                        <MDBBadge color={row.configured ? "success" : "warning"}>
+                          {row.configured ? "Ready" : "Pending"}
+                        </MDBBadge>
+                      </td>
+                      <td>{row.systemType}</td>
+                      <td>{row.series}</td>
+                      <td className="qa-title">{row.description}</td>
+                      <td>{row.lineCount || 0}</td>
+                      <td className="qa-actions-cell">
+                        <MDBBtn size="sm" color={row.configured ? "light" : "primary"} onClick={() => selectCuttingDescription(row)}>
+                          <MDBIcon fas icon={row.configured ? "pen" : "plus"} className="me-2" />
+                          {row.configured ? "Edit" : "Create"}
+                        </MDBBtn>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {!filteredCuttingDescriptions.length && (
+              <div className="qa-empty">No matching descriptions found.</div>
+            )}
+          </div>
+        </div>
+
+        <MDBModal open={isCuttingModalOpen} onClose={() => setIsCuttingModalOpen(false)} tabIndex="-1">
+          <MDBModalDialog size="xl" scrollable>
+            <MDBModalContent>
+              <form onSubmit={handleCuttingConfigSubmit}>
+                <MDBModalHeader>
+                  <MDBModalTitle>
+                    Cutting Schedule Config
+                    <span className="qa-modal-subtitle">
+                      {cuttingForm.systemType} / {cuttingForm.series} / {cuttingForm.description}
+                    </span>
+                  </MDBModalTitle>
+                  <MDBBtn className="btn-close" color="none" type="button" onClick={() => setIsCuttingModalOpen(false)} />
+                </MDBModalHeader>
+                <MDBModalBody>
+                  <div className="qa-modal-summary">
+                    <label>
+                      System
+                      <input value={cuttingForm.systemType} readOnly />
+                    </label>
+                    <label>
+                      Series
+                      <input value={cuttingForm.series} readOnly />
+                    </label>
+                    <label>
+                      Description
+                      <input value={cuttingForm.description} readOnly />
+                    </label>
+                    <label>
+                      Notes
+                      <input
+                        value={cuttingForm.notes}
+                        onChange={(e) => setCuttingForm((prev) => ({ ...prev, notes: e.target.value }))}
+                        placeholder="Optional internal note"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="qa-line-toolbar">
+                    <div>
+                      <div className="qa-title">Required Items</div>
+                      <div className="qa-meta">Hardware rows only need SAP code and quantity. Profile rows also use dimension and cut angle.</div>
+                    </div>
+                    <MDBBtn size="sm" color="primary" type="button" onClick={addCuttingLine}>
+                      <MDBIcon fas icon="plus" className="me-2" />
+                      Add line
+                    </MDBBtn>
+                  </div>
+
+                  <div className="qa-table-wrapper">
+                    <table className="qa-table qa-editor-table">
+                      <thead>
+                        <tr>
+                          <th>Type</th>
+                          <th>SAP Code</th>
+                          <th>Description Override</th>
+                          <th>Qty</th>
+                          <th>Dimension</th>
+                          <th>Cut Angle</th>
+                          <th>Position</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cuttingForm.lines.map((line, index) => (
+                          <tr key={index}>
+                            <td>
+                              <select value={line.itemType} onChange={(e) => updateCuttingLine(index, "itemType", e.target.value)}>
+                                <option value="profile">Profile</option>
+                                <option value="hardware">Hardware</option>
+                              </select>
+                            </td>
+                            <td>
+                              <div className="qa-sap-autocomplete">
+                                <input
+                                  value={line.sapCode}
+                                  onChange={(e) => handleSapCodeSearch(index, e.target.value, line.itemType)}
+                                  onBlur={() => handleSapCodeBlur(index)}
+                                  onFocus={() => {
+                                    if (line.sapCode && !line.sapCodeSelected) {
+                                      setSapAutocomplete((prev) => ({
+                                        ...prev,
+                                        [index]: {
+                                          ...(prev[index] || {}),
+                                          open: true,
+                                        },
+                                      }));
+                                    }
+                                  }}
+                                  placeholder="Type SAP code"
+                                  autoComplete="off"
+                                />
+                                {sapAutocomplete[index]?.open && (
+                                  <div className="qa-sap-menu">
+                                    {sapAutocomplete[index]?.loading && (
+                                      <div className="qa-sap-message">Searching...</div>
+                                    )}
+                                    {!sapAutocomplete[index]?.loading &&
+                                      sapAutocomplete[index]?.options?.length === 0 && (
+                                        <div className="qa-sap-message">No SAP codes found</div>
+                                      )}
+                                    {!sapAutocomplete[index]?.loading &&
+                                      sapAutocomplete[index]?.options?.map((product) => (
+                                        <button
+                                          key={`${line.itemType}-${product._id || product.sapCode}`}
+                                          type="button"
+                                          className="qa-sap-option"
+                                          onMouseDown={(event) => event.preventDefault()}
+                                          onClick={() => handleSapCodeSelect(index, product)}
+                                        >
+                                          <span className="qa-sap-code">{product.sapCode}</span>
+                                          <span className="qa-sap-name">{getSapProductLabel(product)}</span>
+                                        </button>
+                                      ))}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              <input value={line.description || ""} onChange={(e) => updateCuttingLine(index, "description", e.target.value)} placeholder="Use product name if blank" />
+                            </td>
+                            <td>
+                              <input value={line.quantityFormula} onChange={(e) => updateCuttingLine(index, "quantityFormula", e.target.value)} placeholder="1, 2, Q*2" />
+                            </td>
+                            <td>
+                              <input
+                                value={line.dimensionFormula || ""}
+                                disabled={line.itemType === "hardware"}
+                                onChange={(e) => updateCuttingLine(index, "dimensionFormula", e.target.value)}
+                                placeholder="W, H-30, (W/2)-65"
+                              />
+                            </td>
+                            <td>
+                              <input
+                                value={line.cutAngle || ""}
+                                disabled={line.itemType === "hardware"}
+                                onChange={(e) => updateCuttingLine(index, "cutAngle", e.target.value)}
+                                placeholder="45°, 90°"
+                              />
+                            </td>
+                            <td>
+                              <input value={line.position || ""} onChange={(e) => updateCuttingLine(index, "position", e.target.value)} placeholder="W, H, S1" />
+                            </td>
+                            <td>
+                              <MDBBtn size="sm" color="danger" outline type="button" onClick={() => removeCuttingLine(index)}>
+                                <MDBIcon fas icon="trash" />
+                              </MDBBtn>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </MDBModalBody>
+                <MDBModalFooter>
+                  {selectedConfig?._id && (
+                    <MDBBtn color="danger" outline type="button" onClick={handleCuttingConfigDelete}>
+                      Delete config
+                    </MDBBtn>
+                  )}
+                  <MDBBtn color="light" type="button" onClick={() => setIsCuttingModalOpen(false)}>
+                    Cancel
+                  </MDBBtn>
+                  <MDBBtn color="primary" type="submit" disabled={!cuttingForm.description}>
+                    Save rules
+                  </MDBBtn>
+                </MDBModalFooter>
+              </form>
+            </MDBModalContent>
+          </MDBModalDialog>
+        </MDBModal>
+      </div>
+    );
+  };
+
   return (
     <div className="quotation-admin">
       <div className="qa-header">
@@ -1992,6 +2611,7 @@ const QuotationAdminPage = () => {
             {activeTab === "baseRates" && renderBaseRateSection()}
             {activeTab === "handleRules" && renderHandleRulesSection()}
             {activeTab === "handleOptions" && renderHandleOptionsSection()}
+            {activeTab === "cuttingSchedule" && renderCuttingScheduleSection()}
           </div>
         </div>
       </div>

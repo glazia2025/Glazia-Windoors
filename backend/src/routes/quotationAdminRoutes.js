@@ -35,6 +35,14 @@ const {
   updateHandleOption,
   deleteHandleOption,
 } = require("../controllers/quotationAdminController");
+const {
+  deleteConfig: deleteCuttingScheduleConfig,
+  getConfig: getCuttingScheduleConfig,
+  getDescriptionCatalog: getCuttingScheduleDescriptionCatalog,
+  listConfigs: listCuttingScheduleConfigs,
+  searchCatalog: searchCuttingScheduleCatalog,
+  upsertConfig: upsertCuttingScheduleConfig,
+} = require("../controllers/cuttingScheduleController");
 
 // Systems
 router.post("/systems", isAdmin, createSystem);
@@ -77,6 +85,14 @@ router.post("/handle-options", isAdmin, createHandleOption);
 router.get("/handle-options", isAdmin, listHandleOptions);
 router.put("/handle-options/:id", isAdmin, updateHandleOption);
 router.delete("/handle-options/:id", isAdmin, deleteHandleOption);
+
+// Cutting schedule rules
+router.get("/cutting-schedule/descriptions", isAdmin, getCuttingScheduleDescriptionCatalog);
+router.get("/cutting-schedule/configs", isAdmin, listCuttingScheduleConfigs);
+router.get("/cutting-schedule/configs/:id", isAdmin, getCuttingScheduleConfig);
+router.post("/cutting-schedule/configs", isAdmin, upsertCuttingScheduleConfig);
+router.delete("/cutting-schedule/configs/:id", isAdmin, deleteCuttingScheduleConfig);
+router.get("/cutting-schedule/catalog", isAdmin, searchCuttingScheduleCatalog);
 
 router.get(
   "/",
