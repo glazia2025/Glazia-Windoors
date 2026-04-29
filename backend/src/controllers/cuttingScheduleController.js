@@ -220,7 +220,7 @@ const buildScheduleData = async (quotation) => {
 
   return {
     quotation,
-    project: quotation.customerDetails?.name || quotation.customerDetails?.company || "-",
+    project: quotation.customerDetails?.name || "-",
     projectCode: quotation.generatedId || quotation.quotationDetails?.id || String(quotation._id),
     generatedAt: new Date(),
     sections,

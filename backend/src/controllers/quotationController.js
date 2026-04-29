@@ -767,7 +767,6 @@ function prepareQuotationPdfData(quotation) {
 
   const customerDetails = {
     name: safeString(quotation?.customerDetails?.name),
-    company: safeString(quotation?.customerDetails?.company),
     email: safeString(quotation?.customerDetails?.email),
     phone: safeString(quotation?.customerDetails?.phone),
     address: safeString(quotation?.customerDetails?.address),
@@ -1070,7 +1069,7 @@ function renderItemPage(data, item) {
           ${data.globalConfig.logo
       ? `<img src="${data.globalConfig.logo}" class="header-logo" alt="Logo" />`
       : `<div class="header-company">${escapeHtml(
-        data.customerDetails.company || "Company"
+        data.customerDetails.name || "Customer"
       )}</div>`
     }
         </div>
@@ -1114,7 +1113,7 @@ function renderSummaryPage(data) {
           ${data.globalConfig.logo
       ? `<img src="${data.globalConfig.logo}" class="header-logo" alt="Logo" />`
       : `<div class="header-company">${escapeHtml(
-        data.customerDetails.company || "Company"
+        data.customerDetails.name || "Customer"
       )}</div>`
     }
         </div>
@@ -1218,7 +1217,7 @@ function renderSummaryPage(data) {
     }
 
       <div class="final-sign">
-        <div>For ${escapeHtml(data.customerDetails.company || "Company")}</div>
+        <div>For ${escapeHtml(data.customerDetails.name || "Customer")}</div>
         <div class="auth-gap"></div>
         <div>Authorized Signatory</div>
       </div>

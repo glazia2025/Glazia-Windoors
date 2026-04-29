@@ -57,7 +57,6 @@ const quotationSchema = new mongoose.Schema(
     ],
     customerDetails: {
       name: { type: String, default: "" },
-      company: { type: String, default: "" },
       email: { type: String, default: "" },
       phone: { type: String, default: "" },
       address: { type: String, default: "" },
