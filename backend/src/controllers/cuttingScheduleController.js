@@ -348,6 +348,7 @@ const buildPdfHtml = (data) => {
 
 const generateCuttingSchedulePdf = async (req, res) => {
   let browserHandle;
+  let page;
   try {
     const { id } = req.params;
     const query = mongoose.Types.ObjectId.isValid(id)
@@ -371,7 +372,7 @@ const generateCuttingSchedulePdf = async (req, res) => {
 
     browserHandle = await launchPdfBrowser();
     const { browser } = browserHandle;
-    const page = await browser.newPage();
+    page = await browser.newPage();
     await page.setContent(html, {
       waitUntil: ["domcontentloaded", "networkidle2"],
       timeout: 60000,
@@ -390,9 +391,21 @@ const generateCuttingSchedulePdf = async (req, res) => {
     return res.end(pdfBuffer);
   } catch (error) {
     console.error("generateCuttingSchedulePdf error", error);
+    if (error.code === "ENOSPC") {
+      return res.status(507).json({
+        message: "Server does not have enough free disk space to generate cutting schedule PDF",
+        error: error.message,
+      });
+    }
     res.status(500).json({ message: "Failed to generate cutting schedule PDF", error: error.message });
   } finally {
-    await closePdfBrowser(browserHandle);
+    try {
+      if (page && !page.isClosed()) {
+        await page.close();
+      }
+    } finally {
+      await closePdfBrowser(browserHandle);
+    }
   }
 };
 

@@ -716,38 +716,47 @@ function normalizeItem(item) {
   };
 }
 
-function computeTotals(items, additionalCosts = {}) {
-  const itemSubtotal = items.reduce((sum, item) => sum + toNumber(item.amount), 0);
+function computeTotals(items, additionalCosts = {}, profitPercentage = 0) {
+  const baseTotal = items.reduce((sum, item) => sum + toNumber(item.amount), 0);
   const totalArea = items.reduce(
     (sum, item) => sum + toNumber(item.area) * Math.max(1, toNumber(item.quantity, 1)),
     0
   );
-
-  const installationRate = toNumber(additionalCosts.installation);
-  const transport = toNumber(additionalCosts.transport);
-  const loadingUnloading = toNumber(additionalCosts.loadingUnloading);
-  const discountPercent = toNumber(additionalCosts.discountPercent);
-  const installation = Number((installationRate * totalArea).toFixed(2));
-
-  const extrasTotal = installation + transport + loadingUnloading;
-  const beforeDiscount = itemSubtotal + extrasTotal;
-  const discountAmount = Number(
-    ((beforeDiscount * discountPercent) / 100).toFixed(2)
+  const totalQty = items.reduce(
+    (sum, item) => sum + Math.max(1, toNumber(item.quantity, 1)),
+    0
   );
-  const grandTotal = Number((beforeDiscount - discountAmount).toFixed(2));
+
+  const profitPercent = toNumber(profitPercentage);
+  const profitValue = (baseTotal * profitPercent) / 100;
+  const installationCost = totalArea * toNumber(additionalCosts.installation);
+  const transportCost = toNumber(additionalCosts.transport);
+  const loadingUnloadingCost = toNumber(additionalCosts.loadingUnloading);
+  const discountPercent = toNumber(additionalCosts.discountPercent);
+  const beforeDiscount =
+    baseTotal + profitValue + installationCost + transportCost + loadingUnloadingCost;
+  const discountValue = (beforeDiscount * discountPercent) / 100;
+  const totalProjectCost = beforeDiscount - discountValue;
+  const gstValue = totalProjectCost * 0.18;
+  const grandTotal = totalProjectCost + gstValue;
 
   return {
-    itemSubtotal: Number(itemSubtotal.toFixed(2)),
-    totalArea: Number(totalArea.toFixed(2)),
-    installationRate: Number(installationRate.toFixed(2)),
-    installation: Number(installation.toFixed(2)),
-    transport: Number(transport.toFixed(2)),
-    loadingUnloading: Number(loadingUnloading.toFixed(2)),
-    extrasTotal: Number(extrasTotal.toFixed(2)),
-    beforeDiscount: Number(beforeDiscount.toFixed(2)),
-    discountPercent: Number(discountPercent.toFixed(2)),
-    discountAmount,
+    baseTotal,
+    totalArea,
+    totalQty,
+    profitPercent,
+    profitValue,
+    installationCost,
+    transportCost,
+    loadingUnloadingCost,
+    beforeDiscount,
+    discountPercent,
+    discountValue,
+    totalProjectCost,
+    gstValue,
     grandTotal,
+    avgWithoutGst: totalArea > 0 ? totalProjectCost / totalArea : 0,
+    avgWithGst: totalArea > 0 ? grandTotal / totalArea : 0,
   };
 }
 
@@ -798,7 +807,8 @@ function prepareQuotationPdfData(quotation) {
     },
   };
 
-  const totals = computeTotals(items, globalConfig.additionalCosts);
+  const profitPercentage = toNumber(quotation?.breakdown?.profitPercentage);
+  const totals = computeTotals(items, globalConfig.additionalCosts, profitPercentage);
 
   return {
     generatedId: safeString(quotation?.generatedId),
@@ -813,7 +823,7 @@ function prepareQuotationPdfData(quotation) {
         toNumber(quotation?.breakdown?.totalAmount) > 0
           ? toNumber(quotation?.breakdown?.totalAmount)
           : totals.grandTotal,
-      profitPercentage: toNumber(quotation?.breakdown?.profitPercentage),
+      profitPercentage,
     },
     totals,
   };
@@ -1097,8 +1107,6 @@ function renderItemPage(data, item) {
 function renderSummaryPage(data) {
   const terms = data.quotationDetails.terms || data.globalConfig.terms || "";
   const prerequisites = data.globalConfig.prerequisites || "";
-  const totalArea = data.totalArea
-
   return `
     <section class="page">
       <div class="page-header">
@@ -1131,19 +1139,23 @@ function renderSummaryPage(data) {
       <table class="summary-table">
         <tr>
           <td>Items Subtotal</td>
-          <td>${formatCurrency(data.totals.itemSubtotal)} INR</td>
+          <td>${formatCurrency(data.totals.baseTotal)} INR</td>
+        </tr>
+        <tr>
+          <td>Profit (${formatCurrency(data.totals.profitPercent)}%)</td>
+          <td>${formatCurrency(data.totals.profitValue)} INR</td>
         </tr>
         <tr>
           <td>Installation</td>
-          <td>${formatCurrency(data.totals.installation * totalArea)} INR</td>
+          <td>${formatCurrency(data.totals.installationCost)} INR</td>
         </tr>
         <tr>
           <td>Transport</td>
-          <td>${formatCurrency(data.totals.transport)} INR</td>
+          <td>${formatCurrency(data.totals.transportCost)} INR</td>
         </tr>
         <tr>
           <td>Loading / Unloading</td>
-          <td>${formatCurrency(data.totals.loadingUnloading)} INR</td>
+          <td>${formatCurrency(data.totals.loadingUnloadingCost)} INR</td>
         </tr>
         <tr>
           <td>Before Discount</td>
@@ -1151,11 +1163,27 @@ function renderSummaryPage(data) {
         </tr>
         <tr>
           <td>Discount (${formatCurrency(data.totals.discountPercent)}%)</td>
-          <td>- ${formatCurrency(data.totals.discountAmount)} INR</td>
+          <td>- ${formatCurrency(data.totals.discountValue)} INR</td>
+        </tr>
+        <tr>
+          <td>Total Project Cost</td>
+          <td>${formatCurrency(data.totals.totalProjectCost)} INR</td>
+        </tr>
+        <tr>
+          <td>GST 18%</td>
+          <td>${formatCurrency(data.totals.gstValue)} INR</td>
         </tr>
         <tr class="grand-total">
           <td>Grand Total</td>
           <td>${formatCurrency(data.totals.grandTotal)} INR</td>
+        </tr>
+        <tr>
+          <td>Avg. Price Per Sq. Ft. Without GST</td>
+          <td>${formatCurrency(data.totals.avgWithoutGst)} INR</td>
+        </tr>
+        <tr>
+          <td>Avg. Price Per Sq. Ft. With GST</td>
+          <td>${formatCurrency(data.totals.avgWithGst)} INR</td>
         </tr>
       </table>
 
@@ -1519,6 +1547,7 @@ function buildPdfHtml(data, user) {
 
 const generateQuotationPdfController = async (req, res) => {
   let browserHandle;
+  let page;
 
   try {
     const { id } = req.params;
@@ -1553,7 +1582,7 @@ const generateQuotationPdfController = async (req, res) => {
     browserHandle = await launchPdfBrowser();
     const { browser } = browserHandle;
 
-    const page = await browser.newPage();
+    page = await browser.newPage();
 
     await page.setContent(html, {
       waitUntil: ["domcontentloaded", "networkidle2"],
@@ -1585,13 +1614,27 @@ const generateQuotationPdfController = async (req, res) => {
   } catch (error) {
     console.error("generateQuotationPdfController error:", error);
 
+    if (error.code === "ENOSPC") {
+      return res.status(507).json({
+        success: false,
+        message: "Server does not have enough free disk space to generate quotation PDF.",
+        error: error.message,
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: "Failed to generate quotation PDF.",
       error: error.message,
     });
   } finally {
-    await closePdfBrowser(browserHandle);
+    try {
+      if (page && !page.isClosed()) {
+        await page.close();
+      }
+    } finally {
+      await closePdfBrowser(browserHandle);
+    }
   }
 };
 

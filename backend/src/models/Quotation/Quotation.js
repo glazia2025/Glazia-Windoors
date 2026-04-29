@@ -25,6 +25,7 @@ const quotationSchema = new mongoose.Schema(
         amount: { type: Number, default: 0 },
         refImage: { type: String },
         remarks: { type: String },
+        configuratorLayout: { type: mongoose.Schema.Types.Mixed },
         subItems: {
           type: [
             {
