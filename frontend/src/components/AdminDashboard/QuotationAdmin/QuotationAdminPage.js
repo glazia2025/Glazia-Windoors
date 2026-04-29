@@ -131,8 +131,7 @@ const QuotationAdminPage = () => {
   const [handleOptionForm, setHandleOptionForm] = useState({
     systemType: "",
     name: "",
-    blackRate: "",
-    silverRate: "",
+    colorsText: "Black: 0\nSilver: 0",
   });
   const [editingHandleOptionId, setEditingHandleOptionId] = useState(null);
   const [cuttingForm, setCuttingForm] = useState({
@@ -732,8 +731,7 @@ const QuotationAdminPage = () => {
     setHandleOptionForm({
       systemType: "",
       name: "",
-      blackRate: "",
-      silverRate: "",
+      colorsText: "Black: 0\nSilver: 0",
     });
     setEditingHandleOptionId(null);
   };
@@ -743,10 +741,7 @@ const QuotationAdminPage = () => {
     const payload = {
       systemType: handleOptionForm.systemType.trim(),
       name: handleOptionForm.name.trim(),
-      colors: {
-        Black: Number(handleOptionForm.blackRate) || 0,
-        Silver: Number(handleOptionForm.silverRate) || 0,
-      },
+      colors: parseKeyValuePairs(handleOptionForm.colorsText),
     };
 
     if (!payload.systemType || !payload.name) return;
@@ -778,8 +773,7 @@ const QuotationAdminPage = () => {
     setHandleOptionForm({
       systemType: option.systemType || "",
       name: option.name || "",
-      blackRate: colors.Black ?? "",
-      silverRate: colors.Silver ?? "",
+      colorsText: stringifyKeyValuePairs(colors),
     });
   };
 
@@ -1918,7 +1912,7 @@ const QuotationAdminPage = () => {
           <p className="qa-subtitle">
             Manage handle type and color pricing per system.
           </p>
-          <p className="qa-hint">Each handle auto-includes Black and Silver color rates.</p>
+          <p className="qa-hint">Enter one color rate per line, for example Black: 0.</p>
         </div>
         <div className="qa-actions">
           {editingHandleOptionId && (
@@ -1950,26 +1944,13 @@ const QuotationAdminPage = () => {
           }
           required
         />
-        <input
-          type="number"
-          placeholder="Black rate"
-          value={handleOptionForm.blackRate}
+        <textarea
+          placeholder={"Black: 0\nSilver: 0"}
+          value={handleOptionForm.colorsText}
           onChange={(e) =>
             setHandleOptionForm((prev) => ({
               ...prev,
-              blackRate: e.target.value,
-            }))
-          }
-          required
-        />
-        <input
-          type="number"
-          placeholder="Silver rate"
-          value={handleOptionForm.silverRate}
-          onChange={(e) =>
-            setHandleOptionForm((prev) => ({
-              ...prev,
-              silverRate: e.target.value,
+              colorsText: e.target.value,
             }))
           }
           required

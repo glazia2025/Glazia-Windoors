@@ -13,6 +13,7 @@ const UserDescriptionRate = require("../models/Quotation/UserDescriptionRate");
 const jwt = require("jsonwebtoken");
 const { extractAuthToken } = require("../utils/authCookies");
 const { closePdfBrowser, launchPdfBrowser } = require("../utils/pdfBrowser");
+const { colorMapToArray } = require("../utils/handleOptionUtils");
 
 const numberOr = (value, fallback = 0) => {
   const asNumber = Number(value);
@@ -348,7 +349,7 @@ const getOptionLists = async (req, res) => {
       glassSpecs: mergeAdminAndUserRates(glassSpecs, "glassSpec"),
       handleOptions: handleOptions.map((h) => ({
         name: h.name,
-        colors: mapToArray(h.colors),
+        colors: colorMapToArray(h.colors),
       })),
     });
   } catch (error) {
