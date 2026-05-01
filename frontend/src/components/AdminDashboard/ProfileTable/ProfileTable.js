@@ -22,7 +22,11 @@ import { toast } from "react-toastify";
 import "./ProfileTable.css";
 
 const ProfileTable = () => {
-  const [masterData, setMasterData] = useState([]);
+
+  const [categories, setCategories] = useState([]);
+  const [sizesMap, setSizesMap] = useState({});
+  const [productsMap, setProductsMap] = useState({});
+
   const [isLoading, setIsLoading] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState({});
   const [expandedSizes, setExpandedSizes] = useState({});
@@ -45,39 +49,63 @@ const ProfileTable = () => {
   const [editableCategory, setEditableCategory] = useState({ id: "", name: "", description: "" });
   const [editableSize, setEditableSize] = useState({ id: "", label: "" });
 
+
   useEffect(() => {
-    fetchMasterData();
+    fetchCategories();
   }, []);
 
-  // Fetch full master data (categories -> sizes -> products)
-  const fetchMasterData = async () => {
+  const fetchCategories = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get(`${BASE_API_URL}/profile/full`);
-      setMasterData(response.data);
+      const response = await api.get(`${BASE_API_URL}/profile/categories`);
+      setCategories(response.data);
     } catch (err) {
-      console.error("Error fetching master data", err);
-      toast.error("Failed to fetch data");
+      toast.error("Failed to fetch categories");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Toggle category expand/collapse
-  const toggleCategoryExpand = (categoryId) => {
-    setExpandedCategories((prev) => ({
+  const toggleCategoryExpand = async (categoryId) => {
+    const isExpanded = expandedCategories[categoryId];
+
+    setExpandedCategories(prev => ({
       ...prev,
-      [categoryId]: !prev[categoryId],
+      [categoryId]: !prev[categoryId]
     }));
+
+    if (!isExpanded && !sizesMap[categoryId]) {
+      const response = await api.get(
+        `${BASE_API_URL}/profile/sizes/category/${categoryId}`
+      );
+
+      setSizesMap(prev => ({
+        ...prev,
+        [categoryId]: response.data
+      }));
+    }
   };
 
-  // Toggle size expand/collapse
-  const toggleSizeExpand = (sizeId) => {
-    setExpandedSizes((prev) => ({
+  const toggleSizeExpand = async (sizeId) => {
+    const isExpanded = expandedSizes[sizeId];
+
+    setExpandedSizes(prev => ({
       ...prev,
-      [sizeId]: !prev[sizeId],
+      [sizeId]: !prev[sizeId]
     }));
+
+    if (!isExpanded && !productsMap[sizeId]) {
+      const response = await api.get(
+        `${BASE_API_URL}/profile/size/${sizeId}/products`
+      );
+
+      setProductsMap(prev => ({
+        ...prev,
+        [sizeId]: response.data
+      }));
+    }
   };
+
 
   // ==================== CATEGORY CRUD ====================
   const handleCreateCategory = async () => {
@@ -86,7 +114,8 @@ const ProfileTable = () => {
       toast.success("Category created successfully");
       setShowCategoryModal(false);
       setNewCategory({ name: "", description: "", enabled: true });
-      fetchMasterData();
+      fetchCategories();
+
     } catch (err) {
       console.error("Error creating category", err);
       toast.error("Failed to create category");
@@ -97,7 +126,8 @@ const ProfileTable = () => {
     try {
       await api.put(`${BASE_API_URL}/profile/category/${categoryId}/toggle-enabled`);
       toast.success("Category status updated");
-      fetchMasterData();
+      fetchCategories();
+
     } catch (err) {
       console.error("Error toggling category", err);
       toast.error("Failed to update category status");
@@ -121,7 +151,8 @@ const ProfileTable = () => {
       });
       toast.success("Category updated successfully");
       setShowEditCategoryModal(false);
-      fetchMasterData();
+      fetchCategories();
+
     } catch (err) {
       console.error("Error updating category", err);
       toast.error("Failed to update category");
@@ -140,7 +171,8 @@ const ProfileTable = () => {
       toast.success("Size created successfully");
       setShowSizeModal(false);
       setNewSize({ categoryId: "", label: "", rate: 0, enabled: true });
-      fetchMasterData();
+      fetchCategories();
+
     } catch (err) {
       console.error("Error creating size", err);
       toast.error("Failed to create size");
@@ -151,7 +183,8 @@ const ProfileTable = () => {
     try {
       await api.put(`${BASE_API_URL}/profile/size/${sizeId}/toggle-enabled`);
       toast.success("Size status updated");
-      fetchMasterData();
+      fetchCategories();
+
     } catch (err) {
       console.error("Error toggling size", err);
       toast.error("Failed to update size status");
@@ -173,7 +206,8 @@ const ProfileTable = () => {
       });
       toast.success("Size updated successfully");
       setShowEditSizeModal(false);
-      fetchMasterData();
+      fetchCategories();
+
     } catch (err) {
       console.error("Error updating size", err);
       toast.error("Failed to update size");
@@ -195,7 +229,8 @@ const ProfileTable = () => {
         sizeId: "", sapCode: "", part: "", description: "",
         degree: "", per: "", kgm: 0, length: 0, image: "", enabled: true
       });
-      fetchMasterData();
+      fetchCategories();
+
     } catch (err) {
       console.error("Error creating product", err);
       toast.error("Failed to create product");
@@ -206,7 +241,8 @@ const ProfileTable = () => {
     try {
       await api.put(`${BASE_API_URL}/profile/product/${productId}/toggle-enabled`);
       toast.success("Product status updated");
-      fetchMasterData();
+      fetchCategories();
+
     } catch (err) {
       console.error("Error toggling product", err);
       toast.error("Failed to update product status");
@@ -227,7 +263,8 @@ const ProfileTable = () => {
       });
       toast.success("Product updated successfully");
       setEditableProduct(null);
-      fetchMasterData();
+      fetchCategories();
+
     } catch (err) {
       console.error("Error updating product", err);
       toast.error("Failed to update product");
@@ -474,204 +511,201 @@ const ProfileTable = () => {
           </div>
           <p className="mt-2">Loading data...</p>
         </div>
-      ) : masterData.length === 0 ? (
+      ) : categories.length === 0 ? (
         <div className="text-center py-5">
           <MDBIcon fas icon="folder-open" size="3x" className="text-muted mb-3" />
           <p className="text-muted">No categories found. Create one to get started.</p>
         </div>
       ) : (
         <div className="categories-container">
-          {masterData.map((categoryBlock) => {
-            const category = categoryBlock.category;
-            const sizes = categoryBlock.sizes || [];
-            const isCategoryExpanded = expandedCategories[category._id];
-
-            return (
-              <MDBCard key={category._id} className="mb-3 category-card">
-                {/* Category Header */}
-                <div
-                  className={`category-header p-3 d-flex justify-content-between align-items-center ${!category.enabled ? 'disabled-item' : ''}`}
-                  style={{ cursor: 'pointer', backgroundColor: '#f8f9fa' }}
-                >
+          {
+            categories.map((category) => {
+              const sizes = sizesMap[category._id] || [];
+              const isCategoryExpanded = expandedCategories[category._id];
+              return (
+                <MDBCard key={category._id} className="mb-3 category-card">
+                  {/* Category Header */}
                   <div
-                    className="d-flex align-items-center flex-grow-1"
-                    onClick={() => toggleCategoryExpand(category._id)}
+                    className={`category-header p-3 d-flex justify-content-between align-items-center ${!category.enabled ? 'disabled-item' : ''}`}
+                    style={{ cursor: 'pointer', backgroundColor: '#f8f9fa' }}
                   >
-                    <MDBIcon
-                      fas
-                      icon={isCategoryExpanded ? "chevron-down" : "chevron-right"}
-                      className="me-3"
-                    />
-                    <div>
-                      <MDBTypography tag="h5" className="mb-0 d-flex align-items-center">
-                        <MDBIcon fas icon="folder" className="me-2 text-warning" />
-                        {category.name}
-                        <span className={`ms-2 badge ${category.enabled ? 'bg-success' : 'bg-secondary'}`}>
-                          {category.enabled ? 'Active' : 'Inactive'}
-                        </span>
-                      </MDBTypography>
-                      {category.description && (
-                        <small className="text-muted">{category.description}</small>
-                      )}
+                    <div
+                      className="d-flex align-items-center flex-grow-1"
+                      onClick={() => toggleCategoryExpand(category._id)}
+                    >
+                      <MDBIcon
+                        fas
+                        icon={isCategoryExpanded ? "chevron-down" : "chevron-right"}
+                        className="me-3"
+                      />
+                      <div>
+                        <MDBTypography tag="h5" className="mb-0 d-flex align-items-center">
+                          <MDBIcon fas icon="folder" className="me-2 text-warning" />
+                          {category.name}
+                          <span className={`ms-2 badge ${category.enabled ? 'bg-success' : 'bg-secondary'}`}>
+                            {category.enabled ? 'Active' : 'Inactive'}
+                          </span>
+                        </MDBTypography>
+                        {category.description && (
+                          <small className="text-muted">{category.description}</small>
+                        )}
+                      </div>
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      <MDBBtn
+                        color="warning"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditCategoryModal(category);
+                        }}
+                        title="Edit category"
+                      >
+                        <MDBIcon fas icon="pen" />
+                      </MDBBtn>
+                      <MDBSwitch
+                        checked={category.enabled}
+                        onChange={() => handleToggleCategoryEnabled(category._id)}
+                        id={`cat-switch-${category._id}`}
+                        title="Toggle category"
+                      />
+                      <MDBBtn
+                        color="success"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openSizeModal(category._id);
+                        }}
+                        title="Add Size"
+                      >
+                        <MDBIcon fas icon="plus" className="me-1" />
+                        Add Size
+                      </MDBBtn>
                     </div>
                   </div>
-                  <div className="d-flex align-items-center gap-2">
-                    <MDBBtn
-                      color="warning"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditCategoryModal(category);
-                      }}
-                      title="Edit category"
-                    >
-                      <MDBIcon fas icon="pen" />
-                    </MDBBtn>
-                    <MDBSwitch
-                      checked={category.enabled}
-                      onChange={() => handleToggleCategoryEnabled(category._id)}
-                      id={`cat-switch-${category._id}`}
-                      title="Toggle category"
-                    />
-                    <MDBBtn
-                      color="success"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openSizeModal(category._id);
-                      }}
-                      title="Add Size"
-                    >
-                      <MDBIcon fas icon="plus" className="me-1" />
-                      Add Size
-                    </MDBBtn>
-                  </div>
-                </div>
-                {/* Sizes Container (Collapsible) */}
-                {isCategoryExpanded && (
-                  <MDBCardBody className="p-0">
-                    {sizes.length === 0 ? (
-                      <div className="text-center py-3 text-muted">
-                        <MDBIcon fas icon="ruler" className="me-2" />
-                        No sizes found for this category
-                      </div>
-                    ) : (
-                      sizes.map((sizeBlock) => {
-                        const size = sizeBlock.size;
-                        const products = sizeBlock.products || [];
-                        const isSizeExpanded = expandedSizes[size._id];
-
-                        return (
-                          <div key={size._id} className="size-block ms-4 border-start">
-                            {/* Size Header */}
-                            <div
-                              className={`size-header p-2 d-flex justify-content-between align-items-center ${!size.enabled ? 'disabled-item' : ''}`}
-                              style={{ cursor: 'pointer', backgroundColor: '#f1f3f5' }}
-                            >
+                  {/* Sizes Container (Collapsible) */}
+                  {isCategoryExpanded && (
+                    <MDBCardBody className="p-0">
+                      {sizes.length === 0 ? (
+                        <div className="text-center py-3 text-muted">
+                          <MDBIcon fas icon="ruler" className="me-2" />
+                          No sizes found for this category
+                        </div>
+                      ) : (
+                        sizes.map((size) => {
+                          const products = productsMap[size._id] || [];
+                          const isSizeExpanded = expandedSizes[size._id];
+                          return (
+                            <div key={size._id} className="size-block ms-4 border-start">
+                              {/* Size Header */}
                               <div
-                                className="d-flex align-items-center flex-grow-1"
-                                onClick={() => toggleSizeExpand(size._id)}
+                                className={`size-header p-2 d-flex justify-content-between align-items-center ${!size.enabled ? 'disabled-item' : ''}`}
+                                style={{ cursor: 'pointer', backgroundColor: '#f1f3f5' }}
                               >
-                                <MDBIcon
-                                  fas
-                                  icon={isSizeExpanded ? "chevron-down" : "chevron-right"}
-                                  className="me-2"
-                                />
-                                <div>
-                                  <span className="fw-bold">
-                                    <MDBIcon fas icon="ruler" className="me-2 text-info" />
-                                    {size.label || 'Unnamed Size'}
-                                  </span>
-                                  <span className={`ms-2 badge ${size.enabled ? 'bg-success' : 'bg-secondary'}`} style={{ fontSize: '0.7rem' }}>
-                                    {size.enabled ? 'Active' : 'Inactive'}
-                                  </span>
-                                  {size.rate && (
-                                    <span className="ms-2 text-muted small">
-                                      Rate: ₹{size.rate}
+                                <div
+                                  className="d-flex align-items-center flex-grow-1"
+                                  onClick={() => toggleSizeExpand(size._id)}
+                                >
+                                  <MDBIcon
+                                    fas
+                                    icon={isSizeExpanded ? "chevron-down" : "chevron-right"}
+                                    className="me-2"
+                                  />
+                                  <div>
+                                    <span className="fw-bold">
+                                      <MDBIcon fas icon="ruler" className="me-2 text-info" />
+                                      {size.label || 'Unnamed Size'}
                                     </span>
-                                  )}
-                                  <span className="ms-2 text-muted small">
-                                    ({products.length} products)
-                                  </span>
+                                    <span className={`ms-2 badge ${size.enabled ? 'bg-success' : 'bg-secondary'}`} style={{ fontSize: '0.7rem' }}>
+                                      {size.enabled ? 'Active' : 'Inactive'}
+                                    </span>
+                                    {size.rate && (
+                                      <span className="ms-2 text-muted small">
+                                        Rate: ₹{size.rate}
+                                      </span>
+                                    )}
+                                    <span className="ms-2 text-muted small">
+                                      ({products.length} products)
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="d-flex align-items-center gap-2">
+                                  <MDBBtn
+                                    color="warning"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEditSizeModal(size);
+                                    }}
+                                    title="Edit size"
+                                  >
+                                    <MDBIcon fas icon="pen" />
+                                  </MDBBtn>
+                                  <MDBSwitch
+                                    checked={size.enabled}
+                                    onChange={() => handleToggleSizeEnabled(size._id)}
+                                    id={`size-switch-${size._id}`}
+                                    title="Toggle size"
+                                  />
+                                  <MDBBtn
+                                    color="info"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openProductModal(size._id);
+                                    }}
+                                    title="Add Product"
+                                  >
+                                    <MDBIcon fas icon="plus" className="me-1" />
+                                    Add Product
+                                  </MDBBtn>
                                 </div>
                               </div>
-                              <div className="d-flex align-items-center gap-2">
-                                <MDBBtn
-                                  color="warning"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openEditSizeModal(size);
-                                  }}
-                                  title="Edit size"
-                                >
-                                  <MDBIcon fas icon="pen" />
-                                </MDBBtn>
-                                <MDBSwitch
-                                  checked={size.enabled}
-                                  onChange={() => handleToggleSizeEnabled(size._id)}
-                                  id={`size-switch-${size._id}`}
-                                  title="Toggle size"
-                                />
-                                <MDBBtn
-                                  color="info"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openProductModal(size._id);
-                                  }}
-                                  title="Add Product"
-                                >
-                                  <MDBIcon fas icon="plus" className="me-1" />
-                                  Add Product
-                                </MDBBtn>
-                              </div>
+                              {/* Products Table (Collapsible) */}
+                              {isSizeExpanded && (
+                                <div className="products-container ms-4 p-2">
+                                  {products.length === 0 ? (
+                                    <div className="text-center py-2 text-muted">
+                                      <MDBIcon fas icon="box-open" className="me-2" />
+                                      No products found for this size
+                                    </div>
+                                  ) : (
+                                    <div className="table-responsive" style={{ maxHeight: '400px' }}>
+                                      <table className="table table-bordered profile-table table-sm">
+                                        <thead>
+                                          <tr>
+                                            <th className="col-sno">S No.</th>
+                                            <th className="col-image">Image</th>
+                                            <th className="col-sapcode">SAP Code</th>
+                                            <th className="col-part">Part</th>
+                                            <th className="col-description">Description</th>
+                                            <th className="col-degree">90°/45°</th>
+                                            <th className="col-rate">Rate</th>
+                                            <th className="col-per">Per</th>
+                                            <th className="col-kgm">Kg/m</th>
+                                            <th className="col-length">Length</th>
+                                            <th className="col-actions">Actions</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {products.map((product, index) =>
+                                            renderProductRow(product, index, size.rate)
+                                          )}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                            {/* Products Table (Collapsible) */}
-                            {isSizeExpanded && (
-                              <div className="products-container ms-4 p-2">
-                                {products.length === 0 ? (
-                                  <div className="text-center py-2 text-muted">
-                                    <MDBIcon fas icon="box-open" className="me-2" />
-                                    No products found for this size
-                                  </div>
-                                ) : (
-                                  <div className="table-responsive" style={{ maxHeight: '400px' }}>
-                                    <table className="table table-bordered profile-table table-sm">
-                                      <thead>
-                                        <tr>
-                                          <th className="col-sno">S No.</th>
-                                          <th className="col-image">Image</th>
-                                          <th className="col-sapcode">SAP Code</th>
-                                          <th className="col-part">Part</th>
-                                          <th className="col-description">Description</th>
-                                          <th className="col-degree">90°/45°</th>
-                                          <th className="col-rate">Rate</th>
-                                          <th className="col-per">Per</th>
-                                          <th className="col-kgm">Kg/m</th>
-                                          <th className="col-length">Length</th>
-                                          <th className="col-actions">Actions</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {products.map((product, index) =>
-                                          renderProductRow(product, index, size.rate)
-                                        )}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                  </MDBCardBody>
-                )}
-              </MDBCard>
-            );
-          })}
+                          );
+                        })
+                      )}
+                    </MDBCardBody>
+                  )}
+                </MDBCard>
+              );
+            })}
         </div>
       )}
 

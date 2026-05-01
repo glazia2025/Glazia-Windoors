@@ -25,6 +25,7 @@ const quotationSchema = new mongoose.Schema(
         amount: { type: Number, default: 0 },
         refImage: { type: String },
         remarks: { type: String },
+        configuratorLayout: { type: mongoose.Schema.Types.Mixed },
         subItems: {
           type: [
             {
@@ -56,7 +57,6 @@ const quotationSchema = new mongoose.Schema(
     ],
     customerDetails: {
       name: { type: String, default: "" },
-      company: { type: String, default: "" },
       email: { type: String, default: "" },
       phone: { type: String, default: "" },
       address: { type: String, default: "" },
@@ -91,11 +91,25 @@ const quotationSchema = new mongoose.Schema(
         transport: { type: Number, default: 0 },
         loadingUnloading: { type: Number, default: 0 },
         discountPercent: { type: Number, default: 0 },
+        showInstallation: { type: Boolean, default: true },
+        showTransport: { type: Boolean, default: true },
+        showLoadingUnloading: { type: Boolean, default: true },
+        showDiscount: { type: Boolean, default: true },
       }
     },
     generatedId: { type: String, unique: true },
   },
   { timestamps: true }
 );
+
+quotationSchema.index({ user: 1, createdAt: -1 });
+
+// Optional but useful for admin filtering:
+quotationSchema.index({ systemType: 1, createdAt: -1 });
+quotationSchema.index({ series: 1, createdAt: -1 });
+quotationSchema.index({ description: 1, createdAt: -1 });
+
+// If admin commonly filters by combos:
+quotationSchema.index({ systemType: 1, series: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Quotation", quotationSchema);
