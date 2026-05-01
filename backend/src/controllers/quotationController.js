@@ -340,7 +340,14 @@ const getOptionLists = async (req, res) => {
     };
 
     const handleOptions = systemType
-      ? await HandleOption.find({ systemType }).lean()
+      ? await HandleOption.find({
+        systemType,
+        $or: [
+          { createdBy: { $exists: false } },
+          { createdBy: null },
+          ...(userId ? [{ createdBy: userId }] : []),
+        ],
+      }).lean()
       : [];
 
     res.json({
@@ -460,13 +467,29 @@ const listQuotations = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
-        .select("_id user customerDetails quotationDetails breakdown generatedId createdAt updatedAt") // keep list light
+        .select("_id user customerDetails quotationDetails breakdown generatedId createdAt updatedAt items.amount") // keep list light
         .lean(),
       Quotation.countDocuments(filter),
     ]);
+    const quotationsWithTotals = quotations.map((quotation) => {
+      const storedTotal = numberOr(quotation?.breakdown?.totalAmount);
+      if (storedTotal > 0) return quotation;
+
+      const itemTotal = Array.isArray(quotation.items)
+        ? quotation.items.reduce((sum, item) => sum + numberOr(item?.amount), 0)
+        : 0;
+
+      return {
+        ...quotation,
+        breakdown: {
+          ...(quotation.breakdown || {}),
+          totalAmount: itemTotal,
+        },
+      };
+    });
 
     res.json({
-      quotations,
+      quotations: quotationsWithTotals,
       page: pageNum,
       limit: limitNum,
       total,
@@ -579,6 +602,14 @@ function safeString(value, fallback = "") {
   return String(value).trim();
 }
 
+function booleanOr(value, fallback = true) {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "string") {
+    return value.toLowerCase() !== "false";
+  }
+  return Boolean(value);
+}
+
 function escapeHtml(value) {
   return safeString(value)
     .replace(/&/g, "&amp;")
@@ -640,6 +671,20 @@ function computeAmount(item) {
 
 function boolToDisplay(value) {
   return value ? "Yes" : "No";
+}
+
+function formatHandle(handleType, handleColor) {
+  const type = safeString(handleType);
+  if (!type || type === "-") return "-";
+
+  const color = safeString(handleColor);
+  return color && color !== "-" ? `${type} / ${color}` : type;
+}
+
+function formatMesh(meshPresent, meshType) {
+  const present = safeString(meshPresent, "No");
+  const type = safeString(meshType);
+  return present === "Yes" && type && type !== "-" ? `${present} (${type})` : present;
 }
 
 function normalizeImage(value) {
@@ -804,6 +849,18 @@ function prepareQuotationPdfData(quotation) {
       discountPercent: toNumber(
         quotation?.globalConfig?.additionalCosts?.discountPercent
       ),
+      showInstallation: booleanOr(
+        quotation?.globalConfig?.additionalCosts?.showInstallation
+      ),
+      showTransport: booleanOr(
+        quotation?.globalConfig?.additionalCosts?.showTransport
+      ),
+      showLoadingUnloading: booleanOr(
+        quotation?.globalConfig?.additionalCosts?.showLoadingUnloading
+      ),
+      showDiscount: booleanOr(
+        quotation?.globalConfig?.additionalCosts?.showDiscount
+      ),
     },
   };
 
@@ -940,7 +997,7 @@ function renderMainItemCard(item) {
           <td class="label">Product</td>
           <td>${escapeHtml(item.systemType)}</td>
           <td class="label">Handle</td>
-          <td>${escapeHtml(item.handleType)} - ${escapeHtml(item.handleColor)}</td>
+          <td>${escapeHtml(formatHandle(item.handleType, item.handleColor))}</td>
           <td class="label">Description</td>
           <td>${escapeHtml(item.description)}</td>
         </tr>
@@ -950,7 +1007,7 @@ function renderMainItemCard(item) {
           <td class="label">Glass</td>
           <td>${escapeHtml(item.glassSpec)}</td>
           <td class="label">Mesh</td>
-          <td>${escapeHtml(item.meshPresent)} ${item.meshType !== "-" ? `(${escapeHtml(item.meshType)})` : ""}</td>
+          <td>${escapeHtml(formatMesh(item.meshPresent, item.meshType))}</td>
         </tr>
       </table>
 
@@ -1046,8 +1103,8 @@ function renderSubItemsTable(subItems) {
                   <td>${escapeHtml(sub.location)}</td>
                   <td>${escapeHtml(sub.description)}</td>
                   <td>${escapeHtml(sub.glassSpec)}</td>
-                  <td>${escapeHtml(sub.handleType)} / ${escapeHtml(sub.handleColor)}</td>
-                  <td>${escapeHtml(sub.meshPresent)} ${sub.meshType !== "-" ? `(${escapeHtml(sub.meshType)})` : ""}</td>
+                  <td>${escapeHtml(formatHandle(sub.handleType, sub.handleColor))}</td>
+                  <td>${escapeHtml(formatMesh(sub.meshPresent, sub.meshType))}</td>
                   <td>${formatCurrency(sub.rate)}</td>
                   <td>${sub.quantity}</td>
                   <td>${formatCurrency(sub.amount)}</td>
@@ -1107,6 +1164,41 @@ function renderItemPage(data, item) {
 function renderSummaryPage(data) {
   const terms = data.quotationDetails.terms || data.globalConfig.terms || "";
   const prerequisites = data.globalConfig.prerequisites || "";
+  const additionalCosts = data.globalConfig.additionalCosts || {};
+
+  const installationRow = additionalCosts.showInstallation
+    ? `
+        <tr>
+          <td>Installation</td>
+          <td>${formatCurrency(data.totals.installationCost)} INR</td>
+        </tr>
+      `
+    : "";
+  const transportRow = additionalCosts.showTransport
+    ? `
+        <tr>
+          <td>Transport</td>
+          <td>${formatCurrency(data.totals.transportCost)} INR</td>
+        </tr>
+      `
+    : "";
+  const loadingUnloadingRow = additionalCosts.showLoadingUnloading
+    ? `
+        <tr>
+          <td>Loading / Unloading</td>
+          <td>${formatCurrency(data.totals.loadingUnloadingCost)} INR</td>
+        </tr>
+      `
+    : "";
+  const discountRow = additionalCosts.showDiscount
+    ? `
+        <tr>
+          <td>Discount (${formatCurrency(data.totals.discountPercent)}%)</td>
+          <td>- ${formatCurrency(data.totals.discountValue)} INR</td>
+        </tr>
+      `
+    : "";
+
   return `
     <section class="page">
       <div class="page-header">
@@ -1138,6 +1230,14 @@ function renderSummaryPage(data) {
 
       <table class="summary-table">
         <tr>
+          <td>Quantity</td>
+          <td>${data.totals.totalQty}</td>
+        </tr>
+        <tr>
+          <td>Total Area</td>
+          <td>${data.totals.totalArea.toFixed(2)} Sq.ft</td>
+        </tr>
+        <tr>
           <td>Items Subtotal</td>
           <td>${formatCurrency(data.totals.baseTotal)} INR</td>
         </tr>
@@ -1145,26 +1245,14 @@ function renderSummaryPage(data) {
           <td>Profit (${formatCurrency(data.totals.profitPercent)}%)</td>
           <td>${formatCurrency(data.totals.profitValue)} INR</td>
         </tr>
-        <tr>
-          <td>Installation</td>
-          <td>${formatCurrency(data.totals.installationCost)} INR</td>
-        </tr>
-        <tr>
-          <td>Transport</td>
-          <td>${formatCurrency(data.totals.transportCost)} INR</td>
-        </tr>
-        <tr>
-          <td>Loading / Unloading</td>
-          <td>${formatCurrency(data.totals.loadingUnloadingCost)} INR</td>
-        </tr>
+        ${installationRow}
+        ${transportRow}
+        ${loadingUnloadingRow}
         <tr>
           <td>Before Discount</td>
           <td>${formatCurrency(data.totals.beforeDiscount)} INR</td>
         </tr>
-        <tr>
-          <td>Discount (${formatCurrency(data.totals.discountPercent)}%)</td>
-          <td>- ${formatCurrency(data.totals.discountValue)} INR</td>
-        </tr>
+        ${discountRow}
         <tr>
           <td>Total Project Cost</td>
           <td>${formatCurrency(data.totals.totalProjectCost)} INR</td>

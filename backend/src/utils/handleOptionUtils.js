@@ -31,7 +31,13 @@ const toSystemKey = (name = "") =>
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
 
-const groupHandleOptionsBySystem = (options = []) =>
+const toIdString = (value) => {
+  if (!value) return "";
+  if (typeof value === "object" && value._id) return String(value._id);
+  return String(value);
+};
+
+const groupHandleOptionsBySystem = (options = [], userId = "") =>
   options.reduce((acc, option) => {
     const systemType = option.systemType || "";
     const key = toSystemKey(systemType);
@@ -41,14 +47,18 @@ const groupHandleOptionsBySystem = (options = []) =>
       acc[key] = [];
     }
 
+    const createdBy = toIdString(option.createdBy);
+    const isUserItem = Boolean(createdBy);
+    const canDelete = Boolean(userId && createdBy === toIdString(userId));
+
     acc[key].push({
       id: String(option._id || `${systemType}:${option.name}`),
       _id: option._id,
       systemType,
       name: option.name || "",
       colors: colorMapToArray(option.colors),
-      source: "admin",
-      canDelete: false,
+      source: isUserItem ? "user" : "admin",
+      canDelete,
     });
 
     return acc;
