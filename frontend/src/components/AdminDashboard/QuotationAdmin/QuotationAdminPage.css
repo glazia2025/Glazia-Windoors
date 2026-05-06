@@ -384,7 +384,7 @@
 
 .qa-modal-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -400,6 +400,7 @@
 }
 
 .qa-modal-summary input,
+.qa-modal-summary select,
 .qa-editor-table input,
 .qa-editor-table select {
   width: 100%;
@@ -408,6 +409,42 @@
   background: #fdfdff;
   padding: 9px 10px;
   font-size: 13px;
+}
+
+.qa-schedule-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.qa-schedule-tabs button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  align-items: center;
+  border: 1px solid #d9dfeb;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.qa-schedule-tabs button.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: inset 0 0 0 1px #2563eb;
+}
+
+.qa-schedule-tabs span {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.qa-schedule-tabs small {
+  color: #64748b;
+  font-size: 12px;
 }
 
 .qa-modal-summary input[readonly],
@@ -505,7 +542,8 @@
   }
 
   .qa-cutting-layout,
-  .qa-modal-summary {
+  .qa-modal-summary,
+  .qa-schedule-tabs {
     grid-template-columns: 1fr;
   }
 

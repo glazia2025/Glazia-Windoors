@@ -44,6 +44,12 @@ const toPlainObject = (value) =>
 const entriesFromMap = (value) => Object.entries(toPlainObject(value));
 
 const GLOBAL_OPTION_TYPES = ["colorFinish", "meshType", "glassSpec"];
+const CUTTING_SCHEDULES = [
+  { key: "45_45", label: "45 / 45", horizontalAngle: "45", verticalAngle: "45" },
+  { key: "45_90", label: "45 / 90", horizontalAngle: "45", verticalAngle: "90" },
+  { key: "90_45", label: "90 / 45", horizontalAngle: "90", verticalAngle: "45" },
+  { key: "90_90", label: "90 / 90", horizontalAngle: "90", verticalAngle: "90" },
+];
 
 const createCuttingLine = () => ({
   itemType: "profile",
@@ -57,6 +63,41 @@ const createCuttingLine = () => ({
   sortOrder: 0,
   sapCodeSelected: false,
 });
+
+const createCuttingSchedules = (schedules = [], legacyLines = []) => {
+  const byKey = new Map((Array.isArray(schedules) ? schedules : []).map((schedule) => [schedule.key, schedule]));
+
+  return CUTTING_SCHEDULES.map((base) => {
+    const existing = byKey.get(base.key);
+    const sourceLines =
+      existing?.lines?.length > 0
+        ? existing.lines
+        : base.key === "90_90" && legacyLines?.length > 0
+          ? legacyLines
+          : [];
+
+    return {
+      key: base.key,
+      horizontalAngle: base.horizontalAngle,
+      verticalAngle: base.verticalAngle,
+      lines:
+        sourceLines.length > 0
+          ? sourceLines.map((line, index) => ({
+              ...createCuttingLine(),
+              ...line,
+              cutAngle: line.cutAngle || line.cutAngleLeft || line.cutAngleRight || "",
+              sortOrder: line.sortOrder ?? index,
+              sapCodeSelected: Boolean(line.sapCode),
+            }))
+          : [createCuttingLine()],
+    };
+  });
+};
+
+const getCuttingLineCount = (config = {}) =>
+  (config.schedules || []).reduce((total, schedule) => total + (schedule.lines?.length || 0), 0) ||
+  config.lines?.length ||
+  0;
 
 const QuotationAdminPage = () => {
   const [page, setPage] = useState(1);
@@ -139,8 +180,11 @@ const QuotationAdminPage = () => {
     series: "",
     description: "",
     notes: "",
+    defaultScheduleKey: "90_90",
     lines: [createCuttingLine()],
+    schedules: createCuttingSchedules(),
   });
+  const [activeCuttingScheduleKey, setActiveCuttingScheduleKey] = useState("45_45");
   const [phoneFilter, setphoneFilter] = useState("");
   const [limit, setLimit] = useState(10);
 
@@ -862,23 +906,17 @@ const QuotationAdminPage = () => {
       series: row.series || "",
       description: row.description || "",
       notes: existing?.notes || "",
-      lines:
-        existing?.lines?.length > 0
-          ? existing.lines.map((line, index) => ({
-              ...createCuttingLine(),
-              ...line,
-              cutAngle: line.cutAngle || line.cutAngleLeft || line.cutAngleRight || "",
-              sortOrder: line.sortOrder ?? index,
-              sapCodeSelected: Boolean(line.sapCode),
-            }))
-          : [createCuttingLine()],
+      defaultScheduleKey: existing?.defaultScheduleKey || "90_90",
+      lines: existing?.lines?.length > 0 ? existing.lines : [createCuttingLine()],
+      schedules: createCuttingSchedules(existing?.schedules, existing?.lines),
     });
     setSelectedCuttingRow({
       ...row,
       configId: existing?._id,
-      lineCount: existing?.lines?.length || 0,
+      lineCount: getCuttingLineCount(existing),
       configured: Boolean(existing),
     });
+    setActiveCuttingScheduleKey(existing?.defaultScheduleKey || "45_45");
     setIsCuttingModalOpen(true);
     setSapAutocomplete({});
   };
@@ -886,19 +924,26 @@ const QuotationAdminPage = () => {
   const updateCuttingLine = (index, field, value) => {
     setCuttingForm((prev) => ({
       ...prev,
-      lines: prev.lines.map((line, lineIndex) => {
-        if (lineIndex !== index) return line;
-        const nextLine = { ...line, [field]: value };
-        if (field === "itemType" && value === "hardware") {
-          nextLine.dimensionFormula = "";
-          nextLine.cutAngle = "";
-        }
-        if (field === "itemType") {
-          nextLine.sapCode = "";
-          nextLine.sapCodeSelected = false;
-        }
-        return nextLine;
-      }),
+      schedules: prev.schedules.map((schedule) =>
+        schedule.key === activeCuttingScheduleKey
+          ? {
+              ...schedule,
+              lines: schedule.lines.map((line, lineIndex) => {
+                if (lineIndex !== index) return line;
+                const nextLine = { ...line, [field]: value };
+                if (field === "itemType" && value === "hardware") {
+                  nextLine.dimensionFormula = "";
+                  nextLine.cutAngle = "";
+                }
+                if (field === "itemType") {
+                  nextLine.sapCode = "";
+                  nextLine.sapCodeSelected = false;
+                }
+                return nextLine;
+              }),
+            }
+          : schedule
+      ),
     }));
   };
 
@@ -916,14 +961,21 @@ const QuotationAdminPage = () => {
   const handleSapCodeSearch = (index, value, itemType) => {
     setCuttingForm((prev) => ({
       ...prev,
-      lines: prev.lines.map((line, lineIndex) =>
-        lineIndex === index
+      schedules: prev.schedules.map((schedule) =>
+        schedule.key === activeCuttingScheduleKey
           ? {
-              ...line,
-              sapCode: value,
-              sapCodeSelected: false,
+              ...schedule,
+              lines: schedule.lines.map((line, lineIndex) =>
+                lineIndex === index
+                  ? {
+                      ...line,
+                      sapCode: value,
+                      sapCodeSelected: false,
+                    }
+                  : line
+              ),
             }
-          : line
+          : schedule
       ),
     }));
 
@@ -986,15 +1038,22 @@ const QuotationAdminPage = () => {
   const handleSapCodeSelect = (index, product) => {
     setCuttingForm((prev) => ({
       ...prev,
-      lines: prev.lines.map((line, lineIndex) =>
-        lineIndex === index
+      schedules: prev.schedules.map((schedule) =>
+        schedule.key === activeCuttingScheduleKey
           ? {
-              ...line,
-              sapCode: product.sapCode || "",
-              description: line.description || getSapProductLabel(product),
-              sapCodeSelected: true,
+              ...schedule,
+              lines: schedule.lines.map((line, lineIndex) =>
+                lineIndex === index
+                  ? {
+                      ...line,
+                      sapCode: product.sapCode || "",
+                      description: line.description || getSapProductLabel(product),
+                      sapCodeSelected: true,
+                    }
+                  : line
+              ),
             }
-          : line
+          : schedule
       ),
     }));
     closeSapAutocomplete(index);
@@ -1004,13 +1063,20 @@ const QuotationAdminPage = () => {
     window.setTimeout(() => {
       setCuttingForm((prev) => ({
         ...prev,
-        lines: prev.lines.map((line, lineIndex) =>
-          lineIndex === index && line.sapCode && !line.sapCodeSelected
+        schedules: prev.schedules.map((schedule) =>
+          schedule.key === activeCuttingScheduleKey
             ? {
-                ...line,
-                sapCode: "",
+                ...schedule,
+                lines: schedule.lines.map((line, lineIndex) =>
+                  lineIndex === index && line.sapCode && !line.sapCodeSelected
+                    ? {
+                        ...line,
+                        sapCode: "",
+                      }
+                    : line
+                ),
               }
-            : line
+            : schedule
         ),
       }));
       closeSapAutocomplete(index);
@@ -1020,14 +1086,31 @@ const QuotationAdminPage = () => {
   const addCuttingLine = () => {
     setCuttingForm((prev) => ({
       ...prev,
-      lines: [...prev.lines, { ...createCuttingLine(), sortOrder: prev.lines.length }],
+      schedules: prev.schedules.map((schedule) =>
+        schedule.key === activeCuttingScheduleKey
+          ? {
+              ...schedule,
+              lines: [...schedule.lines, { ...createCuttingLine(), sortOrder: schedule.lines.length }],
+            }
+          : schedule
+      ),
     }));
   };
 
   const removeCuttingLine = (index) => {
     setCuttingForm((prev) => ({
       ...prev,
-      lines: prev.lines.length === 1 ? [createCuttingLine()] : prev.lines.filter((_, i) => i !== index),
+      schedules: prev.schedules.map((schedule) =>
+        schedule.key === activeCuttingScheduleKey
+          ? {
+              ...schedule,
+              lines:
+                schedule.lines.length === 1
+                  ? [createCuttingLine()]
+                  : schedule.lines.filter((_, i) => i !== index),
+            }
+          : schedule
+      ),
     }));
   };
 
@@ -1035,29 +1118,59 @@ const QuotationAdminPage = () => {
     event.preventDefault();
     if (!cuttingForm.systemType || !cuttingForm.series || !cuttingForm.description) return;
 
-    const hasUnselectedSapCode = cuttingForm.lines.some((line) => line.sapCode && !line.sapCodeSelected);
+    const hasUnselectedSapCode = cuttingForm.schedules.some((schedule) =>
+      schedule.lines.some((line) => line.sapCode && !line.sapCodeSelected)
+    );
     if (hasUnselectedSapCode) {
       setCuttingForm((prev) => ({
         ...prev,
-        lines: prev.lines.map((line) =>
-          line.sapCode && !line.sapCodeSelected ? { ...line, sapCode: "" } : line
-        ),
+        schedules: prev.schedules.map((schedule) => ({
+          ...schedule,
+          lines: schedule.lines.map((line) =>
+            line.sapCode && !line.sapCodeSelected ? { ...line, sapCode: "" } : line
+          ),
+        })),
       }));
       return;
     }
+
+    const schedules = cuttingForm.schedules.map((schedule) => ({
+      ...schedule,
+      lines: schedule.lines
+        .filter((line) => line.sapCode || line.description || line.dimensionFormula || line.cutAngle || line.position)
+        .map((line, index) => {
+          const sanitized = { ...line, sortOrder: index };
+          delete sanitized.sapCodeSelected;
+          delete sanitized.cutAngleLeft;
+          delete sanitized.cutAngleRight;
+          return sanitized;
+        }),
+    }));
+
+    const hasBlankSapCode = schedules.some((schedule) =>
+      schedule.lines.some((line) => !line.sapCode)
+    );
+    if (hasBlankSapCode) {
+      setCuttingForm((prev) => ({
+        ...prev,
+        schedules: prev.schedules.map((schedule) => ({
+          ...schedule,
+          lines: schedule.lines.filter((line) => line.sapCode),
+        })),
+      }));
+      return;
+    }
+
+    const defaultLines = schedules.find((schedule) => schedule.key === cuttingForm.defaultScheduleKey)?.lines || [];
+    const totalLines = schedules.reduce((total, schedule) => total + schedule.lines.length, 0);
 
     try {
       await api.post(
         `${BASE_API_URL}/admin/quotations/cutting-schedule/configs`,
         {
           ...cuttingForm,
-          lines: cuttingForm.lines.map((line, index) => {
-            const sanitized = { ...line, sortOrder: index };
-            delete sanitized.sapCodeSelected;
-            delete sanitized.cutAngleLeft;
-            delete sanitized.cutAngleRight;
-            return sanitized;
-          }),
+          lines: defaultLines,
+          schedules,
         },
         authConfig
       );
@@ -1067,7 +1180,7 @@ const QuotationAdminPage = () => {
           ? {
               ...prev,
               configured: true,
-              lineCount: cuttingForm.lines.length,
+              lineCount: totalLines,
             }
           : prev
       );
@@ -1088,7 +1201,13 @@ const QuotationAdminPage = () => {
 
     try {
       await api.delete(`${BASE_API_URL}/admin/quotations/cutting-schedule/configs/${existing._id}`, authConfig);
-      setCuttingForm((prev) => ({ ...prev, notes: "", lines: [createCuttingLine()] }));
+      setCuttingForm((prev) => ({
+        ...prev,
+        notes: "",
+        defaultScheduleKey: "90_90",
+        lines: [createCuttingLine()],
+        schedules: createCuttingSchedules(),
+      }));
       setSelectedCuttingRow((prev) =>
         prev
           ? {
@@ -2230,6 +2349,11 @@ const QuotationAdminPage = () => {
         config.series === cuttingForm.series &&
         config.description === cuttingForm.description
     );
+    const activeCuttingSchedule =
+      cuttingForm.schedules.find((schedule) => schedule.key === activeCuttingScheduleKey) ||
+      cuttingForm.schedules[0] ||
+      createCuttingSchedules()[0];
+    const activeCuttingLines = activeCuttingSchedule.lines || [createCuttingLine()];
 
     return (
       <div className="qa-card">
@@ -2266,13 +2390,13 @@ const QuotationAdminPage = () => {
               <div className="qa-side-label">Selected</div>
               {selectedCuttingRow ? (
                 <>
-                  <div className="qa-title">{selectedCuttingRow.description}</div>
-                  <div className="qa-meta">{selectedCuttingRow.systemType} / {selectedCuttingRow.series}</div>
-                  <div className="qa-badges mt-2">
+                      <div className="qa-title">{selectedCuttingRow.description}</div>
+                      <div className="qa-meta">{selectedCuttingRow.systemType} / {selectedCuttingRow.series}</div>
+                      <div className="qa-badges mt-2">
                     <MDBBadge color={selectedCuttingRow.configured ? "success" : "warning"}>
                       {selectedCuttingRow.configured ? "Configured" : "Not configured"}
                     </MDBBadge>
-                    <MDBBadge color="light">{selectedCuttingRow.lineCount || 0} lines</MDBBadge>
+                    <MDBBadge color="light">{selectedCuttingRow.lineCount || 0} total lines</MDBBadge>
                   </div>
                 </>
               ) : (
@@ -2379,12 +2503,53 @@ const QuotationAdminPage = () => {
                         placeholder="Optional internal note"
                       />
                     </label>
+                    <label>
+                      Default Schedule
+                      <select
+                        value={cuttingForm.defaultScheduleKey}
+                        onChange={(e) =>
+                          setCuttingForm((prev) => ({ ...prev, defaultScheduleKey: e.target.value }))
+                        }
+                      >
+                        {CUTTING_SCHEDULES.map((schedule) => (
+                          <option key={schedule.key} value={schedule.key}>
+                            {schedule.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="qa-schedule-tabs">
+                    {CUTTING_SCHEDULES.map((schedule) => {
+                      const scheduleLines =
+                        cuttingForm.schedules.find((item) => item.key === schedule.key)?.lines || [];
+                      const lineCount = scheduleLines.filter((line) => line.sapCode).length;
+                      return (
+                        <button
+                          key={schedule.key}
+                          type="button"
+                          className={activeCuttingScheduleKey === schedule.key ? "active" : ""}
+                          onClick={() => {
+                            setActiveCuttingScheduleKey(schedule.key);
+                            setSapAutocomplete({});
+                          }}
+                        >
+                          <span>{schedule.label}</span>
+                          <small>H {schedule.horizontalAngle}° / V {schedule.verticalAngle}°</small>
+                          <MDBBadge color="light">{lineCount}</MDBBadge>
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <div className="qa-line-toolbar">
                     <div>
                       <div className="qa-title">Required Items</div>
-                      <div className="qa-meta">Hardware rows only need SAP code and quantity. Profile rows also use dimension and cut angle.</div>
+                      <div className="qa-meta">
+                        Editing H {activeCuttingSchedule.horizontalAngle}° / V {activeCuttingSchedule.verticalAngle}°.
+                        Hardware rows only need SAP code and quantity. Profile rows also use dimension and cut angle.
+                      </div>
                     </div>
                     <MDBBtn size="sm" color="primary" type="button" onClick={addCuttingLine}>
                       <MDBIcon fas icon="plus" className="me-2" />
@@ -2407,7 +2572,7 @@ const QuotationAdminPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {cuttingForm.lines.map((line, index) => (
+                        {activeCuttingLines.map((line, index) => (
                           <tr key={index}>
                             <td>
                               <select value={line.itemType} onChange={(e) => updateCuttingLine(index, "itemType", e.target.value)}>

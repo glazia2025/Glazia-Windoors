@@ -13,6 +13,30 @@ const {
   toNumber,
 } = require("../utils/cuttingSchedule");
 
+const CUTTING_SCHEDULE_KEYS = [
+  { key: "45_45", horizontalAngle: "45", verticalAngle: "45" },
+  { key: "45_90", horizontalAngle: "45", verticalAngle: "90" },
+  { key: "90_45", horizontalAngle: "90", verticalAngle: "45" },
+  { key: "90_90", horizontalAngle: "90", verticalAngle: "90" },
+];
+
+const isCuttingScheduleKey = (value) =>
+  CUTTING_SCHEDULE_KEYS.some((schedule) => schedule.key === value);
+
+const normalizeAngle = (value, fallback = "90") => {
+  const text = String(value || "").replace(/[^\d]/g, "");
+  return text === "45" || text === "90" ? text : fallback;
+};
+
+const makeScheduleKey = (horizontalAngle, verticalAngle) =>
+  `${normalizeAngle(horizontalAngle)}_${normalizeAngle(verticalAngle)}`;
+
+const emptySchedules = () =>
+  CUTTING_SCHEDULE_KEYS.map((schedule) => ({
+    ...schedule,
+    lines: [],
+  }));
+
 const getDescriptionCatalog = async (_req, res) => {
   try {
     const series = await Series.find({})
@@ -36,7 +60,7 @@ const getDescriptionCatalog = async (_req, res) => {
           series: seriesItem.name,
           description: description.name,
           configId: config?._id,
-          lineCount: config?.lines?.length || 0,
+          lineCount: getConfiguredLineCount(config),
           configured: Boolean(config),
         };
       })
@@ -88,21 +112,84 @@ const normalizeLine = (line = {}, index = 0) => ({
   sortOrder: Number.isFinite(Number(line.sortOrder)) ? Number(line.sortOrder) : index,
 });
 
+const normalizeSchedules = (schedules = [], legacyLines = []) => {
+  const byKey = new Map(
+    (Array.isArray(schedules) ? schedules : []).map((schedule) => [
+      schedule.key,
+      schedule,
+    ])
+  );
+
+  return emptySchedules().map((baseSchedule) => {
+    const source = byKey.get(baseSchedule.key);
+    const lines =
+      Array.isArray(source?.lines) && source.lines.length
+        ? source.lines
+        : baseSchedule.key === "90_90" && legacyLines.length
+          ? legacyLines
+          : [];
+
+    return {
+      ...baseSchedule,
+      lines: lines.map(normalizeLine),
+    };
+  });
+};
+
+const getConfiguredLineCount = (config = {}) => {
+  const scheduleCount = (config.schedules || []).reduce(
+    (total, schedule) => total + (schedule.lines?.length || 0),
+    0
+  );
+  return scheduleCount || config.lines?.length || 0;
+};
+
+const findScheduleLines = (config, scheduleKey) => {
+  const schedules = normalizeSchedules(config?.schedules || [], config?.lines || []);
+  const selected = schedules.find((schedule) => schedule.key === scheduleKey);
+
+  return {
+    key: scheduleKey,
+    horizontalAngle: selected?.horizontalAngle || scheduleKey.split("_")[0],
+    verticalAngle: selected?.verticalAngle || scheduleKey.split("_")[1],
+    lines: selected?.lines || [],
+  };
+};
+
+const getItemScheduleKey = (item, config) => {
+  const explicitKey = String(item?.cuttingScheduleKey || item?.scheduleKey || "").trim();
+  if (isCuttingScheduleKey(explicitKey)) return explicitKey;
+
+  const horizontalAngle = item?.horizontalCutAngle || item?.cutAngleHorizontal || item?.hCutAngle;
+  const verticalAngle = item?.verticalCutAngle || item?.cutAngleVertical || item?.vCutAngle;
+  if (horizontalAngle || verticalAngle) {
+    return makeScheduleKey(horizontalAngle, verticalAngle);
+  }
+
+  return isCuttingScheduleKey(config?.defaultScheduleKey) ? config.defaultScheduleKey : "90_90";
+};
+
 const upsertConfig = async (req, res) => {
   try {
+    const legacyLines = Array.isArray(req.body.lines) ? req.body.lines.map(normalizeLine) : [];
+    const schedules = normalizeSchedules(req.body.schedules, legacyLines);
     const payload = {
       systemType: String(req.body.systemType || "").trim(),
       series: String(req.body.series || "").trim(),
       description: String(req.body.description || "").trim(),
       notes: String(req.body.notes || "").trim(),
-      lines: Array.isArray(req.body.lines) ? req.body.lines.map(normalizeLine) : [],
+      lines: schedules.find((schedule) => schedule.key === "90_90")?.lines || [],
+      schedules,
+      defaultScheduleKey: isCuttingScheduleKey(req.body.defaultScheduleKey)
+        ? req.body.defaultScheduleKey
+        : "90_90",
     };
 
     if (!payload.systemType || !payload.series || !payload.description) {
       return res.status(400).json({ message: "systemType, series and description are required" });
     }
 
-    if (payload.lines.some((line) => !line.sapCode)) {
+    if (payload.schedules.some((schedule) => schedule.lines.some((line) => !line.sapCode))) {
       return res.status(400).json({ message: "Every cutting schedule line needs a SAP code" });
     }
 
@@ -181,6 +268,7 @@ const buildScheduleData = async (quotation) => {
   for (const item of sourceItems) {
     const key = `${item.systemType || ""}||${item.series || ""}||${item.description || ""}`;
     const config = configMap[key];
+    const schedule = config ? findScheduleLines(config, getItemScheduleKey(item, config)) : null;
     const quantity = Math.max(1, toNumber(item.quantity, 1));
     const variables = {
       W: toNumber(item.width),
@@ -190,7 +278,7 @@ const buildScheduleData = async (quotation) => {
     };
     const rows = [];
 
-    for (const line of config?.lines || []) {
+    for (const line of schedule?.lines || []) {
       const catalogProduct = await resolveCatalogProduct(line);
       const qty = evaluateFormula(line.quantityFormula || "1", variables);
       const dimension =
@@ -211,10 +299,18 @@ const buildScheduleData = async (quotation) => {
       });
     }
 
+    const sortedRows = rows.sort((a, b) => a.sortOrder - b.sortOrder);
+    if (!sortedRows.length) {
+      continue;
+    }
+
     sections.push({
       item,
       configFound: Boolean(config),
-      rows: rows.sort((a, b) => a.sortOrder - b.sortOrder),
+      scheduleKey: schedule?.key || "",
+      horizontalAngle: schedule?.horizontalAngle || "",
+      verticalAngle: schedule?.verticalAngle || "",
+      rows: sortedRows,
     });
   }
 
@@ -227,16 +323,8 @@ const buildScheduleData = async (quotation) => {
   };
 };
 
-const renderRows = (rows) => {
-  if (!rows.length) {
-    return `
-      <tr>
-        <td colspan="8" class="empty">No cutting schedule config found for this description.</td>
-      </tr>
-    `;
-  }
-
-  return rows
+const renderRows = (rows) =>
+  rows
     .map(
       (row) => `
         <tr>
@@ -252,7 +340,6 @@ const renderRows = (rows) => {
       `
     )
     .join("");
-};
 
 const buildPdfHtml = (data) => {
   const date = data.generatedAt.toLocaleDateString("en-IN");
@@ -284,6 +371,7 @@ const buildPdfHtml = (data) => {
           .bar { background: #91cef0; border: 1px solid #999; border-top: 0; padding: 6px; font-size: 16px; font-weight: 700; }
           .num { text-align: center; white-space: nowrap; }
           .empty { padding: 12px; text-align: center; color: #666; }
+          .no-data { border: 1px solid #999; padding: 16px; text-align: center; color: #666; font-size: 13px; }
         </style>
       </head>
       <body>
@@ -295,7 +383,8 @@ const buildPdfHtml = (data) => {
           <div>Project : ${escapeHtml(data.project)}</div>
           <div>Project Code : ${escapeHtml(data.projectCode)}</div>
         </div>
-        ${data.sections
+        ${data.sections.length
+          ? data.sections
           .map((section, index) => {
             const item = section.item;
             const image = item.refImage
@@ -305,10 +394,10 @@ const buildPdfHtml = (data) => {
               <div class="section">
                 <table class="tech">
                   <tr>
-                    <td rowspan="11" class="num">${index + 1}.</td>
+                    <td rowspan="12" class="num">${index + 1}.</td>
                     <td class="label">Design Ref</td>
                     <td>${escapeHtml(item.refCode || "-")}</td>
-                    <td rowspan="11" class="thumb"><div>View From Inside</div>${image}</td>
+                    <td rowspan="12" class="thumb"><div>View From Inside</div>${image}</td>
                   </tr>
                   <tr><td class="label">Typology Loc</td><td>${escapeHtml(item.location || "-")}</td></tr>
                   <tr><td class="label">Dimension</td><td>W = ${escapeHtml(item.width || 0)}; H = ${escapeHtml(item.height || 0)}</td></tr>
@@ -316,6 +405,7 @@ const buildPdfHtml = (data) => {
                   <tr><td class="label">Typology type</td><td>${escapeHtml(item.systemType || "-")}</td></tr>
                   <tr><td class="label">Series</td><td>${escapeHtml(item.series || "-")}</td></tr>
                   <tr><td class="label">Description</td><td>${escapeHtml(item.description || "-")}</td></tr>
+                  <tr><td class="label">Cut Angles</td><td>H = ${escapeHtml(section.horizontalAngle || "-")}°; V = ${escapeHtml(section.verticalAngle || "-")}°</td></tr>
                   <tr><td class="label">Profile Finish</td><td>${escapeHtml(item.colorFinish || "-")}</td></tr>
                   <tr><td class="label">Handle</td><td>${escapeHtml([item.handleType, item.handleColor].filter(Boolean).join(", ") || "-")}</td></tr>
                   <tr><td class="label">Glass</td><td>${escapeHtml(item.glassSpec || "-")}</td></tr>
@@ -340,7 +430,8 @@ const buildPdfHtml = (data) => {
               </div>
             `;
           })
-          .join("")}
+          .join("")
+          : '<div class="no-data">No cutting schedule formulas are configured for the selected products and cut angle combinations.</div>'}
       </body>
     </html>
   `;

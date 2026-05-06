@@ -25,6 +25,13 @@ const quotationSchema = new mongoose.Schema(
         amount: { type: Number, default: 0 },
         refImage: { type: String },
         remarks: { type: String },
+        horizontalCutAngle: { type: String, enum: ["45", "90"], default: "90" },
+        verticalCutAngle: { type: String, enum: ["45", "90"], default: "90" },
+        cuttingScheduleKey: {
+          type: String,
+          enum: ["45_45", "45_90", "90_45", "90_90"],
+          default: "90_90",
+        },
         configuratorLayout: { type: mongoose.Schema.Types.Mixed },
         subItems: {
           type: [
@@ -49,6 +56,13 @@ const quotationSchema = new mongoose.Schema(
             amount: { type: Number, default: 0 },
             refImage: { type: String },
             remarks: { type: String },
+            horizontalCutAngle: { type: String, enum: ["45", "90"], default: "90" },
+            verticalCutAngle: { type: String, enum: ["45", "90"], default: "90" },
+            cuttingScheduleKey: {
+              type: String,
+              enum: ["45_45", "45_90", "90_45", "90_90"],
+              default: "90_90",
+            },
         }
           ],
           required: false,
