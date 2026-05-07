@@ -669,6 +669,21 @@ function computeAmount(item) {
   return Number((area * rate * quantity).toFixed(2));
 }
 
+function addProfit(value, profitPercentage) {
+  return Number((toNumber(value) * (1 + toNumber(profitPercentage) / 100)).toFixed(2));
+}
+
+function addProfitToItemValues(item, profitPercentage) {
+  return {
+    ...item,
+    rate: addProfit(item.rate, profitPercentage),
+    amount: addProfit(item.amount, profitPercentage),
+    subItems: Array.isArray(item.subItems)
+      ? item.subItems.map((subItem) => addProfitToItemValues(subItem, profitPercentage))
+      : [],
+  };
+}
+
 function boolToDisplay(value) {
   return value ? "Yes" : "No";
 }
@@ -775,12 +790,13 @@ function computeTotals(items, additionalCosts = {}, profitPercentage = 0) {
 
   const profitPercent = toNumber(profitPercentage);
   const profitValue = (baseTotal * profitPercent) / 100;
+  const itemsSubtotal = baseTotal + profitValue;
   const installationCost = totalArea * toNumber(additionalCosts.installation);
   const transportCost = toNumber(additionalCosts.transport);
   const loadingUnloadingCost = toNumber(additionalCosts.loadingUnloading);
   const discountPercent = toNumber(additionalCosts.discountPercent);
   const beforeDiscount =
-    baseTotal + profitValue + installationCost + transportCost + loadingUnloadingCost;
+    itemsSubtotal + installationCost + transportCost + loadingUnloadingCost;
   const discountValue = (beforeDiscount * discountPercent) / 100;
   const totalProjectCost = beforeDiscount - discountValue;
   const gstValue = totalProjectCost * 0.18;
@@ -792,6 +808,7 @@ function computeTotals(items, additionalCosts = {}, profitPercentage = 0) {
     totalQty,
     profitPercent,
     profitValue,
+    itemsSubtotal,
     installationCost,
     transportCost,
     loadingUnloadingCost,
@@ -865,7 +882,38 @@ function prepareQuotationPdfData(quotation) {
   };
 
   const profitPercentage = toNumber(quotation?.breakdown?.profitPercentage);
-  const totals = computeTotals(items, globalConfig.additionalCosts, profitPercentage);
+  let totals = computeTotals(items, globalConfig.additionalCosts, profitPercentage);
+  const profitAdjustedItems = items.map((item) =>
+    addProfitToItemValues(item, profitPercentage)
+  );
+  const displayedItemsSubtotal = profitAdjustedItems.reduce(
+    (sum, item) => sum + toNumber(item.amount),
+    0
+  );
+
+  if (displayedItemsSubtotal !== totals.itemsSubtotal) {
+    const beforeDiscount =
+      displayedItemsSubtotal +
+      totals.installationCost +
+      totals.transportCost +
+      totals.loadingUnloadingCost;
+    const discountValue = (beforeDiscount * totals.discountPercent) / 100;
+    const totalProjectCost = beforeDiscount - discountValue;
+    const gstValue = totalProjectCost * 0.18;
+    const grandTotal = totalProjectCost + gstValue;
+
+    totals = {
+      ...totals,
+      itemsSubtotal: displayedItemsSubtotal,
+      beforeDiscount,
+      discountValue,
+      totalProjectCost,
+      gstValue,
+      grandTotal,
+      avgWithoutGst: totals.totalArea > 0 ? totalProjectCost / totals.totalArea : 0,
+      avgWithGst: totals.totalArea > 0 ? grandTotal / totals.totalArea : 0,
+    };
+  }
 
   return {
     generatedId: safeString(quotation?.generatedId),
@@ -873,7 +921,7 @@ function prepareQuotationPdfData(quotation) {
     customerDetails,
     quotationDetails,
     globalConfig,
-    items,
+    items: profitAdjustedItems,
     totalArea,
     breakdown: {
       totalAmount:
@@ -1162,8 +1210,6 @@ function renderItemPage(data, item) {
 }
 
 function renderSummaryPage(data) {
-  const terms = data.quotationDetails.terms || data.globalConfig.terms || "";
-  const prerequisites = data.globalConfig.prerequisites || "";
   const additionalCosts = data.globalConfig.additionalCosts || {};
 
   const installationRow = additionalCosts.showInstallation
@@ -1190,7 +1236,7 @@ function renderSummaryPage(data) {
         </tr>
       `
     : "";
-  const discountRow = additionalCosts.showDiscount
+  const discountRow = toNumber(data.totals.discountValue) > 0
     ? `
         <tr>
           <td>Discount (${formatCurrency(data.totals.discountPercent)}%)</td>
@@ -1237,20 +1283,12 @@ function renderSummaryPage(data) {
           <td>Total Area</td>
           <td>${data.totals.totalArea.toFixed(2)} Sq.ft</td>
         </tr>
-        <tr>
-          <td>Items Subtotal</td>
-          <td>${formatCurrency(data.totals.baseTotal)} INR</td>
-        </tr>
-        <tr>
-          <td>Profit (${formatCurrency(data.totals.profitPercent)}%)</td>
-          <td>${formatCurrency(data.totals.profitValue)} INR</td>
-        </tr>
         ${installationRow}
         ${transportRow}
         ${loadingUnloadingRow}
         <tr>
-          <td>Before Discount</td>
-          <td>${formatCurrency(data.totals.beforeDiscount)} INR</td>
+          <td>Items Subtotal</td>
+          <td>${formatCurrency(data.totals.itemsSubtotal)} INR</td>
         </tr>
         ${discountRow}
         <tr>
@@ -1275,26 +1313,6 @@ function renderSummaryPage(data) {
         </tr>
       </table>
 
-      ${prerequisites
-      ? `
-          <div class="text-block">
-            <div class="section-title">Prerequisites</div>
-            <div class="rich-text">${nl2br(prerequisites)}</div>
-          </div>
-        `
-      : ""
-    }
-
-      ${terms
-      ? `
-          <div class="text-block">
-            <div class="section-title">Terms & Conditions</div>
-            <div class="rich-text">${nl2br(terms)}</div>
-          </div>
-        `
-      : ""
-    }
-
       ${data.quotationDetails.notes
       ? `
           <div class="text-block">
@@ -1314,11 +1332,70 @@ function renderSummaryPage(data) {
   `;
 }
 
+function renderTermsPage(data) {
+  const terms = data.quotationDetails.terms || data.globalConfig.terms || "";
+  const prerequisites = data.globalConfig.prerequisites || "";
+
+  if (!prerequisites && !terms) return "";
+
+  return `
+    <section class="page">
+      <div class="page-header">
+        <div class="page-brand">
+          ${data.globalConfig.logo
+      ? `<img src="${data.globalConfig.logo}" class="header-logo" alt="Logo" />`
+      : `<div class="header-company">${escapeHtml(
+        data.customerDetails.name || "Customer"
+      )}</div>`
+    }
+        </div>
+
+        <div class="page-meta">
+          <div><strong>Quote No:</strong> ${escapeHtml(
+      data.quotationDetails.id || data.generatedId || "-"
+    )}</div>
+          <div><strong>Project:</strong> ${escapeHtml(
+      data.quotationDetails.opportunity || "Enquiry"
+    )}</div>
+          <div><strong>Date:</strong> ${escapeHtml(
+      data.quotationDetails.displayDate || "-"
+    )}</div>
+        </div>
+      </div>
+
+      <div class="separator"></div>
+
+      <h2 class="page-title">Prerequisites & Terms</h2>
+
+      ${prerequisites
+      ? `
+          <div class="text-block">
+            <div class="section-title">Prerequisites</div>
+            <div class="rich-text">${nl2br(prerequisites)}</div>
+          </div>
+        `
+      : ""
+    }
+
+      ${terms
+      ? `
+          <div class="text-block">
+            <div class="section-title">Terms & Conditions</div>
+            <div class="rich-text">${nl2br(terms)}</div>
+          </div>
+        `
+      : ""
+    }
+    </section>
+  `;
+}
+
 function buildPdfHtml(data, user) {
   const pages = [
     renderCoverPage(data, user),
     ...data.items.map((item) => renderItemPage(data, item)),
     renderSummaryPage(data),
+    renderTermsPage(data),
   ].join("");
 
   return `
