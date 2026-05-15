@@ -1928,9 +1928,9 @@ const QuotationAdminPage = () => {
       </div>
 
       <MDBModal open={isGlassBeadingModalOpen} onClose={() => setIsGlassBeadingModalOpen(false)} tabIndex="-1">
-        <MDBModalDialog size="xl" scrollable>
+        <MDBModalDialog size="xl" scrollable className="qa-config-modal">
           <MDBModalContent>
-            <form onSubmit={saveGlassBeadingLinks}>
+            <form className="qa-modal-form" onSubmit={saveGlassBeadingLinks}>
               <MDBModalHeader>
                 <MDBModalTitle>
                   Glass Beading Config
@@ -1941,7 +1941,7 @@ const QuotationAdminPage = () => {
                 <MDBBtn className="btn-close" color="none" type="button" onClick={() => setIsGlassBeadingModalOpen(false)} />
               </MDBModalHeader>
               <MDBModalBody>
-                <div className="qa-table-wrapper">
+                <div className="qa-table-wrapper qa-modal-table-wrapper">
                   <table className="qa-table qa-editor-table">
                     <thead>
                       <tr>
@@ -2859,9 +2859,9 @@ const QuotationAdminPage = () => {
         </div>
 
         <MDBModal open={isCuttingModalOpen} onClose={() => setIsCuttingModalOpen(false)} tabIndex="-1">
-          <MDBModalDialog size="xl" scrollable>
+          <MDBModalDialog size="xl" scrollable className="qa-config-modal">
             <MDBModalContent>
-              <form onSubmit={handleCuttingConfigSubmit}>
+              <form className="qa-modal-form" onSubmit={handleCuttingConfigSubmit}>
                 <MDBModalHeader>
                   <MDBModalTitle>
                     Cutting Schedule Config
@@ -2953,7 +2953,7 @@ const QuotationAdminPage = () => {
                     </div>
                   </div>
 
-                  <div className="qa-table-wrapper">
+                  <div className="qa-table-wrapper qa-modal-table-wrapper">
                     <table className="qa-table qa-editor-table">
                       <thead>
                         <tr>

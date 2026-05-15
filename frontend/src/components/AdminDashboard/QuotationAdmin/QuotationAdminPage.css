@@ -389,6 +389,40 @@
   margin-bottom: 18px;
 }
 
+.qa-config-modal .modal-content {
+  max-height: calc(100vh - 48px);
+}
+
+.qa-modal-form {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px);
+  min-height: 0;
+}
+
+.qa-modal-form .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 260px;
+}
+
+.qa-modal-form .modal-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 1090;
+  background: #fff;
+  border-top: 1px solid #e9edf5;
+  box-shadow: 0 -10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.qa-modal-table-wrapper {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 12px;
+}
+
 .qa-modal-summary label,
 .qa-editor-table label {
   display: flex;
@@ -473,7 +507,7 @@
 
 .qa-sap-menu {
   position: absolute;
-  z-index: 1080;
+  z-index: 1100;
   top: calc(100% + 6px);
   left: 0;
   right: 0;
