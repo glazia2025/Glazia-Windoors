@@ -11,7 +11,7 @@ import {
   MDBModalHeader,
   MDBModalTitle,
 } from "mdb-react-ui-kit";
-import api, { BASE_API_URL } from "../../../utils/api";
+import api, { QUOTATION_BASE_API_URL } from "../../../utils/api";
 import "./QuotationAdminPage.css";
 
 const splitCsv = (value = "") =>
@@ -62,6 +62,14 @@ const createCuttingLine = () => ({
   unit: "Pcs",
   sortOrder: 0,
   sapCodeSelected: false,
+});
+
+const createGlassCuttingLine = () => ({
+  ...createCuttingLine(),
+  itemType: "glass",
+  quantityFormula: "Q",
+  unit: "Sqft",
+  sapCodeSelected: true,
 });
 
 const createCuttingSchedules = (schedules = [], legacyLines = []) => {
@@ -116,9 +124,14 @@ const QuotationAdminPage = () => {
   const [totalQuotations, setTotalQuotations] = useState(0);
   const [cuttingSearch, setCuttingSearch] = useState("");
   const [isCuttingModalOpen, setIsCuttingModalOpen] = useState(false);
+  const [isGlassBeadingModalOpen, setIsGlassBeadingModalOpen] = useState(false);
   const [selectedCuttingRow, setSelectedCuttingRow] = useState(null);
+  const [selectedGlassBeadingRow, setSelectedGlassBeadingRow] = useState(null);
+  const [glassBeadingLinks, setGlassBeadingLinks] = useState([]);
   const [sapAutocomplete, setSapAutocomplete] = useState({});
+  const [beadingAutocomplete, setBeadingAutocomplete] = useState({});
   const sapSearchTimers = useRef({});
+  const beadingSearchTimers = useRef({});
 
   const [systemForm, setSystemForm] = useState({
     name: "",
@@ -183,6 +196,7 @@ const QuotationAdminPage = () => {
     defaultScheduleKey: "90_90",
     lines: [createCuttingLine()],
     schedules: createCuttingSchedules(),
+    glassBeadingLinks: [],
   });
   const [activeCuttingScheduleKey, setActiveCuttingScheduleKey] = useState("45_45");
   const [phoneFilter, setphoneFilter] = useState("");
@@ -214,6 +228,16 @@ const QuotationAdminPage = () => {
     );
   }, [cuttingDescriptions, cuttingSearch]);
 
+  const glassSpecOptions = useMemo(() => {
+    const labels = new Set();
+    optionSets
+      .filter((item) => item.type === "glassSpec")
+      .forEach((item) => {
+        entriesFromMap(item.values).forEach(([label]) => labels.add(label));
+      });
+    return Array.from(labels).sort((a, b) => a.localeCompare(b));
+  }, [optionSets]);
+
   const authConfig = useMemo(
     () => ({
       headers: {
@@ -226,7 +250,7 @@ const QuotationAdminPage = () => {
   const fetchSystems = async () => {
     try {
       const { data } = await api.get(
-        `${BASE_API_URL}/admin/quotations/systems`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/systems`,
         authConfig
       );
       setSystems(data.systems || []);
@@ -238,7 +262,7 @@ const QuotationAdminPage = () => {
   const fetchSeries = async () => {
     try {
       const { data } = await api.get(
-        `${BASE_API_URL}/admin/quotations/series`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/series`,
         authConfig
       );
       setSeries(data.series || []);
@@ -250,7 +274,7 @@ const QuotationAdminPage = () => {
   const fetchOptionSets = async () => {
     try {
       const { data } = await api.get(
-        `${BASE_API_URL}/admin/quotations/option-sets`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/option-sets`,
         authConfig
       );
       setOptionSets(data.optionSets || []);
@@ -262,7 +286,7 @@ const QuotationAdminPage = () => {
   const fetchAreaSlabs = async () => {
     try {
       const { data } = await api.get(
-        `${BASE_API_URL}/admin/quotations/area-slabs`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/area-slabs`,
         authConfig
       );
       setAreaSlabs(data.slabs || []);
@@ -274,7 +298,7 @@ const QuotationAdminPage = () => {
   const fetchBaseRates = async () => {
     try {
       const { data } = await api.get(
-        `${BASE_API_URL}/admin/quotations/base-rates`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/base-rates`,
         authConfig
       );
       setBaseRates(data.baseRates || []);
@@ -286,7 +310,7 @@ const QuotationAdminPage = () => {
   const fetchHandleRules = async () => {
     try {
       const { data } = await api.get(
-        `${BASE_API_URL}/admin/quotations/handle-rules`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/handle-rules`,
         authConfig
       );
       setHandleRules(data.rules || []);
@@ -298,7 +322,7 @@ const QuotationAdminPage = () => {
   const fetchHandleOptions = async () => {
     try {
       const { data } = await api.get(
-        `${BASE_API_URL}/admin/quotations/handle-options`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/handle-options`,
         authConfig
       );
       setHandleOptions(data.options || []);
@@ -310,8 +334,8 @@ const QuotationAdminPage = () => {
   const fetchCuttingScheduleData = async () => {
     try {
       const [descriptionResponse, configResponse] = await Promise.all([
-        api.get(`${BASE_API_URL}/admin/quotations/cutting-schedule/descriptions`, authConfig),
-        api.get(`${BASE_API_URL}/admin/quotations/cutting-schedule/configs`, authConfig),
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/cutting-schedule/descriptions`, authConfig),
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/cutting-schedule/configs`, authConfig),
       ]);
       setCuttingDescriptions(descriptionResponse.data.descriptions || []);
       setCuttingConfigs(configResponse.data.configs || []);
@@ -319,7 +343,6 @@ const QuotationAdminPage = () => {
       console.error("Unable to load cutting schedule data", error);
     }
   };
-
 
   const fetchQuotations = async (customPage = page,
     customPhone = phoneFilter,
@@ -334,7 +357,7 @@ const QuotationAdminPage = () => {
       query.append("phone", customPhone.trim());
     }
 
-    const url = `${BASE_API_URL}/admin/quotations?${query.toString()}`;
+    const url = `${QUOTATION_BASE_API_URL}/admin/quotations?${query.toString()}`;
 
     try {
       const { data } = await api.get(url, authConfig);
@@ -393,13 +416,13 @@ const QuotationAdminPage = () => {
     try {
       if (editingSystemId) {
         await api.put(
-          `${BASE_API_URL}/admin/quotations/systems/${editingSystemId}`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/systems/${editingSystemId}`,
           payload,
           authConfig
         );
       } else {
         await api.post(
-          `${BASE_API_URL}/admin/quotations/systems`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/systems`,
           payload,
           authConfig
         );
@@ -426,7 +449,7 @@ const QuotationAdminPage = () => {
   const handleSystemDelete = async (id) => {
     try {
       await api.delete(
-        `${BASE_API_URL}/admin/quotations/systems/${id}`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/systems/${id}`,
         authConfig
       );
       await fetchSystems();
@@ -464,13 +487,13 @@ const QuotationAdminPage = () => {
     try {
       if (editingSeriesId) {
         await api.put(
-          `${BASE_API_URL}/admin/quotations/series/${editingSeriesId}`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/series/${editingSeriesId}`,
           payload,
           authConfig
         );
       } else {
         await api.post(
-          `${BASE_API_URL}/admin/quotations/series`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/series`,
           payload,
           authConfig
         );
@@ -501,7 +524,7 @@ const QuotationAdminPage = () => {
   const handleSeriesDelete = async (id) => {
     try {
       await api.delete(
-        `${BASE_API_URL}/admin/quotations/series/${id}`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/series/${id}`,
         authConfig
       );
       await fetchSeries();
@@ -532,13 +555,13 @@ const QuotationAdminPage = () => {
     try {
       if (editingOptionId) {
         await api.put(
-          `${BASE_API_URL}/admin/quotations/option-sets/${editingOptionId}`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/option-sets/${editingOptionId}`,
           payload,
           authConfig
         );
       } else {
         await api.post(
-          `${BASE_API_URL}/admin/quotations/option-sets`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/option-sets`,
           payload,
           authConfig
         );
@@ -562,7 +585,7 @@ const QuotationAdminPage = () => {
   const handleOptionDelete = async (id) => {
     try {
       await api.delete(
-        `${BASE_API_URL}/admin/quotations/option-sets/${id}`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/option-sets/${id}`,
         authConfig
       );
       await fetchOptionSets();
@@ -589,13 +612,13 @@ const QuotationAdminPage = () => {
     try {
       if (editingSlabId) {
         await api.put(
-          `${BASE_API_URL}/admin/quotations/area-slabs/${editingSlabId}`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/area-slabs/${editingSlabId}`,
           payload,
           authConfig
         );
       } else {
         await api.post(
-          `${BASE_API_URL}/admin/quotations/area-slabs`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/area-slabs`,
           payload,
           authConfig
         );
@@ -619,7 +642,7 @@ const QuotationAdminPage = () => {
   const handleSlabDelete = async (id) => {
     try {
       await api.delete(
-        `${BASE_API_URL}/admin/quotations/area-slabs/${id}`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/area-slabs/${id}`,
         authConfig
       );
       await fetchAreaSlabs();
@@ -654,13 +677,13 @@ const QuotationAdminPage = () => {
     try {
       if (editingBaseRateId) {
         await api.put(
-          `${BASE_API_URL}/admin/quotations/base-rates/${editingBaseRateId}`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/base-rates/${editingBaseRateId}`,
           payload,
           authConfig
         );
       } else {
         await api.post(
-          `${BASE_API_URL}/admin/quotations/base-rates`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/base-rates`,
           payload,
           authConfig
         );
@@ -690,7 +713,7 @@ const QuotationAdminPage = () => {
   const handleBaseRateDelete = async (id) => {
     try {
       await api.delete(
-        `${BASE_API_URL}/admin/quotations/base-rates/${id}`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/base-rates/${id}`,
         authConfig
       );
       await fetchBaseRates();
@@ -729,13 +752,13 @@ const QuotationAdminPage = () => {
     try {
       if (editingHandleRuleId) {
         await api.put(
-          `${BASE_API_URL}/admin/quotations/handle-rules/${editingHandleRuleId}`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/handle-rules/${editingHandleRuleId}`,
           payload,
           authConfig
         );
       } else {
         await api.post(
-          `${BASE_API_URL}/admin/quotations/handle-rules`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/handle-rules`,
           payload,
           authConfig
         );
@@ -762,7 +785,7 @@ const QuotationAdminPage = () => {
   const handleHandleRuleDelete = async (id) => {
     try {
       await api.delete(
-        `${BASE_API_URL}/admin/quotations/handle-rules/${id}`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/handle-rules/${id}`,
         authConfig
       );
       await fetchHandleRules();
@@ -793,13 +816,13 @@ const QuotationAdminPage = () => {
     try {
       if (editingHandleOptionId) {
         await api.put(
-          `${BASE_API_URL}/admin/quotations/handle-options/${editingHandleOptionId}`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/handle-options/${editingHandleOptionId}`,
           payload,
           authConfig
         );
       } else {
         await api.post(
-          `${BASE_API_URL}/admin/quotations/handle-options`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/handle-options`,
           payload,
           authConfig
         );
@@ -824,7 +847,7 @@ const QuotationAdminPage = () => {
   const handleHandleOptionDelete = async (id) => {
     try {
       await api.delete(
-        `${BASE_API_URL}/admin/quotations/handle-options/${id}`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/handle-options/${id}`,
         authConfig
       );
       await fetchHandleOptions();
@@ -909,6 +932,7 @@ const QuotationAdminPage = () => {
       defaultScheduleKey: existing?.defaultScheduleKey || "90_90",
       lines: existing?.lines?.length > 0 ? existing.lines : [createCuttingLine()],
       schedules: createCuttingSchedules(existing?.schedules, existing?.lines),
+      glassBeadingLinks: existing?.glassBeadingLinks || [],
     });
     setSelectedCuttingRow({
       ...row,
@@ -934,10 +958,19 @@ const QuotationAdminPage = () => {
                 if (field === "itemType" && value === "hardware") {
                   nextLine.dimensionFormula = "";
                   nextLine.cutAngle = "";
+                  nextLine.unit = "Pcs";
+                }
+                if (field === "itemType" && value === "glass") {
+                  nextLine.sapCode = "";
+                  nextLine.sapCodeSelected = true;
+                  nextLine.cutAngle = "";
+                  nextLine.unit = "Sqft";
                 }
                 if (field === "itemType") {
-                  nextLine.sapCode = "";
-                  nextLine.sapCodeSelected = false;
+                  if (value !== "glass") {
+                    nextLine.sapCode = "";
+                    nextLine.sapCodeSelected = false;
+                  }
                 }
                 return nextLine;
               }),
@@ -999,7 +1032,7 @@ const QuotationAdminPage = () => {
     sapSearchTimers.current[index] = window.setTimeout(async () => {
       try {
         const { data } = await api.get(
-          `${BASE_API_URL}/admin/quotations/cutting-schedule/catalog`,
+          `${QUOTATION_BASE_API_URL}/admin/quotations/cutting-schedule/catalog`,
           {
             ...authConfig,
             params: {
@@ -1097,6 +1130,22 @@ const QuotationAdminPage = () => {
     }));
   };
 
+  const addGlassCuttingLine = () => {
+    setCuttingForm((prev) => ({
+      ...prev,
+      schedules: prev.schedules.map((schedule) =>
+        schedule.key === activeCuttingScheduleKey
+          ? {
+              ...schedule,
+              lines: schedule.lines.some((line) => line.itemType === "glass")
+                ? schedule.lines
+                : [...schedule.lines, { ...createGlassCuttingLine(), sortOrder: schedule.lines.length }],
+            }
+          : schedule
+      ),
+    }));
+  };
+
   const removeCuttingLine = (index) => {
     setCuttingForm((prev) => ({
       ...prev,
@@ -1119,7 +1168,7 @@ const QuotationAdminPage = () => {
     if (!cuttingForm.systemType || !cuttingForm.series || !cuttingForm.description) return;
 
     const hasUnselectedSapCode = cuttingForm.schedules.some((schedule) =>
-      schedule.lines.some((line) => line.sapCode && !line.sapCodeSelected)
+      schedule.lines.some((line) => line.itemType !== "glass" && line.sapCode && !line.sapCodeSelected)
     );
     if (hasUnselectedSapCode) {
       setCuttingForm((prev) => ({
@@ -1137,7 +1186,7 @@ const QuotationAdminPage = () => {
     const schedules = cuttingForm.schedules.map((schedule) => ({
       ...schedule,
       lines: schedule.lines
-        .filter((line) => line.sapCode || line.description || line.dimensionFormula || line.cutAngle || line.position)
+        .filter((line) => line.sapCode || line.description || line.dimensionFormula || line.cutAngle || line.position || line.itemType === "glass")
         .map((line, index) => {
           const sanitized = { ...line, sortOrder: index };
           delete sanitized.sapCodeSelected;
@@ -1148,14 +1197,14 @@ const QuotationAdminPage = () => {
     }));
 
     const hasBlankSapCode = schedules.some((schedule) =>
-      schedule.lines.some((line) => !line.sapCode)
+      schedule.lines.some((line) => line.itemType !== "glass" && !line.sapCode)
     );
     if (hasBlankSapCode) {
       setCuttingForm((prev) => ({
         ...prev,
         schedules: prev.schedules.map((schedule) => ({
           ...schedule,
-          lines: schedule.lines.filter((line) => line.sapCode),
+          lines: schedule.lines.filter((line) => line.itemType === "glass" || line.sapCode),
         })),
       }));
       return;
@@ -1166,7 +1215,7 @@ const QuotationAdminPage = () => {
 
     try {
       await api.post(
-        `${BASE_API_URL}/admin/quotations/cutting-schedule/configs`,
+        `${QUOTATION_BASE_API_URL}/admin/quotations/cutting-schedule/configs`,
         {
           ...cuttingForm,
           lines: defaultLines,
@@ -1200,7 +1249,7 @@ const QuotationAdminPage = () => {
     if (!existing?._id) return;
 
     try {
-      await api.delete(`${BASE_API_URL}/admin/quotations/cutting-schedule/configs/${existing._id}`, authConfig);
+      await api.delete(`${QUOTATION_BASE_API_URL}/admin/quotations/cutting-schedule/configs/${existing._id}`, authConfig);
       setCuttingForm((prev) => ({
         ...prev,
         notes: "",
@@ -1225,6 +1274,180 @@ const QuotationAdminPage = () => {
     }
   };
 
+  const buildGlassBeadingRows = (links = []) => {
+    const byGlass = new Map((links || []).map((link) => [link.glassSpec, link]));
+    return glassSpecOptions.map((glassSpec) => ({
+      glassSpec,
+      beadingSapCode: byGlass.get(glassSpec)?.beadingSapCode || "",
+      beadingDescription: byGlass.get(glassSpec)?.beadingDescription || "",
+      beadingSapCodeSelected: Boolean(byGlass.get(glassSpec)?.beadingSapCode),
+    }));
+  };
+
+  const selectGlassBeadingDescription = (row) => {
+    const existing = cuttingConfigs.find(
+      (config) =>
+        config.systemType === row.systemType &&
+        config.series === row.series &&
+        config.description === row.description
+    );
+    setSelectedGlassBeadingRow({
+      ...row,
+      configId: existing?._id,
+      linkCount: existing?.glassBeadingLinks?.filter((link) => link.beadingSapCode).length || 0,
+    });
+    setGlassBeadingLinks(buildGlassBeadingRows(existing?.glassBeadingLinks || []));
+    setBeadingAutocomplete({});
+    setIsGlassBeadingModalOpen(true);
+  };
+
+  const closeBeadingAutocomplete = (glassSpec) => {
+    setBeadingAutocomplete((prev) => ({
+      ...prev,
+      [glassSpec]: {
+        ...(prev[glassSpec] || {}),
+        open: false,
+        loading: false,
+      },
+    }));
+  };
+
+  const searchBeadingSapCode = (glassSpec, value) => {
+    setGlassBeadingLinks((prev) =>
+      prev.map((link) =>
+        link.glassSpec === glassSpec
+          ? {
+              ...link,
+              beadingSapCode: value,
+              beadingDescription: "",
+              beadingSapCodeSelected: false,
+            }
+          : link
+      )
+    );
+
+    if (beadingSearchTimers.current[glassSpec]) {
+      window.clearTimeout(beadingSearchTimers.current[glassSpec]);
+    }
+
+    const query = value.trim();
+    setBeadingAutocomplete((prev) => ({
+      ...prev,
+      [glassSpec]: {
+        query: value,
+        options: [],
+        loading: Boolean(query),
+        open: Boolean(query),
+      },
+    }));
+
+    if (!query) return;
+
+    beadingSearchTimers.current[glassSpec] = window.setTimeout(async () => {
+      try {
+        const { data } = await api.get(
+          `${QUOTATION_BASE_API_URL}/admin/quotations/cutting-schedule/catalog`,
+          {
+            ...authConfig,
+            params: {
+              itemType: "profile",
+              sapCode: query,
+            },
+          }
+        );
+        setBeadingAutocomplete((prev) => ({
+          ...prev,
+          [glassSpec]: {
+            query,
+            options: data.products || (data.product ? [data.product] : []),
+            loading: false,
+            open: true,
+          },
+        }));
+      } catch (error) {
+        console.error("Unable to search beading SAP code", error);
+        setBeadingAutocomplete((prev) => ({
+          ...prev,
+          [glassSpec]: {
+            query,
+            options: [],
+            loading: false,
+            open: true,
+          },
+        }));
+      }
+    }, 250);
+  };
+
+  const selectBeadingSapCode = (glassSpec, product) => {
+    setGlassBeadingLinks((prev) =>
+      prev.map((link) =>
+        link.glassSpec === glassSpec
+          ? {
+              ...link,
+              beadingSapCode: product.sapCode || "",
+              beadingDescription: getSapProductLabel(product),
+              beadingSapCodeSelected: true,
+            }
+          : link
+      )
+    );
+    closeBeadingAutocomplete(glassSpec);
+  };
+
+  const handleBeadingSapCodeBlur = (glassSpec) => {
+    window.setTimeout(() => {
+      setGlassBeadingLinks((prev) =>
+        prev.map((link) =>
+          link.glassSpec === glassSpec && link.beadingSapCode && !link.beadingSapCodeSelected
+            ? {
+                ...link,
+                beadingSapCode: "",
+                beadingDescription: "",
+              }
+            : link
+        )
+      );
+      closeBeadingAutocomplete(glassSpec);
+    }, 150);
+  };
+
+  const saveGlassBeadingLinks = async (event) => {
+    event.preventDefault();
+    if (!selectedGlassBeadingRow) return;
+
+    const existing = cuttingConfigs.find(
+      (config) =>
+        config.systemType === selectedGlassBeadingRow.systemType &&
+        config.series === selectedGlassBeadingRow.series &&
+        config.description === selectedGlassBeadingRow.description
+    );
+    const payload = {
+      systemType: selectedGlassBeadingRow.systemType,
+      series: selectedGlassBeadingRow.series,
+      description: selectedGlassBeadingRow.description,
+      notes: existing?.notes || "",
+      defaultScheduleKey: existing?.defaultScheduleKey || "90_90",
+      lines: existing?.lines || [],
+      schedules: existing?.schedules || [],
+      glassBeadingLinks: glassBeadingLinks
+        .filter((link) => link.glassSpec)
+        .map((link) => ({
+          glassSpec: link.glassSpec,
+          beadingSapCode: link.beadingSapCodeSelected ? link.beadingSapCode : "",
+          beadingDescription: link.beadingSapCodeSelected ? link.beadingDescription : "",
+        })),
+    };
+
+    try {
+      await api.post(`${QUOTATION_BASE_API_URL}/admin/quotations/cutting-schedule/configs`, payload, authConfig);
+      await fetchCuttingScheduleData();
+      setIsGlassBeadingModalOpen(false);
+    } catch (error) {
+      console.error("Unable to save glass beading links", error);
+    }
+  };
+
   const renderTabs = () => {
     const tabs = [
       { id: "quotations", label: "Quotations", icon: "file-invoice-dollar" },
@@ -1236,6 +1459,7 @@ const QuotationAdminPage = () => {
       { id: "handleRules", label: "Handle Rules", icon: "hand-paper" },
       { id: "handleOptions", label: "Handle Options", icon: "swatchbook" },
       { id: "cuttingSchedule", label: "Cutting Schedule", icon: "ruler-combined" },
+      { id: "glassBeading", label: "Glass Beading", icon: "link" },
     ];
 
     const tabCounts = {
@@ -1247,7 +1471,11 @@ const QuotationAdminPage = () => {
       baseRates: baseRates.length,
       handleRules: handleRules.length,
       handleOptions: handleOptions.length,
-      cuttingSchedule: cuttingConfigs.length,
+      cuttingSchedule: cuttingConfigs.filter((config) => getCuttingLineCount(config) > 0).length,
+      glassBeading: cuttingConfigs.reduce(
+        (total, config) => total + (config.glassBeadingLinks?.filter((link) => link.beadingSapCode).length || 0),
+        0
+      ),
     };
 
     return (
@@ -1633,6 +1861,168 @@ const QuotationAdminPage = () => {
           <div className="qa-empty">No option sets configured.</div>
         )}
       </div>
+    </div>
+  );
+
+  const renderGlassBeadingSection = () => (
+    <div className="qa-card">
+      <div className="qa-card-header">
+        <div>
+          <h4>Glass Beading Links</h4>
+          <p className="qa-subtitle">
+            Link each item description to a beading profile for every available glass spec.
+          </p>
+        </div>
+        <div className="qa-actions">
+          <MDBBtn size="sm" color="light" onClick={fetchCuttingScheduleData}>
+            <MDBIcon fas icon="sync" className="me-2" />
+            Refresh
+          </MDBBtn>
+        </div>
+      </div>
+
+      <div className="qa-table-wrapper">
+        <table className="qa-table qa-cutting-table">
+          <thead>
+            <tr>
+              <th>System</th>
+              <th>Series</th>
+              <th>Description</th>
+              <th>Linked Glasses</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredCuttingDescriptions.map((row) => {
+              const config = cuttingConfigs.find(
+                (item) =>
+                  item.systemType === row.systemType &&
+                  item.series === row.series &&
+                  item.description === row.description
+              );
+              const linkCount = config?.glassBeadingLinks?.filter((link) => link.beadingSapCode).length || 0;
+              return (
+                <tr key={`beading-${row.systemType}-${row.series}-${row.description}`}>
+                  <td>{row.systemType}</td>
+                  <td>{row.series}</td>
+                  <td className="qa-title">{row.description}</td>
+                  <td>
+                    <MDBBadge color={linkCount ? "success" : "warning"}>
+                      {linkCount} / {glassSpecOptions.length}
+                    </MDBBadge>
+                  </td>
+                  <td className="qa-actions-cell">
+                    <MDBBtn size="sm" color={linkCount ? "light" : "primary"} onClick={() => selectGlassBeadingDescription(row)}>
+                      <MDBIcon fas icon={linkCount ? "pen" : "plus"} className="me-2" />
+                      Configure
+                    </MDBBtn>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {!filteredCuttingDescriptions.length && (
+          <div className="qa-empty">No item descriptions found.</div>
+        )}
+      </div>
+
+      <MDBModal open={isGlassBeadingModalOpen} onClose={() => setIsGlassBeadingModalOpen(false)} tabIndex="-1">
+        <MDBModalDialog size="xl" scrollable>
+          <MDBModalContent>
+            <form onSubmit={saveGlassBeadingLinks}>
+              <MDBModalHeader>
+                <MDBModalTitle>
+                  Glass Beading Config
+                  <span className="qa-modal-subtitle">
+                    {selectedGlassBeadingRow?.systemType} / {selectedGlassBeadingRow?.series} / {selectedGlassBeadingRow?.description}
+                  </span>
+                </MDBModalTitle>
+                <MDBBtn className="btn-close" color="none" type="button" onClick={() => setIsGlassBeadingModalOpen(false)} />
+              </MDBModalHeader>
+              <MDBModalBody>
+                <div className="qa-table-wrapper">
+                  <table className="qa-table qa-editor-table">
+                    <thead>
+                      <tr>
+                        <th>Glass</th>
+                        <th>Beading Profile</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {glassBeadingLinks.map((link) => (
+                        <tr key={link.glassSpec}>
+                          <td className="qa-title">{link.glassSpec}</td>
+                          <td>
+                            <div className="qa-sap-autocomplete">
+                              <input
+                                value={link.beadingSapCode || ""}
+                                onChange={(e) => searchBeadingSapCode(link.glassSpec, e.target.value)}
+                                onBlur={() => handleBeadingSapCodeBlur(link.glassSpec)}
+                                onFocus={() => {
+                                  if (link.beadingSapCode && !link.beadingSapCodeSelected) {
+                                    setBeadingAutocomplete((prev) => ({
+                                      ...prev,
+                                      [link.glassSpec]: {
+                                        ...(prev[link.glassSpec] || {}),
+                                        open: true,
+                                      },
+                                    }));
+                                  }
+                                }}
+                                placeholder="Type beading SAP code"
+                                autoComplete="off"
+                              />
+                              {beadingAutocomplete[link.glassSpec]?.open && (
+                                <div className="qa-sap-menu">
+                                  {beadingAutocomplete[link.glassSpec]?.loading && (
+                                    <div className="qa-sap-message">Searching...</div>
+                                  )}
+                                  {!beadingAutocomplete[link.glassSpec]?.loading &&
+                                    beadingAutocomplete[link.glassSpec]?.options?.length === 0 && (
+                                      <div className="qa-sap-message">No SAP codes found</div>
+                                    )}
+                                  {!beadingAutocomplete[link.glassSpec]?.loading &&
+                                    beadingAutocomplete[link.glassSpec]?.options?.map((product) => (
+                                      <button
+                                        key={`${link.glassSpec}-${product._id || product.sapCode}`}
+                                        type="button"
+                                        className="qa-sap-option"
+                                        onMouseDown={(event) => event.preventDefault()}
+                                        onClick={() => selectBeadingSapCode(link.glassSpec, product)}
+                                      >
+                                        <span className="qa-sap-code">{product.sapCode}</span>
+                                        <span className="qa-sap-name">{getSapProductLabel(product)}</span>
+                                      </button>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
+                            {link.beadingDescription && (
+                              <div className="qa-meta mt-1">{link.beadingDescription}</div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {!glassBeadingLinks.length && (
+                  <div className="qa-empty">Add glass specs in Option Sets before configuring beading links.</div>
+                )}
+              </MDBModalBody>
+              <MDBModalFooter>
+                <MDBBtn color="light" type="button" onClick={() => setIsGlassBeadingModalOpen(false)}>
+                  Cancel
+                </MDBBtn>
+                <MDBBtn color="primary" type="submit" disabled={!glassBeadingLinks.length}>
+                  Save links
+                </MDBBtn>
+              </MDBModalFooter>
+            </form>
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
     </div>
   );
 
@@ -2376,13 +2766,13 @@ const QuotationAdminPage = () => {
           <aside className="qa-cutting-sidebar">
             <div className="qa-side-card">
               <div className="qa-side-label">Configured</div>
-              <div className="qa-side-value">{cuttingConfigs.length}</div>
+              <div className="qa-side-value">{cuttingConfigs.filter((config) => getCuttingLineCount(config) > 0).length}</div>
               <div className="qa-meta">Descriptions with at least one saved rule set.</div>
             </div>
             <div className="qa-side-card">
               <div className="qa-side-label">Pending</div>
               <div className="qa-side-value">
-                {Math.max(0, cuttingDescriptions.length - cuttingConfigs.length)}
+                {Math.max(0, cuttingDescriptions.length - cuttingConfigs.filter((config) => getCuttingLineCount(config) > 0).length)}
               </div>
               <div className="qa-meta">Descriptions still needing fabrication rules.</div>
             </div>
@@ -2524,7 +2914,7 @@ const QuotationAdminPage = () => {
                     {CUTTING_SCHEDULES.map((schedule) => {
                       const scheduleLines =
                         cuttingForm.schedules.find((item) => item.key === schedule.key)?.lines || [];
-                      const lineCount = scheduleLines.filter((line) => line.sapCode).length;
+                      const lineCount = scheduleLines.filter((line) => line.sapCode || line.itemType === "glass").length;
                       return (
                         <button
                           key={schedule.key}
@@ -2548,13 +2938,19 @@ const QuotationAdminPage = () => {
                       <div className="qa-title">Required Items</div>
                       <div className="qa-meta">
                         Editing H {activeCuttingSchedule.horizontalAngle}° / V {activeCuttingSchedule.verticalAngle}°.
-                        Hardware rows only need SAP code and quantity. Profile rows also use dimension and cut angle.
+                        Hardware rows only need SAP code and quantity. Profile rows use dimensions and cut angle. Add one glass row for the glass size formula.
                       </div>
                     </div>
-                    <MDBBtn size="sm" color="primary" type="button" onClick={addCuttingLine}>
-                      <MDBIcon fas icon="plus" className="me-2" />
-                      Add line
-                    </MDBBtn>
+                    <div className="qa-actions">
+                      <MDBBtn size="sm" color="light" type="button" onClick={addGlassCuttingLine} disabled={activeCuttingLines.some((line) => line.itemType === "glass")}>
+                        <MDBIcon fas icon="plus" className="me-2" />
+                        Add glass row
+                      </MDBBtn>
+                      <MDBBtn size="sm" color="primary" type="button" onClick={addCuttingLine}>
+                        <MDBIcon fas icon="plus" className="me-2" />
+                        Add line
+                      </MDBBtn>
+                    </div>
                   </div>
 
                   <div className="qa-table-wrapper">
@@ -2578,9 +2974,15 @@ const QuotationAdminPage = () => {
                               <select value={line.itemType} onChange={(e) => updateCuttingLine(index, "itemType", e.target.value)}>
                                 <option value="profile">Profile</option>
                                 <option value="hardware">Hardware</option>
+                                <option value="glass" disabled={line.itemType !== "glass" && activeCuttingLines.some((item) => item.itemType === "glass")}>
+                                  Glass
+                                </option>
                               </select>
                             </td>
                             <td>
+                              {line.itemType === "glass" ? (
+                                <input value="Selected quotation glass" disabled />
+                              ) : (
                               <div className="qa-sap-autocomplete">
                                 <input
                                   value={line.sapCode}
@@ -2625,6 +3027,7 @@ const QuotationAdminPage = () => {
                                   </div>
                                 )}
                               </div>
+                              )}
                             </td>
                             <td>
                               <input value={line.description || ""} onChange={(e) => updateCuttingLine(index, "description", e.target.value)} placeholder="Use product name if blank" />
@@ -2643,7 +3046,7 @@ const QuotationAdminPage = () => {
                             <td>
                               <input
                                 value={line.cutAngle || ""}
-                                disabled={line.itemType === "hardware"}
+                                disabled={line.itemType === "hardware" || line.itemType === "glass"}
                                 onChange={(e) => updateCuttingLine(index, "cutAngle", e.target.value)}
                                 placeholder="45°, 90°"
                               />
@@ -2758,6 +3161,7 @@ const QuotationAdminPage = () => {
             {activeTab === "handleRules" && renderHandleRulesSection()}
             {activeTab === "handleOptions" && renderHandleOptionsSection()}
             {activeTab === "cuttingSchedule" && renderCuttingScheduleSection()}
+            {activeTab === "glassBeading" && renderGlassBeadingSection()}
           </div>
         </div>
       </div>
