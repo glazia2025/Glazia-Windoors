@@ -33,7 +33,7 @@ const AdminLoginForm = ({ setUserRole, setIsLoggedIn }) => {
       setIsLoggedIn(true)
       // Redirect to the appropriate page based on role
       if (decoded.role === 'admin') {
-        navigate('/admin/dashboard');
+        navigate('/dashboard');
       } else {
         navigate('/user/home');
       }

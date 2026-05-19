@@ -135,7 +135,7 @@ function App() {
       )}
       <div className="app-container position-relative">
         <Routes>
-          <Route
+          {/* <Route
             path="/"
             element={
               isLoggedIn ? (
@@ -148,14 +148,25 @@ function App() {
                 <UserLoginForm setUserRole={setUserRole} />
               )
             }
-          />
+          /> */}
+
+          <Route
+  path="/"
+  element={
+    isLoggedIn && localStorage.getItem("userRole") === "admin" ? (
+      <Navigate to="/dashboard/orders" replace />
+    ) : (
+      <Navigate to="/login" replace />
+    )
+  }
+/>
 
 
           {/* Admin Login Route */}
           {!isLoggedIn && (
             <>
               <Route
-                path="/admin/login"
+                path="/login"
                 element={
                   <AdminLoginForm
                     setUserRole={setUserRole}
@@ -164,19 +175,19 @@ function App() {
                 }
               />
               
-              <Route
+              {/* <Route
                 path="/about"
                 element={<AboutUsPage setUserRole={setUserRole} />}
-              />
-              <Route
+              /> */}
+              {/* <Route
                 path="/products_and_services"
                 element={<ProductsServicesPage setUserRole={setUserRole} />}
               />
               <Route
                 path="/blogs"
                 element={<BlogPage setUserRole={setUserRole} />}
-              />
-              <Route
+              /> */}
+              {/* <Route
                 path="/blogs/:id"
                 element={<BlogDetailPage setUserRole={setUserRole} />}
               />
@@ -187,13 +198,13 @@ function App() {
               <Route
                 path="/privacy-policy"
                 element={<PrivacyPolicyPage setUserRole={setUserRole} />}
-              />
+              /> */}
             </>
           )}
 
           {/* Admin Dashboard (protected by role check) */}
           <Route
-            path="/admin/dashboard"
+            path="/dashboard"
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <AdminDashboard />
@@ -203,7 +214,7 @@ function App() {
             }
           ></Route>
           <Route
-            path="/admin/dashboard/add-product"
+            path="/dashboard/add-product"
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <ExcelDataFetcher />
@@ -213,7 +224,7 @@ function App() {
             }
           />
           <Route
-            path="/admin/dashboard/orders"
+            path="/dashboard/orders"
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <UserOrders />
@@ -224,7 +235,7 @@ function App() {
           />
 
           <Route
-            path="/admin/dashboard/quotations"
+            path="/dashboard/quotations"
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <QuotationAdminPage />
@@ -234,7 +245,7 @@ function App() {
             }
           />
           <Route
-            path="/admin/dashboard/users"
+            path="/dashboard/users"
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <UserManagement />
@@ -245,7 +256,7 @@ function App() {
           />
 
           <Route
-            path="/admin/dashboard/orders/:orderId"
+            path="/dashboard/orders/:orderId"
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <OrderDetails />
@@ -256,7 +267,7 @@ function App() {
           />
 
           {/* User Home page (accessible by regular user only) */}
-          <Route
+           {/* <Route
             path="/user/home"
             element={
               localStorage.getItem("userRole") === "user" && isLoggedIn ? (
@@ -265,9 +276,9 @@ function App() {
                 <Navigate to="/" />
               )
             }
-          />
+          /> */}
 
-          <Route
+          {/* <Route
             path="/user/orders"
             element={
               localStorage.getItem("userRole") === "user" && isLoggedIn ? (
@@ -287,9 +298,9 @@ function App() {
                 <Navigate to="/" />
               )
             }
-          />
+          /> 
 
-          <Route
+           <Route
             path="/profile"
             element={
               localStorage.getItem("userRole") === "user" && isLoggedIn ? (
@@ -298,7 +309,7 @@ function App() {
                 <Navigate to="/" />
               )
             }
-          />
+          />  */}
         </Routes>
       </div>
       {location.pathname !== "/" && <Footer />}

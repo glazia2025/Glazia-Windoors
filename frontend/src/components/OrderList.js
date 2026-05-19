@@ -141,7 +141,7 @@ const OrderList = ({ selectedStatus }) => {
 
   const handleViewOrder = (orderId) => {
     if (userRole === "admin") {
-      navigate(`/admin/dashboard/orders/${orderId}`);
+      navigate(`/dashboard/orders/${orderId}`);
     } else {
       navigate(`/user/orders/${orderId}`);
     }

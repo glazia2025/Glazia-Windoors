@@ -1,8 +1,8 @@
-.otp-container {
+/* .otp-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: column; */
   /* align-items: center; */
-  gap: 1rem;
+  /* gap: 1rem;
 }
 
 .otp-input-boxes {
@@ -48,4 +48,4 @@ input[type="number"]::-webkit-inner-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
-}
+} */
