@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const TrackPhone = require('../models/TrackPhone');
+const { AUTH_COOKIE_MAX_AGE_MS, clearAuthCookie, setAuthCookie } = require('../utils/authCookies');
 require('dotenv').config();
 
 const otpStore = {};
@@ -138,6 +139,8 @@ const verifyOTP = async (req, res) => {
           { expiresIn: '120d' }
         );
 
+        setAuthCookie(req, res, token, AUTH_COOKIE_MAX_AGE_MS);
+
         return res.status(200).json({
           message: 'OTP verified successfully',
           token,
@@ -261,6 +264,10 @@ module.exports = {
   sendWhatsAppOTP,
   verifyOTP,
   adminLogin,
+  logout: (req, res) => {
+    clearAuthCookie(req, res);
+    return res.status(200).json({ message: 'Logged out successfully' });
+  },
   trackPhone,
   listLeads,
   updateLead,

@@ -9,21 +9,31 @@ require("./utils/cron");
 
 const connectDB = require("./db");
 const PORT = process.env.PORT || 5555;
+const allowedOrigins = new Set([
+  "https://glazia.in",
+  "https://www.glazia.in",
+  "https://quotation.glazia.in",
+  "https://glazia-quotation.vercel.app",
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://splendid-begonia-cbc292.netlify.app",
+]);
 
 // Load environment variables
 // require('dotenv').config({ path: '/etc/app.env' });
 
 // Middleware
+app.set("trust proxy", 1);
 app.use(
   cors({
-    origin: [
-      "https://glazia.in",
-      "https://www.glazia.in",
-      "https://glazia-quotation.vercel.app/",
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "https://splendid-begonia-cbc292.netlify.app"
-    ],
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,

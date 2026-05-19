@@ -15,6 +15,9 @@ const {
   deleteQuotationById,
   generateQuotationPdfController
 } = require("../controllers/quotationController");
+const {
+  generateCuttingSchedulePdf,
+} = require("../controllers/cuttingScheduleController");
 
 const {
   getQuotationConfig,
@@ -37,4 +40,5 @@ router.get("/:id", isUser, getQuotationById);
 router.post("/:id", isUser, updateQuotationById);
 router.delete("/:id", isUser, deleteQuotationById);
 router.get("/:id/pdf", isUser, generateQuotationPdfController);
+router.get("/:id/cutting-schedule", isUser, generateCuttingSchedulePdf);
 module.exports = router;

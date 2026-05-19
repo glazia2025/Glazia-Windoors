@@ -25,6 +25,14 @@ const quotationSchema = new mongoose.Schema(
         amount: { type: Number, default: 0 },
         refImage: { type: String },
         remarks: { type: String },
+        horizontalCutAngle: { type: String, enum: ["45", "90"], default: "90" },
+        verticalCutAngle: { type: String, enum: ["45", "90"], default: "90" },
+        cuttingScheduleKey: {
+          type: String,
+          enum: ["45_45", "45_90", "90_45", "90_90"],
+          default: "90_90",
+        },
+        configuratorLayout: { type: mongoose.Schema.Types.Mixed },
         subItems: {
           type: [
             {
@@ -48,6 +56,13 @@ const quotationSchema = new mongoose.Schema(
             amount: { type: Number, default: 0 },
             refImage: { type: String },
             remarks: { type: String },
+            horizontalCutAngle: { type: String, enum: ["45", "90"], default: "90" },
+            verticalCutAngle: { type: String, enum: ["45", "90"], default: "90" },
+            cuttingScheduleKey: {
+              type: String,
+              enum: ["45_45", "45_90", "90_45", "90_90"],
+              default: "90_90",
+            },
         }
           ],
           required: false,
@@ -56,7 +71,6 @@ const quotationSchema = new mongoose.Schema(
     ],
     customerDetails: {
       name: { type: String, default: "" },
-      company: { type: String, default: "" },
       email: { type: String, default: "" },
       phone: { type: String, default: "" },
       address: { type: String, default: "" },
@@ -91,6 +105,10 @@ const quotationSchema = new mongoose.Schema(
         transport: { type: Number, default: 0 },
         loadingUnloading: { type: Number, default: 0 },
         discountPercent: { type: Number, default: 0 },
+        showInstallation: { type: Boolean, default: true },
+        showTransport: { type: Boolean, default: true },
+        showLoadingUnloading: { type: Boolean, default: true },
+        showDiscount: { type: Boolean, default: true },
       }
     },
     generatedId: { type: String, unique: true },

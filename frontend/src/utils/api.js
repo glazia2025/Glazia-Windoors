@@ -4,9 +4,21 @@ import "react-toastify/dist/ReactToastify.css";
 import store from "../redux/store";
 import { startLoading, stopLoading } from "../redux/loadingSlice";
 
-// export const BASE_API_URL = "https://api.glazia.in/api";
-export const BASE_API_URL = "http://localhost:5555/api";
+ export const BASE_API_URL = "https://api.glazia.in/api";
 
+const trimTrailingSlash = (value = "") => value.replace(/\/+$/, "");
+
+export const MAIN_API_BASE_URL = trimTrailingSlash(
+  process.env.REACT_APP_MAIN_API_BASE_URL ||
+    process.env.REACT_APP_API_BASE_URL ||
+    "https://api.glazia.in"
+);
+export const QUOTATION_API_BASE_URL = trimTrailingSlash(
+  process.env.REACT_APP_QUOTATION_API_BASE_URL || "https://quotation-api.glazia.in"
+);
+
+export const BASE_API_URL = `${MAIN_API_BASE_URL}/api`;
+export const QUOTATION_BASE_API_URL = `${QUOTATION_API_BASE_URL}/api`;
 
 
 export const buildQueryParams = (params) => {

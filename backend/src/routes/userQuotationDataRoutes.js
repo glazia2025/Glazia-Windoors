@@ -15,6 +15,9 @@ const {
   updateHardware,
   deleteHardware,
   setAdminHardwareRate,
+  createHandleOption,
+  updateHandleOption,
+  deleteHandleOption,
 } = require("../controllers/userQuotationDataController");
 
 const router = express.Router();
@@ -37,5 +40,9 @@ router.get("/hardware", listHardware);
 router.put("/hardware/:id", updateHardware);
 router.delete("/hardware/:id", deleteHardware);
 router.put("/hardware/admin/:hardwareId/rate", setAdminHardwareRate);
+
+router.post("/handle-options", createHandleOption);
+router.put("/handle-options/:id", updateHandleOption);
+router.delete("/handle-options/:id", deleteHandleOption);
 
 module.exports = router;

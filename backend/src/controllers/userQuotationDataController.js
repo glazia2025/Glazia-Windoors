@@ -2,14 +2,16 @@ const BaseRate = require("../models/Quotation/BaseRate");
 const Series = require("../models/Quotation/Series");
 const System = require("../models/Quotation/System");
 const OptionSet = require("../models/Quotation/OptionSet");
+const HandleOption = require("../models/Quotation/HandleOption");
 const Hardware = require("../models/Hardware");
 const UserDescriptionRate = require("../models/Quotation/UserDescriptionRate");
 const UserOptionSet = require("../models/Quotation/UserOptionSet");
 const UserHardware = require("../models/Quotation/UserHardware");
 const UserHardwareRate = require("../models/Quotation/UserHardwareRate");
 const { normalizeRateMap, restoreRateMap } = require("../utils/rateMapUtils");
+const { ensureColorDefaults, groupHandleOptionsBySystem } = require("../utils/handleOptionUtils");
 
-const ALLOWED_OPTION_TYPES = ["colorFinish", "glassSpec", "meshType", "handle"];
+const ALLOWED_OPTION_TYPES = ["colorFinish", "glassSpec", "meshType"];
 
 const escapeMongoKey = (key = "") =>
   String(key)
@@ -60,13 +62,6 @@ const resolveAdminFallbackRate = (adminRate, userRate) => {
   }
   return asUserRate;
 };
-
-const toSystemKey = (name = "") =>
-  String(name)
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
 
 const mergeOptionItems = (adminValues = {}, userValues = {}) => {
   const allNames = Array.from(new Set([...Object.keys(adminValues), ...Object.keys(userValues)])).sort();
@@ -236,9 +231,16 @@ const listOptionSets = async (req, res) => {
     const userId = toUserId(req);
     const types = ALLOWED_OPTION_TYPES;
 
-    const [adminDocs, userDocs] = await Promise.all([
+    const [adminDocs, userDocs, handleOptions] = await Promise.all([
       OptionSet.find({ type: { $in: types } }).populate("system", "name").lean(),
       UserOptionSet.find({ user: userId, type: { $in: types } }).lean(),
+      HandleOption.find({
+        $or: [
+          { createdBy: { $exists: false } },
+          { createdBy: null },
+          { createdBy: userId },
+        ],
+      }).sort({ systemType: 1, name: 1 }).lean(),
     ]);
 
     const adminByType = adminDocs.reduce((acc, doc) => {
@@ -255,17 +257,6 @@ const listOptionSets = async (req, res) => {
       const typeDocs = adminByType[t] || [];
       const userValues = userByType[t] || {};
 
-      if (t === "handle") {
-        const items = typeDocs.reduce((acc, doc) => {
-          const adminValues = restoreRateMap(doc.values);
-          const key = toSystemKey(doc.system?.name || "global");
-          acc[key] = mergeOptionItems(adminValues, {});
-          return acc;
-        }, {});
-
-        return { type: t, items };
-      }
-
       const globalAdminDoc = typeDocs.find((doc) => !doc.system);
       const adminValues = restoreRateMap(globalAdminDoc?.values);
       const items = mergeOptionItems(adminValues, userValues);
@@ -276,7 +267,12 @@ const listOptionSets = async (req, res) => {
       };
     });
 
-    res.json({ optionSets });
+    res.json({
+      optionSets: [
+        ...optionSets,
+        { type: "handle", items: groupHandleOptionsBySystem(handleOptions, userId) },
+      ],
+    });
   } catch (error) {
     console.error("listOptionSets (user) error", error);
     res.status(500).json({ message: "Unable to fetch option sets", error: error.message });
@@ -572,6 +568,58 @@ const setAdminHardwareRate = async (req, res) => {
   }
 };
 
+const createHandleOption = async (req, res) => {
+  if (!ensureUserContext(req, res)) return;
+
+  try {
+    const payload = {
+      systemType: req.body.systemType,
+      name: req.body.name,
+      colors: ensureColorDefaults(req.body.colors),
+      createdBy: toUserId(req),
+    };
+    const option = await HandleOption.create(payload);
+    res.status(201).json(option);
+  } catch (error) {
+    console.error("createHandleOption (user) error", error);
+    res.status(500).json({ message: "Unable to create handle option", error: error.message });
+  }
+};
+
+const updateHandleOption = async (req, res) => {
+  if (!ensureUserContext(req, res)) return;
+
+  try {
+    const payload = { ...req.body };
+    if (payload.colors) payload.colors = ensureColorDefaults(payload.colors);
+    const option = await HandleOption.findByIdAndUpdate(req.params.id, payload, {
+      new: true,
+      runValidators: true,
+    });
+    if (!option) return res.status(404).json({ message: "Handle option not found" });
+    res.json(option);
+  } catch (error) {
+    console.error("updateHandleOption (user) error", error);
+    res.status(500).json({ message: "Unable to update handle option", error: error.message });
+  }
+};
+
+const deleteHandleOption = async (req, res) => {
+  if (!ensureUserContext(req, res)) return;
+
+  try {
+    const option = await HandleOption.findOneAndDelete({
+      _id: req.params.id,
+      createdBy: toUserId(req),
+    });
+    if (!option) return res.status(404).json({ message: "User handle option not found" });
+    res.json({ message: "Deleted" });
+  } catch (error) {
+    console.error("deleteHandleOption (user) error", error);
+    res.status(500).json({ message: "Unable to delete handle option", error: error.message });
+  }
+};
+
 module.exports = {
   upsertDescriptionRate,
   listDescriptionRates,
@@ -587,4 +635,7 @@ module.exports = {
   updateHardware,
   deleteHardware,
   setAdminHardwareRate,
+  createHandleOption,
+  updateHandleOption,
+  deleteHandleOption,
 };

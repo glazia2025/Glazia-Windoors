@@ -11,7 +11,9 @@ const HandleOption = require("../models/Quotation/HandleOption");
 const UserOptionSet = require("../models/Quotation/UserOptionSet");
 const UserDescriptionRate = require("../models/Quotation/UserDescriptionRate");
 const jwt = require("jsonwebtoken");
-const puppeteer = require("puppeteer");
+const { extractAuthToken } = require("../utils/authCookies");
+const { closePdfBrowser, launchPdfBrowser } = require("../utils/pdfBrowser");
+const { colorMapToArray } = require("../utils/handleOptionUtils");
 
 const numberOr = (value, fallback = 0) => {
   const asNumber = Number(value);
@@ -47,8 +49,7 @@ const effectiveRateWithAdminFallback = (adminRate, userRate) => {
 
 const getOptionalUserId = (req) => {
   try {
-    const authHeader = req.header("Authorization") || "";
-    const token = authHeader.replace("Bearer ", "").trim();
+    const token = extractAuthToken(req);
     if (!token) return null;
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
     return decoded?.userId || null;
@@ -339,7 +340,14 @@ const getOptionLists = async (req, res) => {
     };
 
     const handleOptions = systemType
-      ? await HandleOption.find({ systemType }).lean()
+      ? await HandleOption.find({
+        systemType,
+        $or: [
+          { createdBy: { $exists: false } },
+          { createdBy: null },
+          ...(userId ? [{ createdBy: userId }] : []),
+        ],
+      }).lean()
       : [];
 
     res.json({
@@ -348,7 +356,7 @@ const getOptionLists = async (req, res) => {
       glassSpecs: mergeAdminAndUserRates(glassSpecs, "glassSpec"),
       handleOptions: handleOptions.map((h) => ({
         name: h.name,
-        colors: mapToArray(h.colors),
+        colors: colorMapToArray(h.colors),
       })),
     });
   } catch (error) {
@@ -459,13 +467,29 @@ const listQuotations = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
-        .select("_id user customerDetails quotationDetails breakdown generatedId createdAt updatedAt") // keep list light
+        .select("_id user customerDetails quotationDetails breakdown generatedId createdAt updatedAt items.amount") // keep list light
         .lean(),
       Quotation.countDocuments(filter),
     ]);
+    const quotationsWithTotals = quotations.map((quotation) => {
+      const storedTotal = numberOr(quotation?.breakdown?.totalAmount);
+      if (storedTotal > 0) return quotation;
+
+      const itemTotal = Array.isArray(quotation.items)
+        ? quotation.items.reduce((sum, item) => sum + numberOr(item?.amount), 0)
+        : 0;
+
+      return {
+        ...quotation,
+        breakdown: {
+          ...(quotation.breakdown || {}),
+          totalAmount: itemTotal,
+        },
+      };
+    });
 
     res.json({
-      quotations,
+      quotations: quotationsWithTotals,
       page: pageNum,
       limit: limitNum,
       total,
@@ -515,10 +539,24 @@ const updateQuotationById = async (req, res) => {
       return res.status(404).json({ message: "Quotation not found" });
     }
 
+    const {
+      breakdown,
+      items = [],
+      customerDetails = {},
+      quotationDetails = {},
+      globalConfig = {},
+    } = req.body;
+
     const updatedQuotation = await Quotation.findByIdAndUpdate(
       req.params.id,
-      req.body,
-      { new: true }
+      {
+        items,
+        customerDetails,
+        quotationDetails,
+        globalConfig,
+        breakdown,
+      },
+      { new: true, runValidators: true }
     );
 
     res.json({ updatedQuotation });
@@ -562,6 +600,14 @@ function toNumber(value, fallback = 0) {
 function safeString(value, fallback = "") {
   if (value === null || value === undefined) return fallback;
   return String(value).trim();
+}
+
+function booleanOr(value, fallback = true) {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "string") {
+    return value.toLowerCase() !== "false";
+  }
+  return Boolean(value);
 }
 
 function escapeHtml(value) {
@@ -623,8 +669,37 @@ function computeAmount(item) {
   return Number((area * rate * quantity).toFixed(2));
 }
 
+function addProfit(value, profitPercentage) {
+  return Number((toNumber(value) * (1 + toNumber(profitPercentage) / 100)).toFixed(2));
+}
+
+function addProfitToItemValues(item, profitPercentage) {
+  return {
+    ...item,
+    rate: addProfit(item.rate, profitPercentage),
+    amount: addProfit(item.amount, profitPercentage),
+    subItems: Array.isArray(item.subItems)
+      ? item.subItems.map((subItem) => addProfitToItemValues(subItem, profitPercentage))
+      : [],
+  };
+}
+
 function boolToDisplay(value) {
   return value ? "Yes" : "No";
+}
+
+function formatHandle(handleType, handleColor) {
+  const type = safeString(handleType);
+  if (!type || type === "-") return "-";
+
+  const color = safeString(handleColor);
+  return color && color !== "-" ? `${type} / ${color}` : type;
+}
+
+function formatMesh(meshPresent, meshType) {
+  const present = safeString(meshPresent, "No");
+  const type = safeString(meshType);
+  return present === "Yes" && type && type !== "-" ? `${present} (${type})` : present;
 }
 
 function normalizeImage(value) {
@@ -702,31 +777,49 @@ function normalizeItem(item) {
   };
 }
 
-function computeTotals(items, additionalCosts = {}) {
-  const itemSubtotal = items.reduce((sum, item) => sum + toNumber(item.amount), 0);
-
-  const installation = toNumber(additionalCosts.installation);
-  const transport = toNumber(additionalCosts.transport);
-  const loadingUnloading = toNumber(additionalCosts.loadingUnloading);
-  const discountPercent = toNumber(additionalCosts.discountPercent);
-
-  const extrasTotal = installation + transport + loadingUnloading;
-  const beforeDiscount = itemSubtotal + extrasTotal;
-  const discountAmount = Number(
-    ((beforeDiscount * discountPercent) / 100).toFixed(2)
+function computeTotals(items, additionalCosts = {}, profitPercentage = 0) {
+  const baseTotal = items.reduce((sum, item) => sum + toNumber(item.amount), 0);
+  const totalArea = items.reduce(
+    (sum, item) => sum + toNumber(item.area) * Math.max(1, toNumber(item.quantity, 1)),
+    0
   );
-  const grandTotal = Number((beforeDiscount - discountAmount).toFixed(2));
+  const totalQty = items.reduce(
+    (sum, item) => sum + Math.max(1, toNumber(item.quantity, 1)),
+    0
+  );
+
+  const profitPercent = toNumber(profitPercentage);
+  const profitValue = (baseTotal * profitPercent) / 100;
+  const itemsSubtotal = baseTotal + profitValue;
+  const installationCost = totalArea * toNumber(additionalCosts.installation);
+  const transportCost = toNumber(additionalCosts.transport);
+  const loadingUnloadingCost = toNumber(additionalCosts.loadingUnloading);
+  const discountPercent = toNumber(additionalCosts.discountPercent);
+  const beforeDiscount =
+    itemsSubtotal + installationCost + transportCost + loadingUnloadingCost;
+  const discountValue = (beforeDiscount * discountPercent) / 100;
+  const totalProjectCost = beforeDiscount - discountValue;
+  const gstValue = totalProjectCost * 0.18;
+  const grandTotal = totalProjectCost + gstValue;
 
   return {
-    itemSubtotal: Number(itemSubtotal.toFixed(2)),
-    installation: Number(installation.toFixed(2)),
-    transport: Number(transport.toFixed(2)),
-    loadingUnloading: Number(loadingUnloading.toFixed(2)),
-    extrasTotal: Number(extrasTotal.toFixed(2)),
-    beforeDiscount: Number(beforeDiscount.toFixed(2)),
-    discountPercent: Number(discountPercent.toFixed(2)),
-    discountAmount,
+    baseTotal,
+    totalArea,
+    totalQty,
+    profitPercent,
+    profitValue,
+    itemsSubtotal,
+    installationCost,
+    transportCost,
+    loadingUnloadingCost,
+    beforeDiscount,
+    discountPercent,
+    discountValue,
+    totalProjectCost,
+    gstValue,
     grandTotal,
+    avgWithoutGst: totalArea > 0 ? totalProjectCost / totalArea : 0,
+    avgWithGst: totalArea > 0 ? grandTotal / totalArea : 0,
   };
 }
 
@@ -737,7 +830,6 @@ function prepareQuotationPdfData(quotation) {
 
   const customerDetails = {
     name: safeString(quotation?.customerDetails?.name),
-    company: safeString(quotation?.customerDetails?.company),
     email: safeString(quotation?.customerDetails?.email),
     phone: safeString(quotation?.customerDetails?.phone),
     address: safeString(quotation?.customerDetails?.address),
@@ -745,6 +837,8 @@ function prepareQuotationPdfData(quotation) {
     state: safeString(quotation?.customerDetails?.state),
     pincode: safeString(quotation?.customerDetails?.pincode),
   };
+
+  const totalArea = items.reduce((sum, item) => sum + item.area * Math.max(1, item.quantity || 1), 0);
 
   const quotationDetails = {
     id: safeString(
@@ -772,10 +866,54 @@ function prepareQuotationPdfData(quotation) {
       discountPercent: toNumber(
         quotation?.globalConfig?.additionalCosts?.discountPercent
       ),
+      showInstallation: booleanOr(
+        quotation?.globalConfig?.additionalCosts?.showInstallation
+      ),
+      showTransport: booleanOr(
+        quotation?.globalConfig?.additionalCosts?.showTransport
+      ),
+      showLoadingUnloading: booleanOr(
+        quotation?.globalConfig?.additionalCosts?.showLoadingUnloading
+      ),
+      showDiscount: booleanOr(
+        quotation?.globalConfig?.additionalCosts?.showDiscount
+      ),
     },
   };
 
-  const totals = computeTotals(items, globalConfig.additionalCosts);
+  const profitPercentage = toNumber(quotation?.breakdown?.profitPercentage);
+  let totals = computeTotals(items, globalConfig.additionalCosts, profitPercentage);
+  const profitAdjustedItems = items.map((item) =>
+    addProfitToItemValues(item, profitPercentage)
+  );
+  const displayedItemsSubtotal = profitAdjustedItems.reduce(
+    (sum, item) => sum + toNumber(item.amount),
+    0
+  );
+
+  if (displayedItemsSubtotal !== totals.itemsSubtotal) {
+    const beforeDiscount =
+      displayedItemsSubtotal +
+      totals.installationCost +
+      totals.transportCost +
+      totals.loadingUnloadingCost;
+    const discountValue = (beforeDiscount * totals.discountPercent) / 100;
+    const totalProjectCost = beforeDiscount - discountValue;
+    const gstValue = totalProjectCost * 0.18;
+    const grandTotal = totalProjectCost + gstValue;
+
+    totals = {
+      ...totals,
+      itemsSubtotal: displayedItemsSubtotal,
+      beforeDiscount,
+      discountValue,
+      totalProjectCost,
+      gstValue,
+      grandTotal,
+      avgWithoutGst: totals.totalArea > 0 ? totalProjectCost / totals.totalArea : 0,
+      avgWithGst: totals.totalArea > 0 ? grandTotal / totals.totalArea : 0,
+    };
+  }
 
   return {
     generatedId: safeString(quotation?.generatedId),
@@ -783,13 +921,14 @@ function prepareQuotationPdfData(quotation) {
     customerDetails,
     quotationDetails,
     globalConfig,
-    items,
+    items: profitAdjustedItems,
+    totalArea,
     breakdown: {
       totalAmount:
         toNumber(quotation?.breakdown?.totalAmount) > 0
           ? toNumber(quotation?.breakdown?.totalAmount)
           : totals.grandTotal,
-      profitPercentage: toNumber(quotation?.breakdown?.profitPercentage),
+      profitPercentage,
     },
     totals,
   };
@@ -906,7 +1045,7 @@ function renderMainItemCard(item) {
           <td class="label">Product</td>
           <td>${escapeHtml(item.systemType)}</td>
           <td class="label">Handle</td>
-          <td>${escapeHtml(item.handleType)} - ${escapeHtml(item.handleColor)}</td>
+          <td>${escapeHtml(formatHandle(item.handleType, item.handleColor))}</td>
           <td class="label">Description</td>
           <td>${escapeHtml(item.description)}</td>
         </tr>
@@ -916,7 +1055,7 @@ function renderMainItemCard(item) {
           <td class="label">Glass</td>
           <td>${escapeHtml(item.glassSpec)}</td>
           <td class="label">Mesh</td>
-          <td>${escapeHtml(item.meshPresent)} ${item.meshType !== "-" ? `(${escapeHtml(item.meshType)})` : ""}</td>
+          <td>${escapeHtml(formatMesh(item.meshPresent, item.meshType))}</td>
         </tr>
       </table>
 
@@ -1012,8 +1151,8 @@ function renderSubItemsTable(subItems) {
                   <td>${escapeHtml(sub.location)}</td>
                   <td>${escapeHtml(sub.description)}</td>
                   <td>${escapeHtml(sub.glassSpec)}</td>
-                  <td>${escapeHtml(sub.handleType)} / ${escapeHtml(sub.handleColor)}</td>
-                  <td>${escapeHtml(sub.meshPresent)} ${sub.meshType !== "-" ? `(${escapeHtml(sub.meshType)})` : ""}</td>
+                  <td>${escapeHtml(formatHandle(sub.handleType, sub.handleColor))}</td>
+                  <td>${escapeHtml(formatMesh(sub.meshPresent, sub.meshType))}</td>
                   <td>${formatCurrency(sub.rate)}</td>
                   <td>${sub.quantity}</td>
                   <td>${formatCurrency(sub.amount)}</td>
@@ -1036,7 +1175,7 @@ function renderItemPage(data, item) {
           ${data.globalConfig.logo
       ? `<img src="${data.globalConfig.logo}" class="header-logo" alt="Logo" />`
       : `<div class="header-company">${escapeHtml(
-        data.customerDetails.company || "Company"
+        data.customerDetails.name || "Customer"
       )}</div>`
     }
         </div>
@@ -1071,8 +1210,40 @@ function renderItemPage(data, item) {
 }
 
 function renderSummaryPage(data) {
-  const terms = data.quotationDetails.terms || data.globalConfig.terms || "";
-  const prerequisites = data.globalConfig.prerequisites || "";
+  const additionalCosts = data.globalConfig.additionalCosts || {};
+
+  const installationRow = additionalCosts.showInstallation
+    ? `
+        <tr>
+          <td>Installation</td>
+          <td>${formatCurrency(data.totals.installationCost)} INR</td>
+        </tr>
+      `
+    : "";
+  const transportRow = additionalCosts.showTransport
+    ? `
+        <tr>
+          <td>Transport</td>
+          <td>${formatCurrency(data.totals.transportCost)} INR</td>
+        </tr>
+      `
+    : "";
+  const loadingUnloadingRow = additionalCosts.showLoadingUnloading
+    ? `
+        <tr>
+          <td>Loading / Unloading</td>
+          <td>${formatCurrency(data.totals.loadingUnloadingCost)} INR</td>
+        </tr>
+      `
+    : "";
+  const discountRow = toNumber(data.totals.discountValue) > 0
+    ? `
+        <tr>
+          <td>Discount (${formatCurrency(data.totals.discountPercent)}%)</td>
+          <td>- ${formatCurrency(data.totals.discountValue)} INR</td>
+        </tr>
+      `
+    : "";
 
   return `
     <section class="page">
@@ -1081,7 +1252,7 @@ function renderSummaryPage(data) {
           ${data.globalConfig.logo
       ? `<img src="${data.globalConfig.logo}" class="header-logo" alt="Logo" />`
       : `<div class="header-company">${escapeHtml(
-        data.customerDetails.company || "Company"
+        data.customerDetails.name || "Customer"
       )}</div>`
     }
         </div>
@@ -1105,34 +1276,96 @@ function renderSummaryPage(data) {
 
       <table class="summary-table">
         <tr>
+          <td>Quantity</td>
+          <td>${data.totals.totalQty}</td>
+        </tr>
+        <tr>
+          <td>Total Area</td>
+          <td>${data.totals.totalArea.toFixed(2)} Sq.ft</td>
+        </tr>
+        ${installationRow}
+        ${transportRow}
+        ${loadingUnloadingRow}
+        <tr>
           <td>Items Subtotal</td>
-          <td>${formatCurrency(data.totals.itemSubtotal)} INR</td>
+          <td>${formatCurrency(data.totals.itemsSubtotal)} INR</td>
+        </tr>
+        ${discountRow}
+        <tr>
+          <td>Total Project Cost</td>
+          <td>${formatCurrency(data.totals.totalProjectCost)} INR</td>
         </tr>
         <tr>
-          <td>Installation</td>
-          <td>${formatCurrency(data.totals.installation)} INR</td>
-        </tr>
-        <tr>
-          <td>Transport</td>
-          <td>${formatCurrency(data.totals.transport)} INR</td>
-        </tr>
-        <tr>
-          <td>Loading / Unloading</td>
-          <td>${formatCurrency(data.totals.loadingUnloading)} INR</td>
-        </tr>
-        <tr>
-          <td>Before Discount</td>
-          <td>${formatCurrency(data.totals.beforeDiscount)} INR</td>
-        </tr>
-        <tr>
-          <td>Discount (${formatCurrency(data.totals.discountPercent)}%)</td>
-          <td>- ${formatCurrency(data.totals.discountAmount)} INR</td>
+          <td>GST 18%</td>
+          <td>${formatCurrency(data.totals.gstValue)} INR</td>
         </tr>
         <tr class="grand-total">
           <td>Grand Total</td>
           <td>${formatCurrency(data.totals.grandTotal)} INR</td>
         </tr>
+        <tr>
+          <td>Avg. Price Per Sq. Ft. Without GST</td>
+          <td>${formatCurrency(data.totals.avgWithoutGst)} INR</td>
+        </tr>
+        <tr>
+          <td>Avg. Price Per Sq. Ft. With GST</td>
+          <td>${formatCurrency(data.totals.avgWithGst)} INR</td>
+        </tr>
       </table>
+
+      ${data.quotationDetails.notes
+      ? `
+          <div class="text-block">
+            <div class="section-title">Notes</div>
+            <div class="rich-text">${nl2br(data.quotationDetails.notes)}</div>
+          </div>
+        `
+      : ""
+    }
+
+      <div class="final-sign">
+        <div>For ${escapeHtml(data.customerDetails.name || "Customer")}</div>
+        <div class="auth-gap"></div>
+        <div>Authorized Signatory</div>
+      </div>
+    </section>
+  `;
+}
+
+function renderTermsPage(data) {
+  const terms = data.quotationDetails.terms || data.globalConfig.terms || "";
+  const prerequisites = data.globalConfig.prerequisites || "";
+
+  if (!prerequisites && !terms) return "";
+
+  return `
+    <section class="page">
+      <div class="page-header">
+        <div class="page-brand">
+          ${data.globalConfig.logo
+      ? `<img src="${data.globalConfig.logo}" class="header-logo" alt="Logo" />`
+      : `<div class="header-company">${escapeHtml(
+        data.customerDetails.name || "Customer"
+      )}</div>`
+    }
+        </div>
+
+        <div class="page-meta">
+          <div><strong>Quote No:</strong> ${escapeHtml(
+      data.quotationDetails.id || data.generatedId || "-"
+    )}</div>
+          <div><strong>Project:</strong> ${escapeHtml(
+      data.quotationDetails.opportunity || "Enquiry"
+    )}</div>
+          <div><strong>Date:</strong> ${escapeHtml(
+      data.quotationDetails.displayDate || "-"
+    )}</div>
+        </div>
+      </div>
+
+      <div class="separator"></div>
+
+      <h2 class="page-title">Prerequisites & Terms</h2>
 
       ${prerequisites
       ? `
@@ -1153,22 +1386,6 @@ function renderSummaryPage(data) {
         `
       : ""
     }
-
-      ${data.quotationDetails.notes
-      ? `
-          <div class="text-block">
-            <div class="section-title">Notes</div>
-            <div class="rich-text">${nl2br(data.quotationDetails.notes)}</div>
-          </div>
-        `
-      : ""
-    }
-
-      <div class="final-sign">
-        <div>For ${escapeHtml(data.customerDetails.company || "Company")}</div>
-        <div class="auth-gap"></div>
-        <div>Authorized Signatory</div>
-      </div>
     </section>
   `;
 }
@@ -1178,6 +1395,7 @@ function buildPdfHtml(data, user) {
     renderCoverPage(data, user),
     ...data.items.map((item) => renderItemPage(data, item)),
     renderSummaryPage(data),
+    renderTermsPage(data),
   ].join("");
 
   return `
@@ -1493,7 +1711,8 @@ function buildPdfHtml(data, user) {
 }
 
 const generateQuotationPdfController = async (req, res) => {
-  let browser;
+  let browserHandle;
+  let page;
 
   try {
     const { id } = req.params;
@@ -1525,12 +1744,10 @@ const generateQuotationPdfController = async (req, res) => {
     const preparedData = prepareQuotationPdfData(quotation);
     const html = buildPdfHtml(preparedData, user);
 
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+    browserHandle = await launchPdfBrowser();
+    const { browser } = browserHandle;
 
-    const page = await browser.newPage();
+    page = await browser.newPage();
 
     await page.setContent(html, {
       waitUntil: ["domcontentloaded", "networkidle2"],
@@ -1562,14 +1779,26 @@ const generateQuotationPdfController = async (req, res) => {
   } catch (error) {
     console.error("generateQuotationPdfController error:", error);
 
+    if (error.code === "ENOSPC") {
+      return res.status(507).json({
+        success: false,
+        message: "Server does not have enough free disk space to generate quotation PDF.",
+        error: error.message,
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: "Failed to generate quotation PDF.",
       error: error.message,
     });
   } finally {
-    if (browser) {
-      await browser.close();
+    try {
+      if (page && !page.isClosed()) {
+        await page.close();
+      }
+    } finally {
+      await closePdfBrowser(browserHandle);
     }
   }
 };

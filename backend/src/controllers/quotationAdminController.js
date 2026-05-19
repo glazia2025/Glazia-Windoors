@@ -9,23 +9,7 @@ const User = require("../models/User");
 const Quotation = require("../models/Quotation/Quotation");
 
 const { normalizeRateMap, restoreRateMap } = require("../utils/rateMapUtils");
-
-const normalizeColorMap = (input) =>
-  Object.entries(input || {}).reduce((acc, [k, v]) => {
-    acc[k] = Number(v) || 0;
-    return acc;
-  }, {});
-
-const ensureColorDefaults = (colors = {}) => {
-  const normalized = normalizeColorMap(colors);
-  if (!Object.prototype.hasOwnProperty.call(normalized, "Black")) {
-    normalized.Black = 0;
-  }
-  if (!Object.prototype.hasOwnProperty.call(normalized, "Silver")) {
-    normalized.Silver = 0;
-  }
-  return normalized;
-};
+const { ensureColorDefaults } = require("../utils/handleOptionUtils");
 
 const normalizeThreeRates = (input) => {
   if (Array.isArray(input)) {
