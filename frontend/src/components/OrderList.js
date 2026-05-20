@@ -35,6 +35,8 @@ const OrderList = ({ selectedStatus }) => {
   const [search, setSearch] = useState("");
   const [endReached, setEndReached] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showItemsPopup, setShowItemsPopup] = useState(false);
+  const [selectedItems, setSelectedItems] = useState([]);
 
   useEffect(() => {
     setUserRole(localStorage.getItem("userRole"));
@@ -180,176 +182,258 @@ const OrderList = ({ selectedStatus }) => {
   };
 
   return (
-    <MDBRow>
-      <MDBCol>
-        {/* Search + Sort */}
-        <MDBRow className="d-flex justify-content-between align-items-center mb-4">
-          <MDBCol md="6">
-            <MDBInput
-              label="Search"
-              type="search"
-              placeholder="Search by item name"
-              size="lg"
-              onChange={(e) => setSearch(e.target.value)}
-              value={search}
-              className="placeholder-text-muted"
-            />
-          </MDBCol>
-          <MDBCol md="auto" className="mt-3 mt-md-0">
-            <MDBDropdown>
-              <MDBDropdownToggle
-                tag="a"
-                className="nav-link d-flex align-items-center btn btn-primary text-white px-3"
-                style={{ cursor: "pointer" }}
-              >
-                <span className="fw-semibold me-2">Sort by</span>
-              </MDBDropdownToggle>
-              <MDBDropdownMenu className="p-0" responsive="end">
-                {SORT_KEY_OPTIONS.map((option, optionIndex) => (
-                  <MDBDropdownItem
-                    key={optionIndex}
-                    className="py-0 px-0 fw-bold"
-                    link
-                    onClick={() => handleSort(option.value)}
-                  >
-                    <span>{option.label}</span>
-                  </MDBDropdownItem>
-                ))}
-              </MDBDropdownMenu>
-            </MDBDropdown>
-          </MDBCol>
-        </MDBRow>
+    <>
+      <MDBRow>
+        <MDBCol>
+          {/* Search + Sort */}
+          <MDBRow className="d-flex justify-content-between align-items-center mb-4">
+            <MDBCol md="6">
+              <MDBInput
+                label="Search"
+                type="search"
+                placeholder="Search by item name"
+                size="lg"
+                onChange={(e) => setSearch(e.target.value)}
+                value={search}
+                className="placeholder-text-muted"
+              />
+            </MDBCol>
+            <MDBCol md="auto" className="mt-3 mt-md-0">
+              <MDBDropdown>
+                <MDBDropdownToggle
+                  tag="a"
+                  className="nav-link d-flex align-items-center btn btn-primary text-white px-3"
+                  style={{ cursor: "pointer" }}
+                >
+                  <span className="fw-semibold me-2">Sort by</span>
+                </MDBDropdownToggle>
+                <MDBDropdownMenu className="p-0" responsive="end">
+                  {SORT_KEY_OPTIONS.map((option, optionIndex) => (
+                    <MDBDropdownItem
+                      key={optionIndex}
+                      className="py-0 px-0 fw-bold"
+                      link
+                      onClick={() => handleSort(option.value)}
+                    >
+                      <span>{option.label}</span>
+                    </MDBDropdownItem>
+                  ))}
+                </MDBDropdownMenu>
+              </MDBDropdown>
+            </MDBCol>
+          </MDBRow>
 
-        {/* Desktop Table View */}
-        <div className="d-none d-md-block table-responsive">
-          {orders && orders.length > 0 ? (
-            <table className="table table-custom small-height-table">
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>User Name</th>
-                  <th>Items</th>
-                  <th>Delivery Type</th>
-                  <th>Status</th>
-                  <th>Order Date</th>
-                  <th>Order Amount</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => (
-                  <tr key={order._id} className="bg-light">
-                    <td>#{order._id.slice(0, 4)}...{order._id.slice(-4)}</td>
-                    <td>{order.user.name}</td>
-                    <td>
-                      {order.products[0].description}
-                      {order.products.length > 1 &&
-                        ` + ${order.products.length - 1} more`}
-                    </td>
-                    <td>{deliveryTypeLabel(order.deliveryType)}</td>
-                    <td>{renderOrderStatusSmallPill(order)}</td>
-                    <td>
+          {/* Desktop Table View */}
+          <div className="d-none d-md-block table-responsive">
+            {orders && orders.length > 0 ? (
+              <table className="table table-custom small-height-table">
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>User Name</th>
+                    <th>Items</th>
+                    <th>Delivery Type</th>
+                    <th>Status</th>
+                    <th>Order Date</th>
+                    <th>Order Amount</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((order) => (
+                    <tr key={order._id} className="bg-light">
+                      <td>#{order._id.slice(0, 4)}...{order._id.slice(-4)}</td>
+                      <td>{order.user.name}</td>
+
+                      <td>
+                        {order.products[0].description}
+                        {order.products.length > 1 && (
+                          <>
+                            {` + ${order.products.length - 1} more`}
+                            <br />
+                            <span
+                              style={{ color: "#0d6efd", cursor: "pointer", fontSize: "12px" }}
+                              onClick={() => {
+                                setSelectedItems(order.products);
+                                setShowItemsPopup(true);
+                              }}
+                            >
+                              View All Items
+                            </span>
+                          </>
+                        )}
+                      </td>
+                      <td>{deliveryTypeLabel(order.deliveryType)}</td>
+                      <td>{renderOrderStatusSmallPill(order)}</td>
+                      <td>
+                        {new Date(order.createdAt).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </td>
+                      <td>
+                        {formatPrice(
+                          order.totalAmount ||
+                          order.products.reduce(
+                            (acc, product) => acc + product.amount,
+                            0
+                          ) * 1.18
+                        )}
+                      </td>
+                      <td>
+                        <MDBBtn size="sm" onClick={() => handleViewOrder(order._id)}>
+                          View
+                        </MDBBtn>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : loading ? (
+              <p className="text-center text-muted">Loading orders...</p>
+            ) : (
+              <p className="text-center text-muted">No orders found.</p>
+            )}
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="d-block d-md-none">
+            {orders && orders.length > 0 ? (
+              orders.map((order) => (
+                <MDBCard key={order._id} className="mb-3 shadow-sm border-0">
+                  <MDBCardBody>
+                    <MDBCardTitle className="fw-bold">
+                      #{order._id.slice(0, 4)}...{order._id.slice(-4)}
+                    </MDBCardTitle>
+                    <MDBCardText>
+                      <strong>Items:</strong> {order.products[0].description}
+                      {order.products.length > 1 && (
+                        <>
+                          {` + ${order.products.length - 1} more`}
+                          <br />
+                          <span
+                            style={{ color: "#0d6efd", cursor: "pointer", fontSize: "12px" }}
+                            onClick={() => {
+                              setSelectedItems(order.products);
+                              setShowItemsPopup(true);
+                            }}
+                          >
+                            View All Items
+                          </span>
+                        </>
+                      )}
+                    </MDBCardText>
+                    <MDBCardText>
+                      <strong>Delivery Type:</strong>{" "}
+                      {deliveryTypeLabel(order.deliveryType)}
+                    </MDBCardText>
+                    <MDBCardText>
+                      <strong>Status:</strong> {renderOrderStatusSmallPill(order)}
+                    </MDBCardText>
+                    <MDBCardText>
+                      <strong>Date:</strong>{" "}
                       {new Date(order.createdAt).toLocaleDateString("en-US", {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
                       })}
-                    </td>
-                    <td>
+                    </MDBCardText>
+                    <MDBCardText>
+                      <strong>Amount:</strong>{" "}
                       {formatPrice(
                         order.totalAmount ||
-                          order.products.reduce(
-                            (acc, product) => acc + product.amount,
-                            0
-                          ) * 1.18
-                      )}
-                    </td>
-                    <td>
-                      <MDBBtn size="sm" onClick={() => handleViewOrder(order._id)}>
-                        View
-                      </MDBBtn>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : loading ? (
-            <p className="text-center text-muted">Loading orders...</p>
-          ) : (
-            <p className="text-center text-muted">No orders found.</p>
-          )}
-        </div>
-
-        {/* Mobile Card View */}
-        <div className="d-block d-md-none">
-          {orders && orders.length > 0 ? (
-            orders.map((order) => (
-              <MDBCard key={order._id} className="mb-3 shadow-sm border-0">
-                <MDBCardBody>
-                  <MDBCardTitle className="fw-bold">
-                    #{order._id.slice(0, 4)}...{order._id.slice(-4)}
-                  </MDBCardTitle>
-                  <MDBCardText>
-                    <strong>Items:</strong> {order.products[0].description}
-                    {order.products.length > 1 &&
-                      ` + ${order.products.length - 1} more`}
-                  </MDBCardText>
-                  <MDBCardText>
-                    <strong>Delivery Type:</strong>{" "}
-                    {deliveryTypeLabel(order.deliveryType)}
-                  </MDBCardText>
-                  <MDBCardText>
-                    <strong>Status:</strong> {renderOrderStatusSmallPill(order)}
-                  </MDBCardText>
-                  <MDBCardText>
-                    <strong>Date:</strong>{" "}
-                    {new Date(order.createdAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </MDBCardText>
-                  <MDBCardText>
-                    <strong>Amount:</strong>{" "}
-                    {formatPrice(
-                      order.totalAmount ||
                         order.products.reduce(
                           (acc, product) => acc + product.amount,
                           0
                         ) * 1.18
-                    )}
-                  </MDBCardText>
-                  <MDBBtn size="sm" onClick={() => handleViewOrder(order._id)}>
-                    View Order
-                  </MDBBtn>
-                </MDBCardBody>
-              </MDBCard>
-            ))
-          ) : loading ? (
-            <p className="text-center text-muted">Loading orders...</p>
-          ) : (
-            <p className="text-center text-muted">No orders found.</p>
-          )}
-        </div>
+                      )}
+                    </MDBCardText>
+                    <MDBBtn size="sm" onClick={() => handleViewOrder(order._id)}>
+                      View Order
+                    </MDBBtn>
+                  </MDBCardBody>
+                </MDBCard>
+              ))
+            ) : loading ? (
+              <p className="text-center text-muted">Loading orders...</p>
+            ) : (
+              <p className="text-center text-muted">No orders found.</p>
+            )}
+          </div>
 
-        {/* Load More */}
-        {orders && orders.length > 0 && !endReached && (
-          <MDBCol className="d-flex justify-content-center align-items-center py-3">
-            <MDBBtn onClick={() => setPage(page + 1)}>Load more</MDBBtn>
-          </MDBCol>
-        )}
-        {endReached && orders.length > 0 && (
-          <MDBCol className="d-flex justify-content-center align-items-center py-3">
-            <MDBTypography
-              tag="p"
-              className="mb-0 small text-muted text-center fst-italic"
+          {/* Load More */}
+          {orders && orders.length > 0 && !endReached && (
+            <MDBCol className="d-flex justify-content-center align-items-center py-3">
+              <MDBBtn onClick={() => setPage(page + 1)}>Load more</MDBBtn>
+            </MDBCol>
+          )}
+          {endReached && orders.length > 0 && (
+            <MDBCol className="d-flex justify-content-center align-items-center py-3">
+              <MDBTypography
+                tag="p"
+                className="mb-0 small text-muted text-center fst-italic"
+              >
+                No more orders
+              </MDBTypography>
+            </MDBCol>
+          )}
+        </MDBCol>
+      </MDBRow>
+    //popup UI
+      {showItemsPopup && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              padding: "20px",
+              borderRadius: "10px",
+              width: "300px",
+              maxHeight: "400px",
+              overflowY: "auto",
+              position: "relative",
+            }}
+          >
+            {/* Close Button */}
+            <span
+              style={{
+                position: "absolute",
+                top: "10px",
+                right: "15px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "18px",
+              }}
+              onClick={() => setShowItemsPopup(false)}
             >
-              No more orders
-            </MDBTypography>
-          </MDBCol>
-        )}
-      </MDBCol>
-    </MDBRow>
+              ✖
+            </span>
+
+            <h5>All Items</h5>
+
+            {selectedItems.map((item, index) => (
+              <div key={index} style={{ marginBottom: "8px" }}>
+                • {item.description}
+              </div>
+            ))}
+          </div>
+        </div>
+      )};
+    </>
+
   );
 };
 

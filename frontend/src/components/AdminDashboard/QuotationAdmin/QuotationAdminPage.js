@@ -91,12 +91,12 @@ const createCuttingSchedules = (schedules = [], legacyLines = []) => {
       lines:
         sourceLines.length > 0
           ? sourceLines.map((line, index) => ({
-              ...createCuttingLine(),
-              ...line,
-              cutAngle: line.cutAngle || line.cutAngleLeft || line.cutAngleRight || "",
-              sortOrder: line.sortOrder ?? index,
-              sapCodeSelected: Boolean(line.sapCode),
-            }))
+            ...createCuttingLine(),
+            ...line,
+            cutAngle: line.cutAngle || line.cutAngleLeft || line.cutAngleRight || "",
+            sortOrder: line.sortOrder ?? index,
+            sapCodeSelected: Boolean(line.sapCode),
+          }))
           : [createCuttingLine()],
     };
   });
@@ -141,6 +141,7 @@ const QuotationAdminPage = () => {
     handleColors: "",
   });
   const [editingSystemId, setEditingSystemId] = useState(null);
+  const [isSystemModalOpen, setIsSystemModalOpen] = useState(false);
 
   const [seriesForm, setSeriesForm] = useState({
     name: "",
@@ -148,6 +149,7 @@ const QuotationAdminPage = () => {
     descriptions: [{ name: "", handleCount: "", handleTypes: "" }],
   });
   const [editingSeriesId, setEditingSeriesId] = useState(null);
+  const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
 
   const [optionForm, setOptionForm] = useState({
     type: "colorFinish",
@@ -155,6 +157,7 @@ const QuotationAdminPage = () => {
     valuesText: "",
   });
   const [editingOptionId, setEditingOptionId] = useState(null);
+  const [isOptionModalOpen, setIsOptionModalOpen] = useState(false);
 
   const [slabForm, setSlabForm] = useState({
     label: "",
@@ -162,6 +165,7 @@ const QuotationAdminPage = () => {
     order: "",
   });
   const [editingSlabId, setEditingSlabId] = useState(null);
+  const [isSlabModalOpen, setIsSlabModalOpen] = useState(false);
 
   const [baseRateForm, setBaseRateForm] = useState({
     systemType: "",
@@ -171,6 +175,7 @@ const QuotationAdminPage = () => {
     notes: "",
   });
   const [editingBaseRateId, setEditingBaseRateId] = useState(null);
+  const [isBaseRateModalOpen, setIsBaseRateModalOpen] = useState(false);
 
   const [handleRuleForm, setHandleRuleForm] = useState({
     description: "",
@@ -181,6 +186,7 @@ const QuotationAdminPage = () => {
     notes: "",
   });
   const [editingHandleRuleId, setEditingHandleRuleId] = useState(null);
+  const [isHandleRuleModalOpen, setIsHandleRuleModalOpen] = useState(false);
 
   const [handleOptionForm, setHandleOptionForm] = useState({
     systemType: "",
@@ -188,6 +194,7 @@ const QuotationAdminPage = () => {
     colorsText: "Black: 0\nSilver: 0",
   });
   const [editingHandleOptionId, setEditingHandleOptionId] = useState(null);
+  const [isHandleOptionModalOpen, setIsHandleOptionModalOpen] = useState(false);
   const [cuttingForm, setCuttingForm] = useState({
     systemType: "",
     series: "",
@@ -444,6 +451,7 @@ const QuotationAdminPage = () => {
       glassSpecs: (system.glassSpecs || []).join(", "),
       handleColors: (system.handleColors || []).join(", "),
     });
+    setIsSystemModalOpen(true);
   };
 
   const handleSystemDelete = async (id) => {
@@ -519,6 +527,7 @@ const QuotationAdminPage = () => {
           }))
           : [{ name: "", handleCount: "", handleTypes: "" }],
     });
+    setIsSeriesModalOpen(true);
   };
 
   const handleSeriesDelete = async (id) => {
@@ -580,6 +589,7 @@ const QuotationAdminPage = () => {
       systemId: optionSet.system?._id || "",
       valuesText: stringifyKeyValuePairs(toPlainObject(optionSet.values)),
     });
+    setIsOptionModalOpen(true);
   };
 
   const handleOptionDelete = async (id) => {
@@ -637,6 +647,7 @@ const QuotationAdminPage = () => {
       max: slab.max ?? "",
       order: slab.order ?? "",
     });
+    setIsSlabModalOpen(true);
   };
 
   const handleSlabDelete = async (id) => {
@@ -708,6 +719,7 @@ const QuotationAdminPage = () => {
       ],
       notes: rate.notes || "",
     });
+    setIsBaseRateModalOpen(true);
   };
 
   const handleBaseRateDelete = async (id) => {
@@ -780,6 +792,7 @@ const QuotationAdminPage = () => {
       series: rule.series || "",
       notes: rule.notes || "",
     });
+    setIsHandleRuleModalOpen(true);
   };
 
   const handleHandleRuleDelete = async (id) => {
@@ -842,6 +855,7 @@ const QuotationAdminPage = () => {
       name: option.name || "",
       colorsText: stringifyKeyValuePairs(colors),
     });
+    setIsHandleOptionModalOpen(true);
   };
 
   const handleHandleOptionDelete = async (id) => {
@@ -951,30 +965,30 @@ const QuotationAdminPage = () => {
       schedules: prev.schedules.map((schedule) =>
         schedule.key === activeCuttingScheduleKey
           ? {
-              ...schedule,
-              lines: schedule.lines.map((line, lineIndex) => {
-                if (lineIndex !== index) return line;
-                const nextLine = { ...line, [field]: value };
-                if (field === "itemType" && value === "hardware") {
-                  nextLine.dimensionFormula = "";
-                  nextLine.cutAngle = "";
-                  nextLine.unit = "Pcs";
-                }
-                if (field === "itemType" && value === "glass") {
+            ...schedule,
+            lines: schedule.lines.map((line, lineIndex) => {
+              if (lineIndex !== index) return line;
+              const nextLine = { ...line, [field]: value };
+              if (field === "itemType" && value === "hardware") {
+                nextLine.dimensionFormula = "";
+                nextLine.cutAngle = "";
+                nextLine.unit = "Pcs";
+              }
+              if (field === "itemType" && value === "glass") {
+                nextLine.sapCode = "";
+                nextLine.sapCodeSelected = true;
+                nextLine.cutAngle = "";
+                nextLine.unit = "Sqft";
+              }
+              if (field === "itemType") {
+                if (value !== "glass") {
                   nextLine.sapCode = "";
-                  nextLine.sapCodeSelected = true;
-                  nextLine.cutAngle = "";
-                  nextLine.unit = "Sqft";
+                  nextLine.sapCodeSelected = false;
                 }
-                if (field === "itemType") {
-                  if (value !== "glass") {
-                    nextLine.sapCode = "";
-                    nextLine.sapCodeSelected = false;
-                  }
-                }
-                return nextLine;
-              }),
-            }
+              }
+              return nextLine;
+            }),
+          }
           : schedule
       ),
     }));
@@ -997,17 +1011,17 @@ const QuotationAdminPage = () => {
       schedules: prev.schedules.map((schedule) =>
         schedule.key === activeCuttingScheduleKey
           ? {
-              ...schedule,
-              lines: schedule.lines.map((line, lineIndex) =>
-                lineIndex === index
-                  ? {
-                      ...line,
-                      sapCode: value,
-                      sapCodeSelected: false,
-                    }
-                  : line
-              ),
-            }
+            ...schedule,
+            lines: schedule.lines.map((line, lineIndex) =>
+              lineIndex === index
+                ? {
+                  ...line,
+                  sapCode: value,
+                  sapCodeSelected: false,
+                }
+                : line
+            ),
+          }
           : schedule
       ),
     }));
@@ -1074,18 +1088,18 @@ const QuotationAdminPage = () => {
       schedules: prev.schedules.map((schedule) =>
         schedule.key === activeCuttingScheduleKey
           ? {
-              ...schedule,
-              lines: schedule.lines.map((line, lineIndex) =>
-                lineIndex === index
-                  ? {
-                      ...line,
-                      sapCode: product.sapCode || "",
-                      description: line.description || getSapProductLabel(product),
-                      sapCodeSelected: true,
-                    }
-                  : line
-              ),
-            }
+            ...schedule,
+            lines: schedule.lines.map((line, lineIndex) =>
+              lineIndex === index
+                ? {
+                  ...line,
+                  sapCode: product.sapCode || "",
+                  description: line.description || getSapProductLabel(product),
+                  sapCodeSelected: true,
+                }
+                : line
+            ),
+          }
           : schedule
       ),
     }));
@@ -1099,16 +1113,16 @@ const QuotationAdminPage = () => {
         schedules: prev.schedules.map((schedule) =>
           schedule.key === activeCuttingScheduleKey
             ? {
-                ...schedule,
-                lines: schedule.lines.map((line, lineIndex) =>
-                  lineIndex === index && line.sapCode && !line.sapCodeSelected
-                    ? {
-                        ...line,
-                        sapCode: "",
-                      }
-                    : line
-                ),
-              }
+              ...schedule,
+              lines: schedule.lines.map((line, lineIndex) =>
+                lineIndex === index && line.sapCode && !line.sapCodeSelected
+                  ? {
+                    ...line,
+                    sapCode: "",
+                  }
+                  : line
+              ),
+            }
             : schedule
         ),
       }));
@@ -1122,9 +1136,9 @@ const QuotationAdminPage = () => {
       schedules: prev.schedules.map((schedule) =>
         schedule.key === activeCuttingScheduleKey
           ? {
-              ...schedule,
-              lines: [...schedule.lines, { ...createCuttingLine(), sortOrder: schedule.lines.length }],
-            }
+            ...schedule,
+            lines: [...schedule.lines, { ...createCuttingLine(), sortOrder: schedule.lines.length }],
+          }
           : schedule
       ),
     }));
@@ -1136,11 +1150,11 @@ const QuotationAdminPage = () => {
       schedules: prev.schedules.map((schedule) =>
         schedule.key === activeCuttingScheduleKey
           ? {
-              ...schedule,
-              lines: schedule.lines.some((line) => line.itemType === "glass")
-                ? schedule.lines
-                : [...schedule.lines, { ...createGlassCuttingLine(), sortOrder: schedule.lines.length }],
-            }
+            ...schedule,
+            lines: schedule.lines.some((line) => line.itemType === "glass")
+              ? schedule.lines
+              : [...schedule.lines, { ...createGlassCuttingLine(), sortOrder: schedule.lines.length }],
+          }
           : schedule
       ),
     }));
@@ -1152,12 +1166,12 @@ const QuotationAdminPage = () => {
       schedules: prev.schedules.map((schedule) =>
         schedule.key === activeCuttingScheduleKey
           ? {
-              ...schedule,
-              lines:
-                schedule.lines.length === 1
-                  ? [createCuttingLine()]
-                  : schedule.lines.filter((_, i) => i !== index),
-            }
+            ...schedule,
+            lines:
+              schedule.lines.length === 1
+                ? [createCuttingLine()]
+                : schedule.lines.filter((_, i) => i !== index),
+          }
           : schedule
       ),
     }));
@@ -1227,10 +1241,10 @@ const QuotationAdminPage = () => {
       setSelectedCuttingRow((prev) =>
         prev
           ? {
-              ...prev,
-              configured: true,
-              lineCount: totalLines,
-            }
+            ...prev,
+            configured: true,
+            lineCount: totalLines,
+          }
           : prev
       );
       setIsCuttingModalOpen(false);
@@ -1260,11 +1274,11 @@ const QuotationAdminPage = () => {
       setSelectedCuttingRow((prev) =>
         prev
           ? {
-              ...prev,
-              configured: false,
-              lineCount: 0,
-              configId: undefined,
-            }
+            ...prev,
+            configured: false,
+            lineCount: 0,
+            configId: undefined,
+          }
           : prev
       );
       setIsCuttingModalOpen(false);
@@ -1317,11 +1331,11 @@ const QuotationAdminPage = () => {
       prev.map((link) =>
         link.glassSpec === glassSpec
           ? {
-              ...link,
-              beadingSapCode: value,
-              beadingDescription: "",
-              beadingSapCodeSelected: false,
-            }
+            ...link,
+            beadingSapCode: value,
+            beadingDescription: "",
+            beadingSapCodeSelected: false,
+          }
           : link
       )
     );
@@ -1384,11 +1398,11 @@ const QuotationAdminPage = () => {
       prev.map((link) =>
         link.glassSpec === glassSpec
           ? {
-              ...link,
-              beadingSapCode: product.sapCode || "",
-              beadingDescription: getSapProductLabel(product),
-              beadingSapCodeSelected: true,
-            }
+            ...link,
+            beadingSapCode: product.sapCode || "",
+            beadingDescription: getSapProductLabel(product),
+            beadingSapCodeSelected: true,
+          }
           : link
       )
     );
@@ -1401,10 +1415,10 @@ const QuotationAdminPage = () => {
         prev.map((link) =>
           link.glassSpec === glassSpec && link.beadingSapCode && !link.beadingSapCodeSelected
             ? {
-                ...link,
-                beadingSapCode: "",
-                beadingDescription: "",
-              }
+              ...link,
+              beadingSapCode: "",
+              beadingDescription: "",
+            }
             : link
         )
       );
@@ -1497,371 +1511,599 @@ const QuotationAdminPage = () => {
   };
 
   const renderSystemSection = () => (
-    <div className="qa-card">
-      <div className="qa-card-header">
-        <div>
-          <h4>Systems</h4>
-          <p className="qa-subtitle">
-            Manage the window and door systems along with supported finishes.
-          </p>
-        </div>
-        <div className="qa-actions">
-          {editingSystemId && (
-            <MDBBtn size="sm" color="light" onClick={resetSystemForm}>
-              Cancel edit
+    <>
+      <div className="qa-card">
+        <div className="qa-card-header">
+          <div>
+            <h4>Systems</h4>
+            <p className="qa-subtitle">
+              Manage the window and door systems along with supported finishes.
+            </p>
+          </div>
+          <div className="qa-actions">
+            <MDBBtn
+              size="sm"
+              color="primary"
+              onClick={() => {
+                resetSystemForm();
+                setIsSystemModalOpen(true);
+              }}
+            >
+              Add System
             </MDBBtn>
+
+          </div>
+        </div>
+        <div className="qa-table-wrapper">
+          <table className="qa-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Finishes</th>
+                <th>Mesh</th>
+                <th>Glass</th>
+                <th>Handle colors</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {systems.map((system) => (
+                <tr key={system._id}>
+                  <td>
+                    <div className="qa-title">{system.name}</div>
+                    <div className="qa-meta">
+                      Updated {new Date(system.updatedAt).toLocaleDateString()}
+                    </div>
+                  </td>
+                  <td>{(system.colorFinishes || []).join(", ")}</td>
+                  <td>{(system.meshTypes || []).join(", ")}</td>
+                  <td>{(system.glassSpecs || []).join(", ")}</td>
+                  <td>{(system.handleColors || []).join(", ")}</td>
+                  <td className="qa-actions">
+                    <MDBBtn
+                      size="sm"
+                      color="light"
+                      onClick={() => handleSystemEdit(system)}
+                    >
+                      <MDBIcon fas icon="edit" />
+                    </MDBBtn>
+                    <MDBBtn
+                      size="sm"
+                      color="danger"
+                      onClick={() => handleSystemDelete(system._id)}
+                    >
+                      <MDBIcon fas icon="trash" />
+                    </MDBBtn>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!systems.length && (
+            <div className="qa-empty">No systems yet. Add the first one.</div>
           )}
         </div>
       </div>
-      <form className="qa-form" onSubmit={handleSystemSubmit}>
-        <input
-          type="text"
-          placeholder="System name"
-          value={systemForm.name}
-          onChange={(e) =>
-            setSystemForm((prev) => ({ ...prev, name: e.target.value }))
-          }
-          required
-        />
-        <input
-          type="text"
-          placeholder="Color finishes (comma separated)"
-          value={systemForm.colorFinishes}
-          onChange={(e) =>
-            setSystemForm((prev) => ({
-              ...prev,
-              colorFinishes: e.target.value,
-            }))
-          }
-        />
-        <input
-          type="text"
-          placeholder="Mesh types (comma separated)"
-          value={systemForm.meshTypes}
-          onChange={(e) =>
-            setSystemForm((prev) => ({ ...prev, meshTypes: e.target.value }))
-          }
-        />
-        <input
-          type="text"
-          placeholder="Glass specs (comma separated)"
-          value={systemForm.glassSpecs}
-          onChange={(e) =>
-            setSystemForm((prev) => ({ ...prev, glassSpecs: e.target.value }))
-          }
-        />
-        <input
-          type="text"
-          placeholder="Handle colors (comma separated)"
-          value={systemForm.handleColors}
-          onChange={(e) =>
-            setSystemForm((prev) => ({
-              ...prev,
-              handleColors: e.target.value,
-            }))
-          }
-        />
-        <div className="qa-form-actions">
-          <MDBBtn type="submit" color="primary">
-            {editingSystemId ? "Update system" : "Add system"}
-          </MDBBtn>
-        </div>
-      </form>
+      <MDBModal open={isSystemModalOpen} setOpen={setIsSystemModalOpen} tabIndex='-1'>
+        <MDBModalDialog centered>
+          <MDBModalContent>
 
-      <div className="qa-table-wrapper">
-        <table className="qa-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Finishes</th>
-              <th>Mesh</th>
-              <th>Glass</th>
-              <th>Handle colors</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {systems.map((system) => (
-              <tr key={system._id}>
-                <td>
-                  <div className="qa-title">{system.name}</div>
-                  <div className="qa-meta">
-                    Updated {new Date(system.updatedAt).toLocaleDateString()}
-                  </div>
-                </td>
-                <td>{(system.colorFinishes || []).join(", ")}</td>
-                <td>{(system.meshTypes || []).join(", ")}</td>
-                <td>{(system.glassSpecs || []).join(", ")}</td>
-                <td>{(system.handleColors || []).join(", ")}</td>
-                <td className="qa-actions">
-                  <MDBBtn
-                    size="sm"
-                    color="light"
-                    onClick={() => handleSystemEdit(system)}
-                  >
-                    <MDBIcon fas icon="edit" />
-                  </MDBBtn>
-                  <MDBBtn
-                    size="sm"
-                    color="danger"
-                    onClick={() => handleSystemDelete(system._id)}
-                  >
-                    <MDBIcon fas icon="trash" />
-                  </MDBBtn>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!systems.length && (
-          <div className="qa-empty">No systems yet. Add the first one.</div>
-        )}
-      </div>
-    </div>
+            <MDBModalHeader>
+
+              <MDBModalTitle>
+                {editingSystemId ? "Edit System" : "Add System"}
+              </MDBModalTitle>
+              <MDBBtn className='btn-close' color='none' onClick={() => { setIsSystemModalOpen(false); resetSystemForm(); }} />
+            </MDBModalHeader>
+
+            <MDBModalBody>
+              <form className="qa-form">
+                <div className="qa-form-group">
+                  <label>System Name</label>
+                  <input
+                    type="text"
+                    placeholder="System name"
+                    value={systemForm.name}
+                    onChange={(e) =>
+                      setSystemForm((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="qa-form-group">
+                  <label>Color Finishes (comma separated)</label>
+                  <input
+                    type="text"
+                    placeholder="Color finishes"
+                    value={systemForm.colorFinishes}
+                    onChange={(e) =>
+                      setSystemForm((prev) => ({ ...prev, colorFinishes: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="qa-form-group">
+                  <label>Mesh Types (comma separated)</label>
+                  <input
+                    type="text"
+                    placeholder="Mesh types"
+                    value={systemForm.meshTypes}
+                    onChange={(e) =>
+                      setSystemForm((prev) => ({ ...prev, meshTypes: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="qa-form-group">
+                  <label>Glass Specifications (comma separated)</label>
+
+                  <input
+                    type="text"
+                    placeholder="Glass specs"
+                    value={systemForm.glassSpecs}
+                    onChange={(e) =>
+                      setSystemForm((prev) => ({ ...prev, glassSpecs: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="qa-form-group">
+                  <label>Handle Colors (comma separated)</label>
+
+                  <input
+                    type="text"
+                    placeholder="Handle colors"
+                    value={systemForm.handleColors}
+                    onChange={(e) =>
+                      setSystemForm((prev) => ({ ...prev, handleColors: e.target.value }))
+                    }
+                  />
+                </div>
+
+              </form>
+            </MDBModalBody>
+
+            <MDBModalFooter>
+
+              <MDBBtn
+                color="primary"
+                onClick={async () => {
+
+                  const fakeEvent = { preventDefault: () => { } };
+                  await handleSystemSubmit(fakeEvent);
+                  setIsSystemModalOpen(false);
+                  resetSystemForm();
+                }}
+              >
+                {editingSystemId ? "Update System" : "Add System"}
+              </MDBBtn>
+            </MDBModalFooter>
+
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
+    </>
   );
 
+
   const renderSeriesSection = () => (
-    <div className="qa-card">
-      <div className="qa-card-header">
-        <div>
-          <h4>Series</h4>
-          <p className="qa-subtitle">
-            Define series per system along with description level handle info.
-          </p>
-        </div>
-        <div className="qa-actions">
-          {editingSeriesId && (
-            <MDBBtn size="sm" color="light" onClick={resetSeriesForm}>
-              Cancel edit
+    <>
+      <div className="qa-card">
+        <div className="qa-card-header">
+          <div>
+            <h4>Series</h4>
+            <p className="qa-subtitle">
+              Define series per system along with description level handle info.
+            </p>
+          </div>
+          <div className="qa-actions">
+            <MDBBtn
+              size="sm"
+              color="primary"
+              onClick={() => {
+                resetSeriesForm();
+                setIsSeriesModalOpen(true);
+              }}
+            >
+              Add Series
             </MDBBtn>
+
+          </div>
+        </div>
+
+
+        <div className="qa-table-wrapper">
+          <table className="qa-table">
+            <thead>
+              <tr>
+                <th>Series</th>
+                <th>System</th>
+                <th>Descriptions</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {series.map((item) => (
+                <tr key={item._id}>
+                  <td className="qa-title">{item.name}</td>
+                  <td>{item.system?.name}</td>
+                  <td className="qa-badges">
+                    {(item.descriptions || []).map((desc) => (
+                      <MDBBadge key={desc.name} color="secondary" light className="me-1">
+                        {desc.name}
+                        {desc.handleCount
+                          ? ` · ${desc.handleCount} handles`
+                          : ""}
+                      </MDBBadge>
+                    ))}
+                  </td>
+                  <td className="qa-actions">
+                    <MDBBtn
+                      size="sm"
+                      color="light"
+                      onClick={() => handleSeriesEdit(item)}
+                    >
+                      <MDBIcon fas icon="edit" />
+                    </MDBBtn>
+                    <MDBBtn
+                      size="sm"
+                      color="danger"
+                      onClick={() => handleSeriesDelete(item._id)}
+                    >
+                      <MDBIcon fas icon="trash" />
+                    </MDBBtn>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!series.length && (
+            <div className="qa-empty">No series available.</div>
           )}
         </div>
       </div>
-      <form className="qa-form" onSubmit={handleSeriesSubmit}>
-        <input
-          type="text"
-          placeholder="Series name"
-          value={seriesForm.name}
-          onChange={(e) =>
-            setSeriesForm((prev) => ({ ...prev, name: e.target.value }))
-          }
-          required
-        />
-        <select
-          value={seriesForm.systemId}
-          onChange={(e) =>
-            setSeriesForm((prev) => ({ ...prev, systemId: e.target.value }))
-          }
-          required
-        >
-          <option value="">Select system</option>
-          {systems.map((system) => (
-            <option key={system._id} value={system._id}>
-              {system.name}
-            </option>
-          ))}
-        </select>
-        <div className="qa-subrow-header">
-          <span>Descriptions & handle defaults</span>
-          <MDBBtn
-            size="sm"
-            color="light"
-            type="button"
-            onClick={() =>
-              setSeriesForm((prev) => ({
-                ...prev,
-                descriptions: [
-                  ...prev.descriptions,
-                  { name: "", handleCount: "", handleTypes: "" },
-                ],
-              }))
-            }
-          >
-            <MDBIcon fas icon="plus" className="me-1" />
-            Add row
-          </MDBBtn>
-        </div>
-        {descriptionRows}
-        <div className="qa-form-actions">
-          <MDBBtn type="submit" color="primary">
-            {editingSeriesId ? "Update series" : "Add series"}
-          </MDBBtn>
-        </div>
-      </form>
+      <MDBModal open={isSeriesModalOpen} setOpen={setIsSeriesModalOpen} tabIndex='-1'>
+        <MDBModalDialog centered size="lg">
+          <MDBModalContent>
 
-      <div className="qa-table-wrapper">
-        <table className="qa-table">
-          <thead>
-            <tr>
-              <th>Series</th>
-              <th>System</th>
-              <th>Descriptions</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {series.map((item) => (
-              <tr key={item._id}>
-                <td className="qa-title">{item.name}</td>
-                <td>{item.system?.name}</td>
-                <td className="qa-badges">
-                  {(item.descriptions || []).map((desc) => (
-                    <MDBBadge key={desc.name} color="secondary" light className="me-1">
-                      {desc.name}
-                      {desc.handleCount
-                        ? ` · ${desc.handleCount} handles`
-                        : ""}
-                    </MDBBadge>
-                  ))}
-                </td>
-                <td className="qa-actions">
+            <MDBModalHeader>
+
+              <MDBModalTitle>
+                {editingSeriesId ? "Edit Series" : "Add Series"}
+              </MDBModalTitle>
+              <MDBBtn
+                className='btn-close'
+                color='none'
+                onClick={() => {
+                  setIsSeriesModalOpen(false);
+                  resetSeriesForm();
+                }}
+              />
+            </MDBModalHeader>
+
+            <MDBModalBody>
+              <form className="qa-form">
+
+                {/* Series Name */}
+                <div className="qa-form-group">
+                  <label>Series Name</label>
+                  <input
+                    type="text"
+                    value={seriesForm.name}
+                    onChange={(e) =>
+                      setSeriesForm((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                  />
+                </div>
+
+                {/* System Select */}
+                <div className="qa-form-group">
+                  <label>Select System</label>
+                  <select
+                    value={seriesForm.systemId}
+                    onChange={(e) =>
+                      setSeriesForm((prev) => ({ ...prev, systemId: e.target.value }))
+                    }
+                  >
+                    <option value="">Select system</option>
+                    {systems.map((system) => (
+                      <option key={system._id} value={system._id}>
+                        {system.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Description Rows */}
+                <div className="qa-subrow-header">
+                  <span>Descriptions & Handle defaults</span>
                   <MDBBtn
                     size="sm"
                     color="light"
-                    onClick={() => handleSeriesEdit(item)}
+                    type="button"
+                    onClick={() =>
+                      setSeriesForm((prev) => ({
+                        ...prev,
+                        descriptions: [
+                          ...prev.descriptions,
+                          { name: "", handleCount: "", handleTypes: "" },
+                        ],
+                      }))
+                    }
                   >
-                    <MDBIcon fas icon="edit" />
+                    <MDBIcon fas icon="plus" className="me-1" />
+                    Add row
                   </MDBBtn>
-                  <MDBBtn
-                    size="sm"
-                    color="danger"
-                    onClick={() => handleSeriesDelete(item._id)}
-                  >
-                    <MDBIcon fas icon="trash" />
-                  </MDBBtn>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!series.length && (
-          <div className="qa-empty">No series available.</div>
-        )}
-      </div>
-    </div>
+                </div>
+
+                {seriesForm.descriptions.map((item, idx) => (
+                  <div className="qa-subrow" key={idx}>
+
+                    <input
+                      type="text"
+                      placeholder="Description name"
+                      value={item.name}
+                      onChange={(e) =>
+                        setSeriesForm((prev) => ({
+                          ...prev,
+                          descriptions: prev.descriptions.map((d, i) =>
+                            i === idx ? { ...d, name: e.target.value } : d
+                          ),
+                        }))
+                      }
+                    />
+
+                    <input
+                      type="number"
+                      placeholder="Handle count"
+                      value={item.handleCount}
+                      onChange={(e) =>
+                        setSeriesForm((prev) => ({
+                          ...prev,
+                          descriptions: prev.descriptions.map((d, i) =>
+                            i === idx ? { ...d, handleCount: e.target.value } : d
+                          ),
+                        }))
+                      }
+                    />
+
+                    <input
+                      type="text"
+                      placeholder="Handle types"
+                      value={item.handleTypes}
+                      onChange={(e) =>
+                        setSeriesForm((prev) => ({
+                          ...prev,
+                          descriptions: prev.descriptions.map((d, i) =>
+                            i === idx ? { ...d, handleTypes: e.target.value } : d
+                          ),
+                        }))
+                      }
+                    />
+                    <MDBBtn
+                      size="sm"
+                      color="light"
+                      type="button"
+                      onClick={() =>
+                        setSeriesForm((prev) => ({
+                          ...prev,
+                          descriptions:
+                            prev.descriptions.length === 1
+                              ? [{ name: "", handleCount: "", handleTypes: "" }]
+                              : prev.descriptions.filter((_, i) => i !== idx),
+                        }))
+                      }
+                    >
+                      <MDBIcon fas icon="trash" />
+                    </MDBBtn>
+
+                  </div>
+                ))}
+
+              </form>
+            </MDBModalBody>
+
+            <MDBModalFooter>
+              <MDBBtn
+                color="primary"
+                onClick={async () => {
+                  const fakeEvent = { preventDefault: () => { } };
+                  await handleSeriesSubmit(fakeEvent);
+                  setIsSeriesModalOpen(false);
+                  resetSeriesForm();
+                }}
+              >
+                {/* Update Series */}
+                {editingSeriesId ? "Update Series" : "Add Series"}
+              </MDBBtn>
+            </MDBModalFooter>
+
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
+    </>
   );
 
   const renderOptionSetSection = () => (
-    <div className="qa-card">
-      <div className="qa-card-header">
-        <div>
-          <h4>Option Sets</h4>
-          <p className="qa-subtitle">
-            Configure standalone lists for color finish, mesh, glass specs or generic options.
-          </p>
-        </div>
-        <div className="qa-actions">
-          {editingOptionId && (
-            <MDBBtn size="sm" color="light" onClick={resetOptionForm}>
-              Cancel edit
+    <>
+      <div className="qa-card">
+        <div className="qa-card-header">
+          <div>
+            <h4>Option Sets</h4>
+            <p className="qa-subtitle">
+              Configure standalone lists for color finish, mesh, glass specs or generic options.
+            </p>
+          </div>
+          <div className="qa-actions">
+            <MDBBtn
+              size="sm"
+              color="primary"
+              onClick={() => {
+                resetOptionForm();
+                setIsOptionModalOpen(true);
+              }}
+            >
+              Add Option Set
             </MDBBtn>
+
+          </div>
+        </div>
+
+        <div className="qa-table-wrapper">
+          <table className="qa-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>System</th>
+                <th>Values</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {optionSets.map((item) => (
+                <tr key={item._id}>
+                  <td className="qa-title text-capitalize">{item.type}</td>
+                  <td>
+                    {GLOBAL_OPTION_TYPES.includes(item.type)
+                      ? "Global"
+                      : item.system?.name || "Global"}
+                  </td>
+                  <td>
+                    <div className="qa-meta">
+                      {entriesFromMap(item.values).map(([label, rate]) => (
+                        <div key={label}>
+                          {label}: <strong>{rate}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="qa-actions">
+                    <MDBBtn
+                      size="sm"
+                      color="light"
+                      onClick={() => handleOptionEdit(item)}
+                    >
+                      <MDBIcon fas icon="edit" />
+                    </MDBBtn>
+                    <MDBBtn
+                      size="sm"
+                      color="danger"
+                      onClick={() => handleOptionDelete(item._id)}
+                    >
+                      <MDBIcon fas icon="trash" />
+                    </MDBBtn>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!optionSets.length && (
+            <div className="qa-empty">No option sets configured.</div>
           )}
         </div>
       </div>
-      <form className="qa-form" onSubmit={handleOptionSubmit}>
-        <select
-          value={optionForm.type}
-          onChange={(e) =>
-            setOptionForm((prev) => ({
-              ...prev,
-              type: e.target.value,
-              systemId: GLOBAL_OPTION_TYPES.includes(e.target.value)
-                ? ""
-                : prev.systemId,
-            }))
-          }
-          required
-        >
-          <option value="colorFinish">Color finish</option>
-          <option value="glassSpec">Glass spec</option>
-          <option value="meshType">Mesh type</option>
-          <option value="handle">Handle</option>
-          <option value="generic">Generic</option>
-        </select>
-        {!GLOBAL_OPTION_TYPES.includes(optionForm.type) && (
-          <select
-            value={optionForm.systemId}
-            onChange={(e) =>
-              setOptionForm((prev) => ({ ...prev, systemId: e.target.value }))
-            }
-          >
-            <option value="">Global (all systems)</option>
-            {systems.map((system) => (
-              <option key={system._id} value={system._id}>
-                {system.name}
-              </option>
-            ))}
-          </select>
-        )}
-        <textarea
-          rows={4}
-          placeholder="One option per line, format: Label: Rate"
-          value={optionForm.valuesText}
-          onChange={(e) =>
-            setOptionForm((prev) => ({ ...prev, valuesText: e.target.value }))
-          }
-          required
-        />
-        <div className="qa-form-actions">
-          <MDBBtn type="submit" color="primary">
-            {editingOptionId ? "Update option set" : "Add option set"}
-          </MDBBtn>
-        </div>
-      </form>
+      <MDBModal open={isOptionModalOpen} setOpen={setIsOptionModalOpen} tabIndex='-1'>
+        <MDBModalDialog centered>
+          <MDBModalContent>
 
-      <div className="qa-table-wrapper">
-        <table className="qa-table">
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>System</th>
-              <th>Values</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {optionSets.map((item) => (
-              <tr key={item._id}>
-                <td className="qa-title text-capitalize">{item.type}</td>
-                <td>
-                  {GLOBAL_OPTION_TYPES.includes(item.type)
-                    ? "Global"
-                    : item.system?.name || "Global"}
-                </td>
-                <td>
-                  <div className="qa-meta">
-                    {entriesFromMap(item.values).map(([label, rate]) => (
-                      <div key={label}>
-                        {label}: <strong>{rate}</strong>
-                      </div>
-                    ))}
+            <MDBModalHeader>
+
+              <MDBModalTitle>
+                {editingOptionId ? "Edit Option Set" : "Add Option Set"}
+              </MDBModalTitle>
+              <MDBBtn
+                className='btn-close'
+                color='none'
+                onClick={() => {
+                  setIsOptionModalOpen(false);
+                  resetOptionForm();
+                }}
+              />
+            </MDBModalHeader>
+
+            <MDBModalBody>
+              <form className="qa-form">
+
+                {/* Type */}
+                <div className="qa-form-group">
+                  <label>Option Type</label>
+                  <select
+                    value={optionForm.type}
+
+                    onChange={(e) =>
+                      setOptionForm((prev) => ({
+                        ...prev,
+                        type: e.target.value,
+                        systemId: GLOBAL_OPTION_TYPES.includes(e.target.value)
+                          ? ""
+                          : prev.systemId,
+                      }))
+                    }
+                  >
+                    <option value="colorFinish">Color finish</option>
+                    <option value="glassSpec">Glass spec</option>
+                    <option value="meshType">Mesh type</option>
+                    <option value="handle">Handle</option>
+                    <option value="generic">Generic</option>
+                  </select>
+                </div>
+
+                {/* System */}
+                {!GLOBAL_OPTION_TYPES.includes(optionForm.type) && (
+                  <div className="qa-form-group">
+                    <label>Select System</label>
+                    <select
+                      value={optionForm.systemId}
+                      onChange={(e) =>
+                        setOptionForm((prev) => ({
+                          ...prev,
+                          systemId: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Global</option>
+                      {systems.map((system) => (
+                        <option key={system._id} value={system._id}>
+                          {system.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                </td>
-                <td className="qa-actions">
-                  <MDBBtn
-                    size="sm"
-                    color="light"
-                    onClick={() => handleOptionEdit(item)}
-                  >
-                    <MDBIcon fas icon="edit" />
-                  </MDBBtn>
-                  <MDBBtn
-                    size="sm"
-                    color="danger"
-                    onClick={() => handleOptionDelete(item._id)}
-                  >
-                    <MDBIcon fas icon="trash" />
-                  </MDBBtn>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!optionSets.length && (
-          <div className="qa-empty">No option sets configured.</div>
-        )}
-      </div>
-    </div>
+                )}
+
+                {/* Values */}
+                <div className="qa-form-group">
+                  <label>Values (Label: Rate)</label>
+                  <textarea
+                    rows={4}
+                    value={optionForm.valuesText}
+                    onChange={(e) =>
+                      setOptionForm((prev) => ({
+                        ...prev,
+                        valuesText: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+              </form>
+            </MDBModalBody>
+
+            <MDBModalFooter>
+              <MDBBtn
+                color="primary"
+                onClick={async () => {
+                  const fakeEvent = { preventDefault: () => { } };
+                  await handleOptionSubmit(fakeEvent);
+                  setIsOptionModalOpen(false);
+                  resetOptionForm();
+                }}
+              >
+                {editingOptionId ? "Update Option Set" : "Add Option Set"}
+              </MDBBtn>
+            </MDBModalFooter>
+
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
+
+    </>
   );
 
   const renderGlassBeadingSection = () => (
@@ -2027,497 +2269,746 @@ const QuotationAdminPage = () => {
   );
 
   const renderAreaSlabSection = () => (
-    <div className="qa-card">
-      <div className="qa-card-header">
-        <div>
-          <h4>Area Slabs</h4>
-          <p className="qa-subtitle">
-            Define slab cutoffs to align base rate tables.
-          </p>
-        </div>
-        <div className="qa-actions">
-          {editingSlabId && (
-            <MDBBtn size="sm" color="light" onClick={resetSlabForm}>
-              Cancel edit
+    <>
+      <div className="qa-card">
+        <div className="qa-card-header">
+          <div>
+            <h4>Area Slabs</h4>
+            <p className="qa-subtitle">
+              Define slab cutoffs to align base rate tables.
+            </p>
+          </div>
+          <div className="qa-actions">
+            <MDBBtn
+              size="sm"
+              color="primary"
+              onClick={() => {
+                resetSlabForm();
+                setIsSlabModalOpen(true);
+              }}
+            >
+              Add Area Slab
             </MDBBtn>
+
+          </div>
+        </div>
+
+        <div className="qa-table-wrapper">
+          <table className="qa-table">
+            <thead>
+              <tr>
+                <th>Label</th>
+                <th>Max area</th>
+                <th>Order</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {areaSlabs.map((slab) => (
+                <tr key={slab._id}>
+                  <td className="qa-title">{slab.label || "—"}</td>
+                  <td>{slab.max}</td>
+                  <td>{slab.order}</td>
+                  <td className="qa-actions">
+                    <MDBBtn
+                      size="sm"
+                      color="light"
+                      onClick={() => handleSlabEdit(slab)}
+                    >
+                      <MDBIcon fas icon="edit" />
+                    </MDBBtn>
+                    <MDBBtn
+                      size="sm"
+                      color="danger"
+                      onClick={() => handleSlabDelete(slab._id)}
+                    >
+                      <MDBIcon fas icon="trash" />
+                    </MDBBtn>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!areaSlabs.length && (
+            <div className="qa-empty">No slabs defined.</div>
           )}
         </div>
       </div>
-      <form className="qa-form" onSubmit={handleSlabSubmit}>
-        <input
-          type="text"
-          placeholder="Label (optional)"
-          value={slabForm.label}
-          onChange={(e) =>
-            setSlabForm((prev) => ({ ...prev, label: e.target.value }))
-          }
-        />
-        <input
-          type="number"
-          placeholder="Max area (required)"
-          value={slabForm.max}
-          onChange={(e) =>
-            setSlabForm((prev) => ({ ...prev, max: e.target.value }))
-          }
-          required
-        />
-        <input
-          type="number"
-          placeholder="Order (for sorting)"
-          value={slabForm.order}
-          onChange={(e) =>
-            setSlabForm((prev) => ({ ...prev, order: e.target.value }))
-          }
-        />
-        <div className="qa-form-actions">
-          <MDBBtn type="submit" color="primary">
-            {editingSlabId ? "Update slab" : "Add slab"}
-          </MDBBtn>
-        </div>
-      </form>
+      <MDBModal open={isSlabModalOpen} setOpen={setIsSlabModalOpen} tabIndex='-1'>
+        <MDBModalDialog centered>
+          <MDBModalContent>
 
-      <div className="qa-table-wrapper">
-        <table className="qa-table">
-          <thead>
-            <tr>
-              <th>Label</th>
-              <th>Max area</th>
-              <th>Order</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {areaSlabs.map((slab) => (
-              <tr key={slab._id}>
-                <td className="qa-title">{slab.label || "—"}</td>
-                <td>{slab.max}</td>
-                <td>{slab.order}</td>
-                <td className="qa-actions">
-                  <MDBBtn
-                    size="sm"
-                    color="light"
-                    onClick={() => handleSlabEdit(slab)}
-                  >
-                    <MDBIcon fas icon="edit" />
-                  </MDBBtn>
-                  <MDBBtn
-                    size="sm"
-                    color="danger"
-                    onClick={() => handleSlabDelete(slab._id)}
-                  >
-                    <MDBIcon fas icon="trash" />
-                  </MDBBtn>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!areaSlabs.length && (
-          <div className="qa-empty">No slabs defined.</div>
-        )}
-      </div>
-    </div>
+            <MDBModalHeader>
+              <MDBModalTitle>
+                {editingSlabId ? "Edit Area Slab" : "Add Area Slab"}
+              </MDBModalTitle>
+              <MDBBtn
+                className='btn-close'
+                color='none'
+                onClick={() => {
+                  setIsSlabModalOpen(false);
+                  resetSlabForm();
+                }}
+              />
+            </MDBModalHeader>
+
+            <MDBModalBody>
+              <form className="qa-form">
+
+                {/* Label */}
+                <div className="qa-form-group">
+                  <label>Label</label>
+                  <input
+                    type="text"
+                    value={slabForm.label}
+                    onChange={(e) =>
+                      setSlabForm((prev) => ({
+                        ...prev,
+                        label: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                {/* Max */}
+                <div className="qa-form-group">
+                  <label>Max Area</label>
+                  <input
+                    type="number"
+                    value={slabForm.max}
+                    onChange={(e) =>
+                      setSlabForm((prev) => ({
+                        ...prev,
+                        max: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                {/* Order */}
+                <div className="qa-form-group">
+                  <label>Order</label>
+                  <input
+                    type="number"
+                    value={slabForm.order}
+                    onChange={(e) =>
+                      setSlabForm((prev) => ({
+                        ...prev,
+                        order: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+              </form>
+            </MDBModalBody>
+
+            <MDBModalFooter>
+              <MDBBtn
+                color="primary"
+                onClick={async () => {
+                  const fakeEvent = { preventDefault: () => { } };
+                  await handleSlabSubmit(fakeEvent);
+                  setIsSlabModalOpen(false);
+                  resetSlabForm();
+                }}
+              >
+                {editingSlabId ? "Update Area Slab" : "Add Area Slab"}
+              </MDBBtn>
+            </MDBModalFooter>
+
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
+    </>
   );
 
   const renderBaseRateSection = () => (
-    <div className="qa-card">
-      <div className="qa-card-header">
-        <div>
-          <h4>Base Rates</h4>
-          <p className="qa-subtitle">
-            Map system/series/description to exactly three base rates (aligned to your three area slabs).
-          </p>
-          <p className="qa-hint">Fill all three slab rates to avoid gaps in calculations.</p>
-        </div>
-        <div className="qa-actions">
-          {editingBaseRateId && (
-            <MDBBtn size="sm" color="light" onClick={resetBaseRateForm}>
-              Cancel edit
+    <>
+      <div className="qa-card">
+        <div className="qa-card-header">
+          <div>
+            <h4>Base Rates</h4>
+            <p className="qa-subtitle">
+              Map system/series/description to exactly three base rates (aligned to your three area slabs).
+            </p>
+            <p className="qa-hint">Fill all three slab rates to avoid gaps in calculations.</p>
+          </div>
+          <div className="qa-actions">
+            <MDBBtn
+              size="sm"
+              color="primary"
+              onClick={() => {
+                resetBaseRateForm();
+                setIsBaseRateModalOpen(true);
+              }}
+            >
+              Add Base Rate
             </MDBBtn>
+
+          </div>
+        </div>
+        <div className="qa-table-wrapper">
+          <table className="qa-table">
+            <thead>
+              <tr>
+                <th>System / Series</th>
+                <th>Description</th>
+                <th>Rates</th>
+                <th>Notes</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {baseRates.map((rate) => (
+                <tr key={rate._id}>
+                  <td>
+                    <div className="qa-title">{rate.systemType}</div>
+                    <div className="qa-meta">{rate.series}</div>
+                  </td>
+                  <td>{rate.description}</td>
+                  <td className="qa-meta">{(rate.rates || []).join(", ")}</td>
+                  <td>{rate.notes}</td>
+                  <td className="qa-actions">
+                    <MDBBtn
+                      size="sm"
+                      color="light"
+                      onClick={() => handleBaseRateEdit(rate)}
+                    >
+                      <MDBIcon fas icon="edit" />
+                    </MDBBtn>
+                    <MDBBtn
+                      size="sm"
+                      color="danger"
+                      onClick={() => handleBaseRateDelete(rate._id)}
+                    >
+                      <MDBIcon fas icon="trash" />
+                    </MDBBtn>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!baseRates.length && (
+            <div className="qa-empty">No base rates added.</div>
           )}
         </div>
       </div>
-      <form className="qa-form" onSubmit={handleBaseRateSubmit}>
-        <select
-          value={baseRateForm.systemType}
-          onChange={(e) =>
-            setBaseRateForm((prev) => ({
-              ...prev,
-              systemType: e.target.value,
-              series: "",
-              description: "",
-            }))
-          }
-          required
-        >
-          <option value="">Select system</option>
-          {systems.map((sys) => (
-            <option key={sys._id} value={sys.name}>
-              {sys.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={baseRateForm.series}
-          onChange={(e) =>
-            setBaseRateForm((prev) => ({
-              ...prev,
-              series: e.target.value,
-              description: "",
-            }))
-          }
-          required
-          disabled={!baseRateForm.systemType}
-        >
-          <option value="">Select series</option>
-          {filteredSeries.map((item) => (
-            <option key={item._id} value={item.name}>
-              {item.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={baseRateForm.description}
-          onChange={(e) =>
-            setBaseRateForm((prev) => ({
-              ...prev,
-              description: e.target.value,
-            }))
-          }
-          required
-          disabled={!baseRateForm.series}
-        >
-          <option value="">Select description</option>
-          {descriptionOptions.map((desc) => (
-            <option key={desc.name} value={desc.name}>
-              {desc.name} {desc.handleCount ? `(handles: ${desc.handleCount})` : ""}
-            </option>
-          ))}
-        </select>
-        <div className="qa-rate-grid">
-          {[0, 1, 2].map((idx) => (
-            <input
-              key={idx}
-              type="number"
-              placeholder={`Base rate slab ${idx + 1}`}
-              value={baseRateForm.rates[idx]}
-              onChange={(e) =>
-                setBaseRateForm((prev) => {
-                  const next = [...prev.rates];
-                  next[idx] = e.target.value;
-                  return { ...prev, rates: next };
-                })
-              }
-              required
-            />
-          ))}
-        </div>
-        <textarea
-          rows={2}
-          placeholder="Notes (optional)"
-          value={baseRateForm.notes}
-          onChange={(e) =>
-            setBaseRateForm((prev) => ({ ...prev, notes: e.target.value }))
-          }
-        />
-        <div className="qa-form-actions">
-          <MDBBtn type="submit" color="primary">
-            {editingBaseRateId ? "Update base rate" : "Add base rate"}
-          </MDBBtn>
-        </div>
-      </form>
+      <MDBModal open={isBaseRateModalOpen} setOpen={setIsBaseRateModalOpen} tabIndex='-1'>
+        <MDBModalDialog centered size="lg">
+          <MDBModalContent>
 
-      <div className="qa-table-wrapper">
-        <table className="qa-table">
-          <thead>
-            <tr>
-              <th>System / Series</th>
-              <th>Description</th>
-              <th>Rates</th>
-              <th>Notes</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {baseRates.map((rate) => (
-              <tr key={rate._id}>
-                <td>
-                  <div className="qa-title">{rate.systemType}</div>
-                  <div className="qa-meta">{rate.series}</div>
-                </td>
-                <td>{rate.description}</td>
-                <td className="qa-meta">{(rate.rates || []).join(", ")}</td>
-                <td>{rate.notes}</td>
-                <td className="qa-actions">
-                  <MDBBtn
-                    size="sm"
-                    color="light"
-                    onClick={() => handleBaseRateEdit(rate)}
+            <MDBModalHeader>
+              <MDBModalTitle>
+                {editingBaseRateId ? "Edit Base Rate" : "Add Base Rate"}
+              </MDBModalTitle>
+              <MDBBtn
+                className='btn-close'
+                color='none'
+                onClick={() => {
+                  setIsBaseRateModalOpen(false);
+                  resetBaseRateForm();
+                }}
+              />
+            </MDBModalHeader>
+
+            <MDBModalBody>
+              <form className="qa-form">
+
+                {/* System Type */}
+                <div className="qa-form-group">
+                  <label>System Type</label>
+                  <select
+                    value={baseRateForm.systemType}
+                    onChange={(e) =>
+                      setBaseRateForm((prev) => ({
+                        ...prev,
+                        systemType: e.target.value,
+                        series: "",       // reset
+                        description: "",  // reset
+                      }))
+                    }
                   >
-                    <MDBIcon fas icon="edit" />
-                  </MDBBtn>
-                  <MDBBtn
-                    size="sm"
-                    color="danger"
-                    onClick={() => handleBaseRateDelete(rate._id)}
+                    <option value="">Select system</option>
+                    {systems.map((sys) => (
+                      <option key={sys._id} value={sys.name}>
+                        {sys.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Series */}
+                <div className="qa-form-group">
+                  <label>Series</label>
+                  <select
+                    value={baseRateForm.series}
+                    onChange={(e) =>
+                      setBaseRateForm((prev) => ({
+                        ...prev,
+                        series: e.target.value,
+                        description: "", // reset
+                      }))
+                    }
                   >
-                    <MDBIcon fas icon="trash" />
-                  </MDBBtn>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!baseRates.length && (
-          <div className="qa-empty">No base rates added.</div>
-        )}
-      </div>
-    </div>
+                    <option value="">Select series</option>
+                    {filteredSeries.map((item) => (
+                      <option key={item._id} value={item.name}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Description */}
+                <div className="qa-form-group">
+                  <label>Description</label>
+                  <select
+                    value={baseRateForm.description}
+                    onChange={(e) =>
+                      setBaseRateForm((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Select description</option>
+                    {descriptionOptions.map((desc) => (
+                      <option key={desc.name} value={desc.name}>
+                        {desc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Rates */}
+                <div className="qa-form-group">
+                  <label>Rates</label>
+
+                  {baseRateForm.rates.map((rate, index) => (
+                    <input
+                      key={index}
+                      type="number"
+                      placeholder={`Rate ${index + 1}`}
+                      value={rate}
+                      onChange={(e) => {
+                        const updatedRates = [...baseRateForm.rates];
+                        updatedRates[index] = e.target.value;
+
+                        setBaseRateForm((prev) => ({
+                          ...prev,
+                          rates: updatedRates,
+                        }));
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* Notes */}
+                <div className="qa-form-group">
+                  <label>Notes</label>
+                  <textarea
+                    value={baseRateForm.notes}
+                    onChange={(e) =>
+                      setBaseRateForm((prev) => ({
+                        ...prev,
+                        notes: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+              </form>
+            </MDBModalBody>
+
+            <MDBModalFooter>
+              <MDBBtn
+                color="primary"
+                onClick={async () => {
+                  const fakeEvent = { preventDefault: () => { } };
+                  await handleBaseRateSubmit(fakeEvent);
+                  setIsBaseRateModalOpen(false);
+                  resetBaseRateForm();
+                }}
+              >
+                {editingBaseRateId ? "Update Base Rate" : "Add Base Rate"}
+              </MDBBtn>
+            </MDBModalFooter>
+
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
+    </>
   );
 
   const renderHandleRulesSection = () => (
-    <div className="qa-card">
-      <div className="qa-card-header">
-        <div>
-          <h4>Handle Rules</h4>
-          <p className="qa-subtitle">
-            Override handle defaults for matching system/series/description.
-          </p>
-        </div>
-        <div className="qa-actions">
-          {editingHandleRuleId && (
-            <MDBBtn size="sm" color="light" onClick={resetHandleRuleForm}>
-              Cancel edit
+    <>
+      <div className="qa-card">
+        <div className="qa-card-header">
+          <div>
+            <h4>Handle Rules</h4>
+            <p className="qa-subtitle">
+              Override handle defaults for matching system/series/description.
+            </p>
+          </div>
+          <div className="qa-actions">
+            <MDBBtn
+              size="sm"
+              color="primary"
+              onClick={() => {
+                resetHandleRuleForm();
+                setIsHandleRuleModalOpen(true);
+              }}
+            >
+              Add Handle Rule
             </MDBBtn>
+
+          </div>
+        </div>
+        <div className="qa-table-wrapper">
+          <table className="qa-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Scope</th>
+                <th>Handle info</th>
+                <th>Notes</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {handleRules.map((rule) => (
+                <tr key={rule._id}>
+                  <td className="qa-title">{rule.description}</td>
+                  <td>
+                    <div className="qa-meta">
+                      {rule.systemType || "Any"} / {rule.series || "Any"}
+                    </div>
+                  </td>
+                  <td className="qa-meta">
+                    {(rule.handleTypes || []).join(", ")}
+                    {rule.handleCount ? ` · ${rule.handleCount} handles` : ""}
+                  </td>
+                  <td>{rule.notes}</td>
+                  <td className="qa-actions">
+                    <MDBBtn
+                      size="sm"
+                      color="light"
+                      onClick={() => handleHandleRuleEdit(rule)}
+                    >
+                      <MDBIcon fas icon="edit" />
+                    </MDBBtn>
+                    <MDBBtn
+                      size="sm"
+                      color="danger"
+                      onClick={() => handleHandleRuleDelete(rule._id)}
+                    >
+                      <MDBIcon fas icon="trash" />
+                    </MDBBtn>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!handleRules.length && (
+            <div className="qa-empty">No handle rules configured.</div>
           )}
         </div>
       </div>
-      <form className="qa-form" onSubmit={handleHandleRuleSubmit}>
-        <input
-          type="text"
-          placeholder="Description"
-          value={handleRuleForm.description}
-          onChange={(e) =>
-            setHandleRuleForm((prev) => ({
-              ...prev,
-              description: e.target.value,
-            }))
-          }
-          required
-        />
-        <input
-          type="text"
-          placeholder="Handle types (comma separated)"
-          value={handleRuleForm.handleTypes}
-          onChange={(e) =>
-            setHandleRuleForm((prev) => ({
-              ...prev,
-              handleTypes: e.target.value,
-            }))
-          }
-        />
-        <input
-          type="number"
-          placeholder="Handle count"
-          value={handleRuleForm.handleCount}
-          onChange={(e) =>
-            setHandleRuleForm((prev) => ({
-              ...prev,
-              handleCount: e.target.value,
-            }))
-          }
-        />
-        <input
-          type="text"
-          placeholder="System type (optional)"
-          value={handleRuleForm.systemType}
-          onChange={(e) =>
-            setHandleRuleForm((prev) => ({
-              ...prev,
-              systemType: e.target.value,
-            }))
-          }
-        />
-        <input
-          type="text"
-          placeholder="Series (optional)"
-          value={handleRuleForm.series}
-          onChange={(e) =>
-            setHandleRuleForm((prev) => ({ ...prev, series: e.target.value }))
-          }
-        />
-        <textarea
-          rows={2}
-          placeholder="Notes"
-          value={handleRuleForm.notes}
-          onChange={(e) =>
-            setHandleRuleForm((prev) => ({ ...prev, notes: e.target.value }))
-          }
-        />
-        <div className="qa-form-actions">
-          <MDBBtn type="submit" color="primary">
-            {editingHandleRuleId ? "Update rule" : "Add rule"}
-          </MDBBtn>
-        </div>
-      </form>
+      <MDBModal open={isHandleRuleModalOpen} setOpen={setIsHandleRuleModalOpen} tabIndex='-1'>
+        <MDBModalDialog centered>
+          <MDBModalContent>
 
-      <div className="qa-table-wrapper">
-        <table className="qa-table">
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th>Scope</th>
-              <th>Handle info</th>
-              <th>Notes</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {handleRules.map((rule) => (
-              <tr key={rule._id}>
-                <td className="qa-title">{rule.description}</td>
-                <td>
-                  <div className="qa-meta">
-                    {rule.systemType || "Any"} / {rule.series || "Any"}
-                  </div>
-                </td>
-                <td className="qa-meta">
-                  {(rule.handleTypes || []).join(", ")}
-                  {rule.handleCount ? ` · ${rule.handleCount} handles` : ""}
-                </td>
-                <td>{rule.notes}</td>
-                <td className="qa-actions">
-                  <MDBBtn
-                    size="sm"
-                    color="light"
-                    onClick={() => handleHandleRuleEdit(rule)}
-                  >
-                    <MDBIcon fas icon="edit" />
-                  </MDBBtn>
-                  <MDBBtn
-                    size="sm"
-                    color="danger"
-                    onClick={() => handleHandleRuleDelete(rule._id)}
-                  >
-                    <MDBIcon fas icon="trash" />
-                  </MDBBtn>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!handleRules.length && (
-          <div className="qa-empty">No handle rules configured.</div>
-        )}
-      </div>
-    </div>
+            <MDBModalHeader>
+              <MDBModalTitle>
+                {editingHandleRuleId ? "Edit Handle Rule" : "Add Handle Rule"}
+              </MDBModalTitle>
+              <MDBBtn
+                className='btn-close'
+                color='none'
+                onClick={() => {
+                  setIsHandleRuleModalOpen(false);
+                  resetHandleRuleForm();
+                }}
+              />
+            </MDBModalHeader>
+
+            <MDBModalBody>
+              <form className="qa-form">
+
+                {/* Description */}
+                <div className="qa-form-group">
+                  <label>Description</label>
+                  <input
+                    type="text"
+                    value={handleRuleForm.description}
+                    onChange={(e) =>
+                      setHandleRuleForm((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                {/* Handle Types */}
+                <div className="qa-form-group">
+                  <label>Handle types (comma separated)</label>
+                  <input
+                    type="text"
+                    value={handleRuleForm.handleTypes}
+                    onChange={(e) =>
+                      setHandleRuleForm((prev) => ({
+                        ...prev,
+                        handleTypes: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                {/* Handle Count */}
+                <div className="qa-form-group">
+                  <label>Handle count</label>
+                  <input
+                    type="number"
+                    value={handleRuleForm.handleCount}
+                    onChange={(e) =>
+                      setHandleRuleForm((prev) => ({
+                        ...prev,
+                        handleCount: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                {/* System Type */}
+                <div className="qa-form-group">
+                  <label>System type (optional)</label>
+                  <input
+                    type="text"
+                    value={handleRuleForm.systemType}
+                    onChange={(e) =>
+                      setHandleRuleForm((prev) => ({
+                        ...prev,
+                        systemType: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                {/* Series */}
+                <div className="qa-form-group">
+                  <label>Series (optional)</label>
+                  <input
+                    type="text"
+                    value={handleRuleForm.series}
+                    onChange={(e) =>
+                      setHandleRuleForm((prev) => ({
+                        ...prev,
+                        series: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                {/* Notes */}
+                <div className="qa-form-group">
+                  <label>Notes</label>
+                  <textarea
+                    value={handleRuleForm.notes}
+                    onChange={(e) =>
+                      setHandleRuleForm((prev) => ({
+                        ...prev,
+                        notes: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+              </form>
+            </MDBModalBody>
+
+            <MDBModalFooter>
+              <MDBBtn
+                color="primary"
+                onClick={async () => {
+                  const fakeEvent = { preventDefault: () => { } };
+                  await handleHandleRuleSubmit(fakeEvent);
+                  setIsHandleRuleModalOpen(false);
+                  resetHandleRuleForm();
+                }}
+              >
+                {editingHandleRuleId ? "Update Handle Rule" : "Add Handle Rule"}
+              </MDBBtn>
+            </MDBModalFooter>
+
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
+
+    </>
   );
 
   const renderHandleOptionsSection = () => (
-    <div className="qa-card">
-      <div className="qa-card-header">
-        <div>
-          <h4>Handle Options</h4>
-          <p className="qa-subtitle">
-            Manage handle type and color pricing per system.
-          </p>
-          <p className="qa-hint">Enter one color rate per line, for example Black: 0.</p>
-        </div>
-        <div className="qa-actions">
-          {editingHandleOptionId && (
-            <MDBBtn size="sm" color="light" onClick={resetHandleOptionForm}>
-              Cancel edit
+    <>
+      <div className="qa-card">
+        <div className="qa-card-header">
+          <div>
+            <h4>Handle Options</h4>
+            <p className="qa-subtitle">
+              Manage handle type and color pricing per system.
+            </p>
+            <p className="qa-hint">Enter one color rate per line, for example Black: 0.</p>
+          </div>
+          <div className="qa-actions">
+            <MDBBtn
+              size="sm"
+              color="primary"
+              onClick={() => {
+                resetHandleOptionForm();
+                setIsHandleOptionModalOpen(true);
+              }}
+            >
+              Add Handle Option
             </MDBBtn>
+
+          </div>
+        </div>
+        <div className="qa-table-wrapper">
+          <table className="qa-table">
+            <thead>
+              <tr>
+                <th>System</th>
+                <th>Name</th>
+                <th>Colors</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {handleOptions.map((option) => (
+                <tr key={option._id}>
+                  <td className="qa-title">{option.systemType}</td>
+                  <td>{option.name}</td>
+                  <td className="qa-meta">
+                    {entriesFromMap(option.colors).map(([color, rate]) => (
+                      <div key={color}>
+                        {color}: <strong>{rate}</strong>
+                      </div>
+                    ))}
+                  </td>
+                  <td className="qa-actions">
+                    <MDBBtn
+                      size="sm"
+                      color="light"
+                      onClick={() => handleHandleOptionEdit(option)}
+                    >
+                      <MDBIcon fas icon="edit" />
+                    </MDBBtn>
+                    <MDBBtn
+                      size="sm"
+                      color="danger"
+                      onClick={() => handleHandleOptionDelete(option._id)}
+                    >
+                      <MDBIcon fas icon="trash" />
+                    </MDBBtn>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!handleOptions.length && (
+            <div className="qa-empty">No handle options added.</div>
           )}
         </div>
       </div>
-      <form className="qa-form" onSubmit={handleHandleOptionSubmit}>
-        <input
-          type="text"
-          placeholder="System type"
-          value={handleOptionForm.systemType}
-          onChange={(e) =>
-            setHandleOptionForm((prev) => ({
-              ...prev,
-              systemType: e.target.value,
-            }))
-          }
-          required
-        />
-        <input
-          type="text"
-          placeholder="Handle name"
-          value={handleOptionForm.name}
-          onChange={(e) =>
-            setHandleOptionForm((prev) => ({ ...prev, name: e.target.value }))
-          }
-          required
-        />
-        <textarea
-          placeholder={"Black: 0\nSilver: 0"}
-          value={handleOptionForm.colorsText}
-          onChange={(e) =>
-            setHandleOptionForm((prev) => ({
-              ...prev,
-              colorsText: e.target.value,
-            }))
-          }
-          required
-        />
-        <div className="qa-form-actions">
-          <MDBBtn type="submit" color="primary">
-            {editingHandleOptionId ? "Update handle option" : "Add handle option"}
-          </MDBBtn>
-        </div>
-      </form>
 
-      <div className="qa-table-wrapper">
-        <table className="qa-table">
-          <thead>
-            <tr>
-              <th>System</th>
-              <th>Name</th>
-              <th>Colors</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {handleOptions.map((option) => (
-              <tr key={option._id}>
-                <td className="qa-title">{option.systemType}</td>
-                <td>{option.name}</td>
-                <td className="qa-meta">
-                  {entriesFromMap(option.colors).map(([color, rate]) => (
-                    <div key={color}>
-                      {color}: <strong>{rate}</strong>
-                    </div>
-                  ))}
-                </td>
-                <td className="qa-actions">
-                  <MDBBtn
-                    size="sm"
-                    color="light"
-                    onClick={() => handleHandleOptionEdit(option)}
-                  >
-                    <MDBIcon fas icon="edit" />
-                  </MDBBtn>
-                  <MDBBtn
-                    size="sm"
-                    color="danger"
-                    onClick={() => handleHandleOptionDelete(option._id)}
-                  >
-                    <MDBIcon fas icon="trash" />
-                  </MDBBtn>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!handleOptions.length && (
-          <div className="qa-empty">No handle options added.</div>
-        )}
-      </div>
-    </div>
+      <MDBModal open={isHandleOptionModalOpen} setOpen={setIsHandleOptionModalOpen} tabIndex='-1'>
+        <MDBModalDialog centered>
+          <MDBModalContent>
+
+            <MDBModalHeader>
+              <MDBModalTitle>
+                {editingHandleOptionId ? "Edit Handle Option" : "Add Handle Option"}
+              </MDBModalTitle>
+              <MDBBtn
+                className='btn-close'
+                color='none'
+                onClick={() => {
+                  setIsHandleOptionModalOpen(false);
+                  resetHandleOptionForm();
+                }}
+              />
+            </MDBModalHeader>
+
+            <MDBModalBody>
+              <form className="qa-form">
+
+                {/* System Type */}
+                <div className="qa-form-group">
+                  <label>System Type</label>
+                  <input
+                    type="text"
+                    value={handleOptionForm.systemType}
+                    onChange={(e) =>
+                      setHandleOptionForm((prev) => ({
+                        ...prev,
+                        systemType: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                {/* Handle Name */}
+                <div className="qa-form-group">
+                  <label>Handle Name</label>
+                  <input
+                    type="text"
+                    value={handleOptionForm.name}
+                    onChange={(e) =>
+                      setHandleOptionForm((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                {/* Colors */}
+                <div className="qa-form-group">
+                  <label>Colors (Label: Rate)</label>
+                  <textarea
+                    rows={4}
+                    value={handleOptionForm.colorsText}
+                    onChange={(e) =>
+                      setHandleOptionForm((prev) => ({
+                        ...prev,
+                        colorsText: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+              </form>
+            </MDBModalBody>
+
+            <MDBModalFooter>
+              <MDBBtn
+                color="primary"
+                onClick={async () => {
+                  const fakeEvent = { preventDefault: () => { } };
+                  await handleHandleOptionSubmit(fakeEvent);
+                  setIsHandleOptionModalOpen(false);
+                  resetHandleOptionForm();
+                }}
+              >
+                {editingHandleOptionId ? "Update Handle Option" : "Add Handle Option"}
+              </MDBBtn>
+            </MDBModalFooter>
+
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
+    </>
   );
 
   const renderQuotationSection = () => (
@@ -2780,9 +3271,9 @@ const QuotationAdminPage = () => {
               <div className="qa-side-label">Selected</div>
               {selectedCuttingRow ? (
                 <>
-                      <div className="qa-title">{selectedCuttingRow.description}</div>
-                      <div className="qa-meta">{selectedCuttingRow.systemType} / {selectedCuttingRow.series}</div>
-                      <div className="qa-badges mt-2">
+                  <div className="qa-title">{selectedCuttingRow.description}</div>
+                  <div className="qa-meta">{selectedCuttingRow.systemType} / {selectedCuttingRow.series}</div>
+                  <div className="qa-badges mt-2">
                     <MDBBadge color={selectedCuttingRow.configured ? "success" : "warning"}>
                       {selectedCuttingRow.configured ? "Configured" : "Not configured"}
                     </MDBBadge>
@@ -2826,8 +3317,8 @@ const QuotationAdminPage = () => {
                       key={`${row.systemType}-${row.series}-${row.description}`}
                       className={
                         selectedCuttingRow?.systemType === row.systemType &&
-                        selectedCuttingRow?.series === row.series &&
-                        selectedCuttingRow?.description === row.description
+                          selectedCuttingRow?.series === row.series &&
+                          selectedCuttingRow?.description === row.description
                           ? "selected"
                           : ""
                       }
@@ -2983,50 +3474,50 @@ const QuotationAdminPage = () => {
                               {line.itemType === "glass" ? (
                                 <input value="Selected quotation glass" disabled />
                               ) : (
-                              <div className="qa-sap-autocomplete">
-                                <input
-                                  value={line.sapCode}
-                                  onChange={(e) => handleSapCodeSearch(index, e.target.value, line.itemType)}
-                                  onBlur={() => handleSapCodeBlur(index)}
-                                  onFocus={() => {
-                                    if (line.sapCode && !line.sapCodeSelected) {
-                                      setSapAutocomplete((prev) => ({
-                                        ...prev,
-                                        [index]: {
-                                          ...(prev[index] || {}),
-                                          open: true,
-                                        },
-                                      }));
-                                    }
-                                  }}
-                                  placeholder="Type SAP code"
-                                  autoComplete="off"
-                                />
-                                {sapAutocomplete[index]?.open && (
-                                  <div className="qa-sap-menu">
-                                    {sapAutocomplete[index]?.loading && (
-                                      <div className="qa-sap-message">Searching...</div>
-                                    )}
-                                    {!sapAutocomplete[index]?.loading &&
-                                      sapAutocomplete[index]?.options?.length === 0 && (
-                                        <div className="qa-sap-message">No SAP codes found</div>
+                                <div className="qa-sap-autocomplete">
+                                  <input
+                                    value={line.sapCode}
+                                    onChange={(e) => handleSapCodeSearch(index, e.target.value, line.itemType)}
+                                    onBlur={() => handleSapCodeBlur(index)}
+                                    onFocus={() => {
+                                      if (line.sapCode && !line.sapCodeSelected) {
+                                        setSapAutocomplete((prev) => ({
+                                          ...prev,
+                                          [index]: {
+                                            ...(prev[index] || {}),
+                                            open: true,
+                                          },
+                                        }));
+                                      }
+                                    }}
+                                    placeholder="Type SAP code"
+                                    autoComplete="off"
+                                  />
+                                  {sapAutocomplete[index]?.open && (
+                                    <div className="qa-sap-menu">
+                                      {sapAutocomplete[index]?.loading && (
+                                        <div className="qa-sap-message">Searching...</div>
                                       )}
-                                    {!sapAutocomplete[index]?.loading &&
-                                      sapAutocomplete[index]?.options?.map((product) => (
-                                        <button
-                                          key={`${line.itemType}-${product._id || product.sapCode}`}
-                                          type="button"
-                                          className="qa-sap-option"
-                                          onMouseDown={(event) => event.preventDefault()}
-                                          onClick={() => handleSapCodeSelect(index, product)}
-                                        >
-                                          <span className="qa-sap-code">{product.sapCode}</span>
-                                          <span className="qa-sap-name">{getSapProductLabel(product)}</span>
-                                        </button>
-                                      ))}
-                                  </div>
-                                )}
-                              </div>
+                                      {!sapAutocomplete[index]?.loading &&
+                                        sapAutocomplete[index]?.options?.length === 0 && (
+                                          <div className="qa-sap-message">No SAP codes found</div>
+                                        )}
+                                      {!sapAutocomplete[index]?.loading &&
+                                        sapAutocomplete[index]?.options?.map((product) => (
+                                          <button
+                                            key={`${line.itemType}-${product._id || product.sapCode}`}
+                                            type="button"
+                                            className="qa-sap-option"
+                                            onMouseDown={(event) => event.preventDefault()}
+                                            onClick={() => handleSapCodeSelect(index, product)}
+                                          >
+                                            <span className="qa-sap-code">{product.sapCode}</span>
+                                            <span className="qa-sap-name">{getSapProductLabel(product)}</span>
+                                          </button>
+                                        ))}
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </td>
                             <td>

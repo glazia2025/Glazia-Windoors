@@ -16,8 +16,8 @@ const AdminDashboard = () => {
 
   const [nalcoPrice, setNalcoPrice] = useState("");
   const [basicModal, setBasicModal] = useState(false);
-  const [ nalco, setNalco ] = useState(0);
-  const [ nalcoDate, setNalcoDate ] = useState(0);
+  const [nalco, setNalco] = useState(0);
+  const [nalcoDate, setNalcoDate] = useState(0);
 
   const toggleOpen = () => setBasicModal(!basicModal);
 
@@ -41,14 +41,14 @@ const AdminDashboard = () => {
   };
 
   const updateNalco = async () => {
-    const token = localStorage.getItem('authToken'); 
+    const token = localStorage.getItem('authToken');
     try {
-        const response = await api.post(`${BASE_API_URL}/admin/update-nalco`, {nalcoPrice}, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          setNalcoPrice("");
+      const response = await api.post(`${BASE_API_URL}/admin/update-nalco`, { nalcoPrice }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setNalcoPrice("");
     } catch (err) {
       console.log(err);
     }
@@ -72,7 +72,7 @@ const AdminDashboard = () => {
       });
       setNalco(response.data[0]);
       setNalcoDate(formatDate(response.data[0].date));
-    }catch (err) {
+    } catch (err) {
       console.log(err);
     }
   }
@@ -84,22 +84,6 @@ const AdminDashboard = () => {
   return (
     <MDBRow className="pdf-row-wrapper mt-5">
       <MDBCol className="admin-dashboard" style={{ flex: "1 1 auto" }}>
-        <MDBRow className="d-flex justify-content-between align-items-center">
-          <h4 style={{ width: "max-content" }}>
-            Admin Panel <MDBIcon fas icon="tools" />
-          </h4>
-          <div className="d-flex align-items-center gap-2" style={{width: 'max-content'}}>
-            <MDBBtn style={{width: 'max-content'}}
-              color="success"
-              onClick={() => setBasicModal(true)}
-            >
-              Update Nalco Price
-            </MDBBtn>
-            <span className="m-2 text-muted small">
-              last updated - {nalcoDate}
-            </span>
-          </div>
-        </MDBRow>
         <MDBRow className="d-flex" style={{ marginTop: "20px", maxWidth: "600px" }}>
           <MDBCol md="auto" className="mb-3" style={{ flex: "1 1 auto" }}>
             <MDBBtn

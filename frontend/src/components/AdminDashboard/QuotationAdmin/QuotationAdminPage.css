@@ -403,8 +403,9 @@
 .qa-modal-form .modal-body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+   overflow-y: auto;
+  /* overflow-x: hidden;   */
+   overflow-x: visible !important;
   padding-bottom: 260px;
 }
 
@@ -420,6 +421,8 @@
 .qa-modal-table-wrapper {
   overflow-x: auto;
   overflow-y: visible;
+  overflow: visible !important; 
+
   padding-bottom: 12px;
 }
 
@@ -503,11 +506,14 @@
 .qa-sap-autocomplete {
   position: relative;
   min-width: 150px;
+   overflow: visible !important;  
+
 }
 
 .qa-sap-menu {
   position: absolute;
-  z-index: 1100;
+  /* z-index: 1100;  */
+   z-index: 9999 !important; 
   top: calc(100% + 6px);
   left: 0;
   right: 0;

@@ -71,9 +71,6 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
     dispatch(setActiveProfile(profile));
     dispatch(setActiveOption(option));
     dispatch(setSelectedOption(mainOption));
-    // userRole === "admin"
-    //   ? navigate("/admin/dashboard")
-    //   : navigate("/user/home");
      navigate("/dashboard")
   };
 
@@ -86,11 +83,6 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
   }, []);
 
   const goToOrderPage = (status) => {
-    // if (userRole === "admin") {
-    //   navigate(`/admin/dashboard/orders?status=${status}`);
-    // } else {
-    //   navigate(`/user/orders?status=${status}`);
-    // }
     navigate(`/dashboard/orders?status=${status}`);
   };
 
@@ -100,59 +92,12 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
         <MDBNavbarBrand
           className="cursor-pointer"
           onClick={() =>
-            // userRole === "admin"
-            //   ? navigate("/admin/dashboard")
-            //   : navigate("/user/home")
              navigate("/dashboard")
           }
         >
           <img className="logo" src={logo} />
         </MDBNavbarBrand>
         <div className="mobile-connect-wrapper d-flex">
-          {/* {userRole !== "admin" && (
-            <MDBDropdown className="me-3 mobile-connector">
-              <MDBDropdownToggle
-                tag="a"
-                className="nav-link"
-                style={{ cursor: "pointer" }}
-              >
-                <MDBIcon
-                  fas
-                  icon="headphones-alt"
-                  style={{ color: "#386bc0", fontWeight: "bold" }}
-                />{" "}
-                Connect with Us
-              </MDBDropdownToggle>
-              <MDBDropdownMenu className="dropdown-menu-end">
-                <MDBDropdownItem link href="tel:+1234567890">
-                  <div className="d-flex align-items-center fs-6"> */}
-                    {/* <MDBIcon fas icon="phone" />  */}
-                    {/* <img src="/Assets/Icons/contact.png" />
-                    <div
-                      className="d-flex flex-column call"
-                      style={{ marginLeft: "10px" }}
-                    >
-                      <span style={{ fontWeight: "bold" }}>Call Us</span>
-                      <span className="company-number">+91 9958053708</span>
-                    </div>
-                  </div>
-                </MDBDropdownItem>
-                <MDBDropdownItem link href="mailto:support@example.com">
-                  <div className="d-flex align-items-center fs-6"> */}
-                    {/* <MDBIcon fas icon="phone" />  */}
-                    {/* <img src="/Assets/Icons/mail.png" />
-                    <div
-                      className="d-flex flex-column call"
-                      style={{ marginLeft: "10px" }}
-                    >
-                      <span style={{ fontWeight: "bold" }}>Email Us</span>
-                      <span className="company-email">glazia.in@gmail.com</span>
-                    </div>
-                  </div>
-                </MDBDropdownItem>
-              </MDBDropdownMenu>
-            </MDBDropdown>
-          )} */}
           <MDBNavbarToggler
             aria-controls="navbarSupportedContent"
             aria-expanded="false"
@@ -168,21 +113,6 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
             {isLoggedIn && (
               <>
                 <MDBNavbarItem>
-                  {/* {userRole === "admin" ? (
-                    <MDBNavbarLink
-                      className="fw-semibold text-dark"
-                      onClick={() => navigate("/admin/dashboard")}
-                    >
-                      Dashboard
-                    </MDBNavbarLink>
-                  ) : userRole === "user" ? (
-                    <MDBNavbarLink
-                      className="fw-semibold text-dark"
-                      onClick={() => navigate("/user/home")}
-                    >
-                      Home
-                    </MDBNavbarLink>
-                  ) : null} */}
                   <MDBNavbarLink onClick={() => navigate("/dashboard")}>
   Dashboard
 </MDBNavbarLink>
@@ -322,65 +252,6 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
 
           {isLoggedIn && (
             <div className="d-flex align-items-center" style={{gap: '24px'}}>
-              {/* Connect with Us Dropdown */}
-              {/* {userRole !== "admin" && (
-                <MDBDropdown className="me-3 web-connector">
-                  <MDBDropdownToggle
-                    tag="a"
-                    className="nav-link"
-                    style={{ cursor: "pointer" }}
-                  >
-                    <MDBIcon
-                      fas
-                      icon="headphones-alt"
-                      style={{ color: "#386bc0", fontWeight: "bold" }}
-                    />{" "}
-                    Connect with Us
-                  </MDBDropdownToggle>
-                  <MDBDropdownMenu className="dropdown-menu-end">
-                    <MDBDropdownItem link href="tel:+1234567890">
-                      <div className="d-flex align-items-center fs-6"> */}
-                        {/* <MDBIcon fas icon="phone" />  */}
-                        {/* <img src="/Assets/Icons/contact.png" />
-                        <div
-                          className="d-flex flex-column call"
-                          style={{ marginLeft: "10px" }}
-                        >
-                          <span style={{ fontWeight: "bold" }}>Call Us</span>
-                          <span className="company-number">+91 9958053708</span>
-                        </div>
-                      </div>
-                    </MDBDropdownItem>
-                    <MDBDropdownItem link href="mailto:support@example.com">
-                      <div className="d-flex align-items-center fs-6"> */}
-                        {/* <MDBIcon fas icon="phone" />  */}
-                        {/* <img src="/Assets/Icons/mail.png" />
-                        <div
-                          className="d-flex flex-column call"
-                          style={{ marginLeft: "10px" }}
-                        >
-                          <span style={{ fontWeight: "bold" }}>Email Us</span>
-                          <span className="company-email">
-                            glazia.in@gmail.com
-                          </span>
-                        </div>
-                      </div>
-                    </MDBDropdownItem>
-                  </MDBDropdownMenu>
-                </MDBDropdown>
-              )} */}
-
-              {/* <div className="cart-container" onClick={() => {
-                if(selectedProducts.length > 0) {
-                  setIsSliderOpen(true);
-                }
-              }}>
-                {selectedProducts.length > 0 && <div className="cart-items-clip">{selectedProducts.length}</div>}
-                <MDBIcon fas icon="shopping-cart" size="2x" />
-              </div> */}
-                
-
-
               {/* User Profile Dropdown */}
               {isLoggedIn && (
                 <div className="d-flex align-items-center">
@@ -398,22 +269,6 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
                         loading="lazy"
                       />
                     </MDBDropdownToggle>
-                    {/* {userRole && userRole !== "admin" && (
-                      <MDBDropdownMenu className="p-0">
-                        <MDBDropdownItem
-                          link
-                          onClick={() => navigate("/profile")}
-                        >
-                          <span>
-                            <MDBIcon fas icon="user-alt" /> &nbsp; My Profile
-                          </span>
-                        </MDBDropdownItem>
-
-                        <MDBDropdownItem link onClick={onLogout}>
-                          <MDBIcon fas icon="sign-out-alt" /> &nbsp; Logout
-                        </MDBDropdownItem>
-                      </MDBDropdownMenu>
-                    )} */}
                     {userRole && userRole === "admin" && (
                       <MDBDropdownMenu className="fs-6">
                         <MDBDropdownItem link onClick={onLogout}>

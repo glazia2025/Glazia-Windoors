@@ -1,6 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
 //  import { loadCartFromStorage, saveCartToStorage, mergeCartData } from '../utils/cartStorage';
-
 // Load saved cart data from localStorage
 // const savedCartData = loadCartFromStorage();
 
