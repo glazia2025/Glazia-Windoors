@@ -9,18 +9,16 @@ import {
   useLocation,
 } from "react-router-dom";
 import AdminLoginForm from "./components/AdminLoginForm/AdminLoginForm";
-import UserLoginForm from "./components/UserLoginForm/UserLoginForm";
 import AdminDashboard from "./components/AdminDashboard/AdminDashboard";
 import UserOrders from "./components/UserOrders";
 import { jwtDecode } from "jwt-decode";
 import AdminAddProduct from "./components/AdminAddProduct";
 import Header from "./components/Header/Header";
-import UserProfile from "./components/UserProfile/UserProfile";
 import { useSelector } from "react-redux";
 import SyncLoader from "react-spinners/SyncLoader";
 import Footer from "./components/Footer";
 import "./App.css";
-import SelectionContainer from "./components/UserDashboard/SelectionContainer";
+// import SelectionContainer from "./components/UserDashboard/SelectionContainer";
 import AdminForm from "./components/AdminDashboard/AdminForm";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -28,12 +26,6 @@ import Orders from "./components/AdminDashboard/Orders/Orders";
 import ExcelDataFetcher from "./components/Excel";
 import OrderDetails from "./components/OrderDetails";
 import Squares from "./components/ui/Squares/Squares";
-import AboutUsPage from "./components/AboutUs/AboutUs";
-import ProductsServicesPage from "./components/ProductAndServices/ProductsAndServices";
-import ContactUsPage from "./components/ContactUs/ContactUs";
-import BlogPage from "./components/Blogs/Blogs";
-import BlogDetailPage from "./components/BlogDetail/BlogDetail";
-import PrivacyPolicyPage from "./components/PrivacyPolicy/PrivacyPolicy";
 import QuotationAdminPage from "./components/AdminDashboard/QuotationAdmin/QuotationAdminPage";
 import UserManagement from "./components/AdminDashboard/UserManagement/UserManagement";
 
@@ -135,27 +127,22 @@ function App() {
       )}
       <div className="app-container position-relative">
         <Routes>
+
           <Route
             path="/"
             element={
-              isLoggedIn ? (
-                localStorage.getItem("userRole") === "admin" ? (
-                  <Navigate to="/admin/dashboard/orders" replace />
-                ) : (
-                  <Navigate to="/user/home" replace />
-                )
+              isLoggedIn && localStorage.getItem("userRole") === "admin" ? (
+                <Navigate to="/dashboard/orders" replace />
               ) : (
-                <UserLoginForm setUserRole={setUserRole} />
+                <Navigate to="/login" replace />
               )
             }
           />
-
-
           {/* Admin Login Route */}
           {!isLoggedIn && (
             <>
               <Route
-                path="/admin/login"
+                path="/login"
                 element={
                   <AdminLoginForm
                     setUserRole={setUserRole}
@@ -163,37 +150,12 @@ function App() {
                   />
                 }
               />
-              
-              <Route
-                path="/about"
-                element={<AboutUsPage setUserRole={setUserRole} />}
-              />
-              <Route
-                path="/products_and_services"
-                element={<ProductsServicesPage setUserRole={setUserRole} />}
-              />
-              <Route
-                path="/blogs"
-                element={<BlogPage setUserRole={setUserRole} />}
-              />
-              <Route
-                path="/blogs/:id"
-                element={<BlogDetailPage setUserRole={setUserRole} />}
-              />
-              <Route
-                path="/contact"
-                element={<ContactUsPage setUserRole={setUserRole} />}
-              />
-              <Route
-                path="/privacy-policy"
-                element={<PrivacyPolicyPage setUserRole={setUserRole} />}
-              />
             </>
           )}
 
           {/* Admin Dashboard (protected by role check) */}
           <Route
-            path="/admin/dashboard"
+            path="/dashboard"
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <AdminDashboard />
@@ -203,7 +165,7 @@ function App() {
             }
           ></Route>
           <Route
-            path="/admin/dashboard/add-product"
+            path="/dashboard/add-product"
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <ExcelDataFetcher />
@@ -213,7 +175,7 @@ function App() {
             }
           />
           <Route
-            path="/admin/dashboard/orders"
+            path="/dashboard/orders"
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <UserOrders />
@@ -224,7 +186,7 @@ function App() {
           />
 
           <Route
-            path="/admin/dashboard/quotations"
+            path="/dashboard/quotations"
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <QuotationAdminPage />
@@ -234,7 +196,7 @@ function App() {
             }
           />
           <Route
-            path="/admin/dashboard/users"
+            path="/dashboard/users"
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <UserManagement />
@@ -245,55 +207,10 @@ function App() {
           />
 
           <Route
-            path="/admin/dashboard/orders/:orderId"
+            path="/dashboard/orders/:orderId"
             element={
               localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
                 <OrderDetails />
-              ) : (
-                <Navigate to="/" />
-              )
-            }
-          />
-
-          {/* User Home page (accessible by regular user only) */}
-          <Route
-            path="/user/home"
-            element={
-              localStorage.getItem("userRole") === "user" && isLoggedIn ? (
-                <SelectionContainer isSliderOpen={isSliderOpen} setIsSliderOpen={setIsSliderOpen} />
-              ) : (
-                <Navigate to="/" />
-              )
-            }
-          />
-
-          <Route
-            path="/user/orders"
-            element={
-              localStorage.getItem("userRole") === "user" && isLoggedIn ? (
-                <UserOrders />
-              ) : (
-                <Navigate to="/" />
-              )
-            }
-          />
-
-          <Route
-            path="/user/orders/:orderId"
-            element={
-              localStorage.getItem("userRole") === "user" && isLoggedIn ? (
-                <OrderDetails />
-              ) : (
-                <Navigate to="/" />
-              )
-            }
-          />
-
-          <Route
-            path="/profile"
-            element={
-              localStorage.getItem("userRole") === "user" && isLoggedIn ? (
-                <UserProfile />
               ) : (
                 <Navigate to="/" />
               )
