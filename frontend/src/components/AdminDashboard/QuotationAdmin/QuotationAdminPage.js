@@ -309,6 +309,7 @@ const QuotationAdminPage = () => {
         authConfig
       );
       setBaseRates(data.baseRates || []);
+        console.log("BASE RATES ", data.baseRates);
     } catch (error) {
       console.error("Unable to load base rates", error);
     }
@@ -682,8 +683,13 @@ const QuotationAdminPage = () => {
       rates: baseRateForm.rates.map((r) => (Number(r) || 0)),
       notes: baseRateForm.notes || undefined,
     };
-
-    if (!payload.systemType || !payload.series || !payload.description) return;
+    if (!payload.systemType) return;
+if (payload.systemType === "Louvers") {
+  payload.series = "NA";
+  payload.description = "NA";
+} else {
+  if (!payload.series || !payload.description) return;
+}
 
     try {
       if (editingBaseRateId) {
@@ -710,8 +716,8 @@ const QuotationAdminPage = () => {
     setEditingBaseRateId(rate._id);
     setBaseRateForm({
       systemType: rate.systemType || "",
-      series: rate.series || "",
-      description: rate.description || "",
+      series: rate.series || "NA",
+      description: rate.description || "NA",
       rates: [
         rate.rates?.[0] ?? "",
         rate.rates?.[1] ?? "",
@@ -2146,8 +2152,8 @@ const QuotationAdminPage = () => {
               return (
                 <tr key={`beading-${row.systemType}-${row.series}-${row.description}`}>
                   <td>{row.systemType}</td>
-                  <td>{row.series}</td>
-                  <td className="qa-title">{row.description}</td>
+                  <td>{row.series||"NA"}</td>
+                  <td className="qa-title">{row.description || "NA"}</td>
                   <td>
                     <MDBBadge color={linkCount ? "success" : "warning"}>
                       {linkCount} / {glassSpecOptions.length}
@@ -2537,6 +2543,8 @@ const QuotationAdminPage = () => {
                     ))}
                   </select>
                 </div>
+                {baseRateForm.systemType !== "Louvers" && (
+  <>
 
                 {/* Series */}
                 <div className="qa-form-group">
@@ -2579,7 +2587,10 @@ const QuotationAdminPage = () => {
                       </option>
                     ))}
                   </select>
+                
                 </div>
+                </>
+                )}
 
                 {/* Rates */}
                 <div className="qa-form-group">
