@@ -42,6 +42,8 @@ const parseExtraNumbers = (raw) => {
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [listLoading, setListLoading] = useState(false);
+  const [sortBy, setSortBy] = useState("name");
+  const [order, setOrder] = useState("asc");
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState(emptyForm);
@@ -70,8 +72,31 @@ const UserManagement = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+  const userRows = useMemo(() => {
+    let sorted = [...users];
+    if (sortBy === "name") {
+      sorted.sort((a, b) => {
+        if (order === "asc") {
+          return a.name.trim().localeCompare(b.name.trim(), 'en', { sensitivity: 'base' })
+        } else {
+          return b.name.trim().localeCompare(a.name.trim(), 'en', { sensitivity: 'base' })
+        }
+      });
+    }
+    if (sortBy === "date") {
+      sorted.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        if (order == "asc") {
+          return dateA - dateB;
+        } else {
+          return dateB - dateA;
+        }
+      });
+    }
+    return sorted;
+  }, [users, sortBy, order]);
 
-  const userRows = useMemo(() => users ?? [], [users]);
 
   const handleChange = (field) => (event) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
@@ -325,6 +350,17 @@ const UserManagement = () => {
               </MDBBtn>
             </div>
           </MDBCardHeader>
+          <div className="d-flex gap-3 p-2">
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option value="name">Sort by Name</option>
+              <option value="date">Sort by Registered Date</option>
+            </select>
+
+            <select value={order} onChange={(e) => setOrder(e.target.value)}>
+              <option value="asc">Ascending</option>
+              <option value="desc">Descending</option>
+            </select>
+          </div>
           <MDBCardBody className="p-0">
             {listLoading ? (
               <div className="d-flex justify-content-center py-4">
@@ -332,52 +368,52 @@ const UserManagement = () => {
               </div>
             ) : (
               <MDBTable responsive hover className="mb-0">
-  <MDBTableHead className="bg-light">
-    <tr>
-      <th>S.No</th>
-      <th>Name</th>
-      <th>Email</th>
-      <th>Phone</th>
-      <th>Additional Phones</th>
-      <th>GST</th>
-      <th>City</th>
-      <th>State</th>
-      <th>Created At</th>
-    </tr>
-  </MDBTableHead>
+                <MDBTableHead className="bg-light">
+                  <tr>
+                    <th>S.No</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Additional Phones</th>
+                    <th>GST</th>
+                    <th>City</th>
+                    <th>State</th>
+                    <th>Registered At</th>
+                  </tr>
+                </MDBTableHead>
 
-  <MDBTableBody>
-    {userRows.length === 0 ? (
-      <tr>
-        <td colSpan="9" className="text-center py-4 text-muted">
-          No users available
-        </td>
-      </tr>
-    ) : (
-      userRows.map((user, index) => ( 
-        <tr key={user._id}>
-          <td>{index + 1}</td>
-          <td>{user.name}</td>
-          <td>{user.email}</td>
-          <td>{user.phoneNumber}</td>
-          <td>
-            {(user.phoneNumbers || [])
-              .filter((num) => num !== user.phoneNumber)
-              .join(", ") || "-"}
-          </td>
-          <td>{user.gstNumber || "-"}</td>
-          <td>{user.city || "-"}</td>
-          <td>{user.state || "-"}</td>
-          <td>
-            {user.createdAt
-              ? new Date(user.createdAt).toLocaleDateString()
-              : "-"}
-          </td>
-        </tr>
-      ))
-    )}
-  </MDBTableBody>
-</MDBTable>
+                <MDBTableBody>
+                  {userRows.length === 0 ? (
+                    <tr>
+                      <td colSpan="9" className="text-center py-4 text-muted">
+                        No users available
+                      </td>
+                    </tr>
+                  ) : (
+                    userRows.map((user, index) => (
+                      <tr key={user._id}>
+                        <td>{index + 1}</td>
+                        <td>{user.name}</td>
+                        <td>{user.email}</td>
+                        <td>{user.phoneNumber}</td>
+                        <td>
+                          {(user.phoneNumbers || [])
+                            .filter((num) => num !== user.phoneNumber)
+                            .join(", ") || "-"}
+                        </td>
+                        <td>{user.gstNumber || "-"}</td>
+                        <td>{user.city || "-"}</td>
+                        <td>{user.state || "-"}</td>
+                        <td>
+                          {user.createdAt
+                            ? new Date(user.createdAt).toLocaleDateString()
+                            : "-"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </MDBTableBody>
+              </MDBTable>
 
 
             )}
