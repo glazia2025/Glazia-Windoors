@@ -3443,6 +3443,7 @@ if (payload.systemType === "Louvers") {
                         Hardware rows only need SAP code and quantity. Profile rows use dimensions and cut angle. Add one glass row for the glass size formula.
                       </div>
                     </div>
+                    {/* cutting schedule */}
                     <div className="qa-actions">
                       <MDBBtn size="sm" color="light" type="button" onClick={addGlassCuttingLine} disabled={activeCuttingLines.some((line) => line.itemType === "glass")}>
                         <MDBIcon fas icon="plus" className="me-2" />
