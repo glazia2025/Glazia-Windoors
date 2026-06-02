@@ -8,16 +8,14 @@ import { startLoading, stopLoading } from "../redux/loadingSlice";
 
 const trimTrailingSlash = (value = "") => value.replace(/\/+$/, "");
 
-// export const MAIN_API_BASE_URL = trimTrailingSlash(
-//   process.env.REACT_APP_MAIN_API_BASE_URL ||
-//     process.env.REACT_APP_API_BASE_URL ||
-//     "https://api.glazia.in"
-// );
-// export const QUOTATION_API_BASE_URL = trimTrailingSlash(
-//   process.env.REACT_APP_QUOTATION_API_BASE_URL || "https://quotation-api.glazia.in"
-// );
-export const MAIN_API_BASE_URL = "http://localhost:5555";
-export const QUOTATION_API_BASE_URL ="http://localhost:5556";
+export const MAIN_API_BASE_URL = trimTrailingSlash(
+  process.env.REACT_APP_MAIN_API_BASE_URL ||
+    process.env.REACT_APP_API_BASE_URL ||
+    "https://api.glazia.in"
+);
+export const QUOTATION_API_BASE_URL = trimTrailingSlash(
+  process.env.REACT_APP_QUOTATION_API_BASE_URL || "https://quotation-api.glazia.in"
+);
 
  export const BASE_API_URL = `${MAIN_API_BASE_URL}/api`;
  export const QUOTATION_BASE_API_URL = `${QUOTATION_API_BASE_URL}/api`;

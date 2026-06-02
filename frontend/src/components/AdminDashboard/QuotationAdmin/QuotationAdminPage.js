@@ -1158,7 +1158,6 @@ if (payload.systemType === "Louvers") {
           ? {
             ...schedule,
             lines:
-            //  schedule.lines.some((line) => line.itemType === "glass")
             schedule.lines.filter((line) => line.itemType === "glass").length >= 2
               ? schedule.lines
               : [...schedule.lines, { ...createGlassCuttingLine(), sortOrder: schedule.lines.length }],
