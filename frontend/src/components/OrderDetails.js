@@ -652,7 +652,7 @@ const OrderDetails = () => {
 
   const goBack = () => {
     if (userRole === "admin") {
-      navigate("/admin/dashboard/orders");
+      navigate("/dashboard/orders");
     } else {
       navigate("/user/orders");
     }

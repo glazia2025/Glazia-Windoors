@@ -261,9 +261,6 @@ function getStateFromGST(gstin) {
                         disabled
                         onChange={(e) => setState(e.target.value)}
                       />
-
-        
-
                   <MDBTextArea className="mb-4" id='textAreaExample' label='Complete Address' rows={3} onChange={(e) => setCompleteAddress(e.target.value)}></MDBTextArea>
 
                     <MDBCheckbox
