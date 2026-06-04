@@ -1157,7 +1157,8 @@ if (payload.systemType === "Louvers") {
         schedule.key === activeCuttingScheduleKey
           ? {
             ...schedule,
-            lines: schedule.lines.some((line) => line.itemType === "glass")
+            lines:
+            schedule.lines.filter((line) => line.itemType === "glass").length >= 2
               ? schedule.lines
               : [...schedule.lines, { ...createGlassCuttingLine(), sortOrder: schedule.lines.length }],
           }
@@ -3445,7 +3446,7 @@ if (payload.systemType === "Louvers") {
                     </div>
                     {/* cutting schedule */}
                     <div className="qa-actions">
-                      <MDBBtn size="sm" color="light" type="button" onClick={addGlassCuttingLine} disabled={activeCuttingLines.some((line) => line.itemType === "glass")}>
+                      <MDBBtn size="sm" color="light" type="button" onClick={addGlassCuttingLine} disabled={activeCuttingLines.filter((line) => line.itemType === "glass").length>=2}>
                         <MDBIcon fas icon="plus" className="me-2" />
                         Add glass row
                       </MDBBtn>
