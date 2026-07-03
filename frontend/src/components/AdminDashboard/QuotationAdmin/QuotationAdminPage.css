@@ -596,4 +596,19 @@
     align-items: stretch;
     flex-direction: column;
   }
+
+  .qa-sap-input{
+    width:170px;
+    min-width:170px;
+}
+
+.qa-formula-input{
+    width:110px !important;
+    min-width:110px;
+}
+
+.qa-qty-input{
+    width:70px !important;
+    min-width:70px;
+}
 }
