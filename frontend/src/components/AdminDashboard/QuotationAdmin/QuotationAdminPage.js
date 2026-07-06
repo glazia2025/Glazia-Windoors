@@ -130,8 +130,12 @@ const QuotationAdminPage = () => {
   const [glassBeadingLinks, setGlassBeadingLinks] = useState([]);
   const [sapAutocomplete, setSapAutocomplete] = useState({});
   const [beadingAutocomplete, setBeadingAutocomplete] = useState({});
+  const [gasketAutocomplete, setGasketAutocomplete] = useState({});
+  const [glassBeadingDescriptions, setGlassBeadingDescriptions] = useState([]);
+  const [glassBeadingConfigs, setGlassBeadingConfigs] = useState([]);
   const sapSearchTimers = useRef({});
   const beadingSearchTimers = useRef({});
+  const gasketSearchTimers = useRef({});
 
   const [systemForm, setSystemForm] = useState({
     name: "",
@@ -309,7 +313,7 @@ const QuotationAdminPage = () => {
         authConfig
       );
       setBaseRates(data.baseRates || []);
-        console.log("BASE RATES ", data.baseRates);
+      console.log("BASE RATES ", data.baseRates);
     } catch (error) {
       console.error("Unable to load base rates", error);
     }
@@ -352,6 +356,26 @@ const QuotationAdminPage = () => {
     }
   };
 
+  const fetchGlassBeadingData = async () => {
+    try {
+      const [descriptionResponse, configResponse] = await Promise.all([
+        api.get(
+          `${QUOTATION_BASE_API_URL}/admin/quotations/glass-beading/descriptions`,
+          authConfig
+        ),
+        api.get(
+          `${QUOTATION_BASE_API_URL}/admin/quotations/glass-beading/configs`,
+          authConfig
+        ),
+      ]);
+
+      setGlassBeadingDescriptions(descriptionResponse.data.descriptions || []);
+      setGlassBeadingConfigs(configResponse.data.configs || []);
+    } catch (error) {
+      console.error("Unable to load glass beading data", error);
+    }
+  };
+
   const fetchQuotations = async (customPage = page,
     customPhone = phoneFilter,
     customLimit = limit
@@ -387,6 +411,7 @@ const QuotationAdminPage = () => {
       fetchHandleRules(),
       fetchHandleOptions(),
       fetchCuttingScheduleData(),
+      fetchGlassBeadingData(),
     ]);
   };
 
@@ -684,12 +709,12 @@ const QuotationAdminPage = () => {
       notes: baseRateForm.notes || undefined,
     };
     if (!payload.systemType) return;
-if (payload.systemType === "Louvers") {
-  payload.series = "NA";
-  payload.description = "NA";
-} else {
-  if (!payload.series || !payload.description) return;
-}
+    if (payload.systemType === "Louvers") {
+      payload.series = "NA";
+      payload.description = "NA";
+    } else {
+      if (!payload.series || !payload.description) return;
+    }
 
     try {
       if (editingBaseRateId) {
@@ -1158,9 +1183,9 @@ if (payload.systemType === "Louvers") {
           ? {
             ...schedule,
             lines:
-            schedule.lines.filter((line) => line.itemType === "glass").length >= 2
-              ? schedule.lines
-              : [...schedule.lines, { ...createGlassCuttingLine(), sortOrder: schedule.lines.length }],
+              schedule.lines.filter((line) => line.itemType === "glass").length >= 2
+                ? schedule.lines
+                : [...schedule.lines, { ...createGlassCuttingLine(), sortOrder: schedule.lines.length }],
           }
           : schedule
       ),
@@ -1295,66 +1320,134 @@ if (payload.systemType === "Louvers") {
     }
   };
 
-  const buildGlassBeadingRows = (links = []) => {
-    const byGlass = new Map((links || []).map((link) => [link.glassSpec, link]));
-    return glassSpecOptions.map((glassSpec) => ({
-      glassSpec,
-      beadingSapCode: byGlass.get(glassSpec)?.beadingSapCode || "",
-      beadingDescription: byGlass.get(glassSpec)?.beadingDescription || "",
-      beadingSapCodeSelected: Boolean(byGlass.get(glassSpec)?.beadingSapCode),
-    }));
+  const buildGlassBeadingRows = (configs = []) => {
+    const byGlass = new Map(
+      (configs || []).map((config) => [config.glassSpec, config])
+    );
+
+    return glassSpecOptions.map((glassSpec) => {
+      const existing = byGlass.get(glassSpec);
+
+      return {
+        glassSpec,
+
+        beadings:
+          existing?.beadings?.length > 0
+            ? existing.beadings.map((beading) => ({
+              sapCode: beading.sapCode || "",
+              description: beading.description||"",
+              formula: beading.formula || "",
+              quantity: beading.quantity || "",
+              sapCodeSelected: Boolean(beading.sapCode),
+            }))
+            : [
+              {
+                sapCode: "",
+                description: "",
+                formula: "",
+                quantity: "",
+                sapCodeSelected: false,
+              },
+            ],
+
+        gaskets:
+          existing?.gaskets?.length > 0
+            ? existing.gaskets.map((gasket) => ({
+              sapCode: gasket.sapCode || "",
+              description: gasket.description||"",
+              formula: gasket.formula || "",
+              sapCodeSelected: Boolean(gasket.sapCode),
+            }))
+            : [
+              {
+                sapCode: "",
+                description: "",
+                formula: "",
+                sapCodeSelected: false,
+              },
+            ],
+      };
+    });
   };
 
   const selectGlassBeadingDescription = (row) => {
-    const existing = cuttingConfigs.find(
+    const existingConfigs = glassBeadingConfigs.filter(
       (config) =>
         config.systemType === row.systemType &&
         config.series === row.series &&
         config.description === row.description
     );
+
     setSelectedGlassBeadingRow({
       ...row,
-      configId: existing?._id,
-      linkCount: existing?.glassBeadingLinks?.filter((link) => link.beadingSapCode).length || 0,
+      configId: existingConfigs[0]?._id,
+      linkCount: existingConfigs.length,
     });
-    setGlassBeadingLinks(buildGlassBeadingRows(existing?.glassBeadingLinks || []));
+
+    setGlassBeadingLinks(buildGlassBeadingRows(existingConfigs));
+
     setBeadingAutocomplete({});
+    setGasketAutocomplete({});
     setIsGlassBeadingModalOpen(true);
   };
 
-  const closeBeadingAutocomplete = (glassSpec) => {
+  const closeBeadingAutocomplete = (glassSpec, rowIndex) => {
+    const key = `${glassSpec}-${rowIndex}`;
+
     setBeadingAutocomplete((prev) => ({
       ...prev,
-      [glassSpec]: {
-        ...(prev[glassSpec] || {}),
+      [key]: {
+        ...(prev[key] || {}),
         open: false,
         loading: false,
       },
     }));
   };
+  const closeGasketAutocomplete = (glassSpec, rowIndex) => {
+    const key = `${glassSpec}-${rowIndex}`;
 
-  const searchBeadingSapCode = (glassSpec, value) => {
+    setGasketAutocomplete((prev) => ({
+      ...prev,
+      [key]: {
+        ...(prev[key] || {}),
+        open: false,
+        loading: false,
+      },
+    }));
+  };
+ 
+  const searchBeadingSapCode = (glassSpec, rowIndex, value) => {
     setGlassBeadingLinks((prev) =>
       prev.map((link) =>
         link.glassSpec === glassSpec
           ? {
             ...link,
-            beadingSapCode: value,
-            beadingDescription: "",
-            beadingSapCodeSelected: false,
+            beadings: link.beadings.map((beading, index) =>
+              index === rowIndex
+                ? {
+                  ...beading,
+                  sapCode: value,
+                  description: "",
+                  sapCodeSelected: false,
+                }
+                : beading
+            ),
           }
           : link
       )
     );
 
-    if (beadingSearchTimers.current[glassSpec]) {
-      window.clearTimeout(beadingSearchTimers.current[glassSpec]);
+    const key = `${glassSpec}-${rowIndex}`;
+
+    if (beadingSearchTimers.current[key]) {
+      window.clearTimeout(beadingSearchTimers.current[key]);
     }
 
     const query = value.trim();
+
     setBeadingAutocomplete((prev) => ({
       ...prev,
-      [glassSpec]: {
+      [key]: {
         query: value,
         options: [],
         loading: Boolean(query),
@@ -1364,7 +1457,7 @@ if (payload.systemType === "Louvers") {
 
     if (!query) return;
 
-    beadingSearchTimers.current[glassSpec] = window.setTimeout(async () => {
+    beadingSearchTimers.current[key] = window.setTimeout(async () => {
       try {
         const { data } = await api.get(
           `${QUOTATION_BASE_API_URL}/admin/quotations/cutting-schedule/catalog`,
@@ -1376,9 +1469,10 @@ if (payload.systemType === "Louvers") {
             },
           }
         );
+
         setBeadingAutocomplete((prev) => ({
           ...prev,
-          [glassSpec]: {
+          [key]: {
             query,
             options: data.products || (data.product ? [data.product] : []),
             loading: false,
@@ -1387,9 +1481,10 @@ if (payload.systemType === "Louvers") {
         }));
       } catch (error) {
         console.error("Unable to search beading SAP code", error);
+
         setBeadingAutocomplete((prev) => ({
           ...prev,
-          [glassSpec]: {
+          [key]: {
             query,
             options: [],
             loading: false,
@@ -1400,75 +1495,309 @@ if (payload.systemType === "Louvers") {
     }, 250);
   };
 
-  const selectBeadingSapCode = (glassSpec, product) => {
+  const selectBeadingSapCode = (glassSpec, rowIndex, product) => {
     setGlassBeadingLinks((prev) =>
       prev.map((link) =>
         link.glassSpec === glassSpec
           ? {
             ...link,
-            beadingSapCode: product.sapCode || "",
-            beadingDescription: getSapProductLabel(product),
-            beadingSapCodeSelected: true,
+            beadings: link.beadings.map((beading, index) =>
+              index === rowIndex
+                ? {
+                  ...beading,
+                  sapCode: product.sapCode || "",
+                  description: getSapProductLabel(product),
+                  sapCodeSelected: true,
+                }
+                : beading
+            ),
           }
           : link
       )
     );
-    closeBeadingAutocomplete(glassSpec);
-  };
 
-  const handleBeadingSapCodeBlur = (glassSpec) => {
+    closeBeadingAutocomplete(glassSpec, rowIndex);
+  };
+  
+  const handleBeadingSapCodeBlur = (glassSpec, rowIndex) => {
     window.setTimeout(() => {
       setGlassBeadingLinks((prev) =>
         prev.map((link) =>
-          link.glassSpec === glassSpec && link.beadingSapCode && !link.beadingSapCodeSelected
+          link.glassSpec === glassSpec
             ? {
               ...link,
-              beadingSapCode: "",
-              beadingDescription: "",
+              beadings: link.beadings.map((beading, index) =>
+                index === rowIndex &&
+                  beading.sapCode &&
+                  !beading.sapCodeSelected
+                  ? {
+                    ...beading,
+                    sapCode: "",
+                    description: "",
+                  }
+                  : beading
+              ),
             }
             : link
         )
       );
-      closeBeadingAutocomplete(glassSpec);
+
+      closeBeadingAutocomplete(glassSpec, rowIndex);
     }, 150);
+  };
+
+  const searchGasketSapCode = (glassSpec, rowIndex, value) => {
+    setGlassBeadingLinks((prev) =>
+      prev.map((link) =>
+        link.glassSpec === glassSpec
+          ? {
+            ...link,
+            gaskets: link.gaskets.map((gasket, index) =>
+              index === rowIndex
+                ? {
+                  ...gasket,
+                  sapCode: value,
+                  description: "",
+                  sapCodeSelected: false,
+                }
+                : gasket
+            ),
+          }
+          : link
+      )
+    );
+
+    if (gasketSearchTimers.current[`${glassSpec}-${rowIndex}`]) {
+      window.clearTimeout(
+        gasketSearchTimers.current[`${glassSpec}-${rowIndex}`]
+      );
+    }
+
+    const query = value.trim();
+
+    setGasketAutocomplete((prev) => ({
+      ...prev,
+      [`${glassSpec}-${rowIndex}`]: {
+        query: value,
+        options: [],
+        loading: Boolean(query),
+        open: Boolean(query),
+      },
+    }));
+
+    if (!query) return;
+
+    gasketSearchTimers.current[`${glassSpec}-${rowIndex}`] =
+      window.setTimeout(async () => {
+        try {
+          const { data } = await api.get(
+            `${QUOTATION_BASE_API_URL}/admin/quotations/cutting-schedule/catalog`,
+            {
+              ...authConfig,
+              params: {
+                itemType: "profile",
+                sapCode: query,
+              },
+            }
+          );
+
+          setGasketAutocomplete((prev) => ({
+            ...prev,
+            [`${glassSpec}-${rowIndex}`]: {
+              query,
+              options: data.products || (data.product ? [data.product] : []),
+              loading: false,
+              open: true,
+            },
+          }));
+        } catch (error) {
+          console.error("Unable to search gasket SAP code", error);
+
+          setGasketAutocomplete((prev) => ({
+            ...prev,
+            [`${glassSpec}-${rowIndex}`]: {
+              query,
+              options: [],
+              loading: false,
+              open: true,
+            },
+          }));
+        }
+      }, 250);
+  };
+  
+  const selectGasketSapCode = (glassSpec, rowIndex, product) => {
+    setGlassBeadingLinks((prev) =>
+      prev.map((link) =>
+        link.glassSpec === glassSpec
+          ? {
+            ...link,
+            gaskets: link.gaskets.map((gasket, index) =>
+              index === rowIndex
+                ? {
+                  ...gasket,
+                  sapCode: product.sapCode || "",
+                  description: getSapProductLabel(product),
+                  sapCodeSelected: true,
+                }
+                : gasket
+            ),
+          }
+          : link
+      )
+    );
+
+    closeGasketAutocomplete(`${glassSpec}-${rowIndex}`);
+  };
+ 
+  const handleGasketSapCodeBlur = (glassSpec, rowIndex) => {
+    window.setTimeout(() => {
+      setGlassBeadingLinks((prev) =>
+        prev.map((link) =>
+          link.glassSpec === glassSpec
+            ? {
+              ...link,
+              gaskets: link.gaskets.map((gasket, index) =>
+                index === rowIndex &&
+                  gasket.sapCode &&
+                  !gasket.sapCodeSelected
+                  ? {
+                    ...gasket,
+                    sapCode: "",
+                    description: "",
+                  }
+                  : gasket
+              ),
+            }
+            : link
+        )
+      );
+
+      closeGasketAutocomplete(glassSpec, rowIndex);
+    }, 150);
+  };
+  const addBeadingRow = (glassSpec) => {
+    setGlassBeadingLinks((prev) =>
+      prev.map((item) =>
+        item.glassSpec === glassSpec
+          ? {
+            ...item,
+            beadings: [
+              ...item.beadings,
+              {
+                sapCode: "",
+                description: "",
+                formula: "",
+                quantity: "",
+                sapCodeSelected: false,
+              },
+            ],
+          }
+          : item
+      )
+    );
+  };
+
+  const addGasketRow = (glassSpec) => {
+    setGlassBeadingLinks((prev) =>
+      prev.map((item) =>
+        item.glassSpec === glassSpec
+          ? {
+            ...item,
+            gaskets: [
+              ...item.gaskets,
+              {
+                sapCode: "",
+                description: "",
+                formula: "",
+                sapCodeSelected: false,
+              },
+            ],
+          }
+          : item
+      )
+    );
+  };
+  const removeBeadingRow = (glassSpec, indexToRemove) => {
+    setGlassBeadingLinks((prev) =>
+      prev.map((item) =>
+        item.glassSpec === glassSpec
+          ? {
+            ...item,
+            beadings: item.beadings.filter(
+              (_, index) => index !== indexToRemove
+            ),
+          }
+          : item
+      )
+    );
+  };
+
+  const removeGasketRow = (glassSpec, indexToRemove) => {
+    setGlassBeadingLinks((prev) =>
+      prev.map((item) =>
+        item.glassSpec === glassSpec
+          ? {
+            ...item,
+            gaskets: item.gaskets.filter(
+              (_, index) => index !== indexToRemove
+            ),
+          }
+          : item
+      )
+    );
   };
 
   const saveGlassBeadingLinks = async (event) => {
     event.preventDefault();
+
     if (!selectedGlassBeadingRow) return;
 
-    const existing = cuttingConfigs.find(
-      (config) =>
-        config.systemType === selectedGlassBeadingRow.systemType &&
-        config.series === selectedGlassBeadingRow.series &&
-        config.description === selectedGlassBeadingRow.description
-    );
-    const payload = {
-      systemType: selectedGlassBeadingRow.systemType,
-      series: selectedGlassBeadingRow.series,
-      description: selectedGlassBeadingRow.description,
-      notes: existing?.notes || "",
-      defaultScheduleKey: existing?.defaultScheduleKey || "90_90",
-      lines: existing?.lines || [],
-      schedules: existing?.schedules || [],
-      glassBeadingLinks: glassBeadingLinks
-        .filter((link) => link.glassSpec)
-        .map((link) => ({
-          glassSpec: link.glassSpec,
-          beadingSapCode: link.beadingSapCodeSelected ? link.beadingSapCode : "",
-          beadingDescription: link.beadingSapCodeSelected ? link.beadingDescription : "",
-        })),
-    };
-
     try {
-      await api.post(`${QUOTATION_BASE_API_URL}/admin/quotations/cutting-schedule/configs`, payload, authConfig);
-      await fetchCuttingScheduleData();
+      for (const link of glassBeadingLinks) {
+        if (!link.glassSpec) continue;
+
+        const payload = {
+          glassSpec: link.glassSpec,
+          systemType: selectedGlassBeadingRow.systemType,
+          series: selectedGlassBeadingRow.series,
+          description: selectedGlassBeadingRow.description,
+
+          beadings: (link.beadings || [])
+            .filter((b) => b.sapCodeSelected)
+            .map((b) => ({
+              sapCode: b.sapCode,
+              description:b.description,
+              formula: b.formula,
+              quantity: Number(b.quantity) || 1,
+            })),
+
+          gaskets: (link.gaskets || [])
+            .filter((g) => g.sapCodeSelected)
+            .map((g) => ({
+              sapCode: g.sapCode,
+              description:g.description,
+              formula: g.formula,
+            })),
+
+            
+        };
+        console.log(glassBeadingLinks);
+
+        await api.post(
+          `${QUOTATION_BASE_API_URL}/admin/quotations/glass-beading/configs`,
+          payload,
+          authConfig
+        );
+      }
+
+      await fetchGlassBeadingData();
+
       setIsGlassBeadingModalOpen(false);
     } catch (error) {
-      console.error("Unable to save glass beading links", error);
+      console.error("Unable to save glass beading config", error);
     }
   };
-
   const renderTabs = () => {
     const tabs = [
       { id: "quotations", label: "Quotations", icon: "file-invoice-dollar" },
@@ -2123,7 +2452,7 @@ if (payload.systemType === "Louvers") {
           </p>
         </div>
         <div className="qa-actions">
-          <MDBBtn size="sm" color="light" onClick={fetchCuttingScheduleData}>
+          <MDBBtn size="sm" color="light" onClick={fetchGlassBeadingData}>
             <MDBIcon fas icon="sync" className="me-2" />
             Refresh
           </MDBBtn>
@@ -2153,7 +2482,7 @@ if (payload.systemType === "Louvers") {
               return (
                 <tr key={`beading-${row.systemType}-${row.series}-${row.description}`}>
                   <td>{row.systemType}</td>
-                  <td>{row.series||"NA"}</td>
+                  <td>{row.series || "NA"}</td>
                   <td className="qa-title">{row.description || "NA"}</td>
                   <td>
                     <MDBBadge color={linkCount ? "success" : "warning"}>
@@ -2195,62 +2524,250 @@ if (payload.systemType === "Louvers") {
                     <thead>
                       <tr>
                         <th>Glass</th>
-                        <th>Beading Profile</th>
+                        <th>Beading Profile
+                        </th>
+                        <th>Gasket
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {glassBeadingLinks.map((link) => (
                         <tr key={link.glassSpec}>
                           <td className="qa-title">{link.glassSpec}</td>
-                          <td>
-                            <div className="qa-sap-autocomplete">
-                              <input
-                                value={link.beadingSapCode || ""}
-                                onChange={(e) => searchBeadingSapCode(link.glassSpec, e.target.value)}
-                                onBlur={() => handleBeadingSapCodeBlur(link.glassSpec)}
-                                onFocus={() => {
-                                  if (link.beadingSapCode && !link.beadingSapCodeSelected) {
-                                    setBeadingAutocomplete((prev) => ({
-                                      ...prev,
-                                      [link.glassSpec]: {
-                                        ...(prev[link.glassSpec] || {}),
-                                        open: true,
-                                      },
-                                    }));
-                                  }
-                                }}
-                                placeholder="Type beading SAP code"
-                                autoComplete="off"
-                              />
-                              {beadingAutocomplete[link.glassSpec]?.open && (
-                                <div className="qa-sap-menu">
-                                  {beadingAutocomplete[link.glassSpec]?.loading && (
-                                    <div className="qa-sap-message">Searching...</div>
-                                  )}
-                                  {!beadingAutocomplete[link.glassSpec]?.loading &&
-                                    beadingAutocomplete[link.glassSpec]?.options?.length === 0 && (
-                                      <div className="qa-sap-message">No SAP codes found</div>
+                          <td className="border-end">
+                            {link.beadings.map((beading, index) => (
+                              <div key={index}>
+                                <div className="d-flex align-items-start gap-2">
+                                  {/* SAP CODE */}
+                                  <div className="qa-sap-autocomplete">
+                                    <input
+                                      value={beading.sapCode || ""}
+                                      onChange={(e) => searchBeadingSapCode(link.glassSpec, index, e.target.value)}
+                                      onBlur={() => handleBeadingSapCodeBlur(link.glassSpec, index)}
+                                      onFocus={() => {
+                                        if (beading.sapCode && !beading.sapCodeSelected) {
+                                          setBeadingAutocomplete((prev) => ({
+                                            ...prev,
+                                            [link.glassSpec]: {
+                                              ...(prev[link.glassSpec] || {}),
+                                              open: true,
+                                            },
+                                          }));
+                                        }
+                                      }}
+                                      placeholder="Type SAP code"
+                                      autoComplete="off"
+                                    />
+                                    {beadingAutocomplete[`${link.glassSpec}-${index}`]?.open && (
+                                      <div className="qa-sap-menu">
+                                        {beadingAutocomplete[`${link.glassSpec}-${index}`]?.loading && (
+                                          <div className="qa-sap-message">Searching...</div>
+                                        )}
+                                        {!beadingAutocomplete[`${link.glassSpec}-${index}`]?.loading &&
+                                          beadingAutocomplete[`${link.glassSpec}-${index}`]?.options?.length === 0 && (
+                                            <div className="qa-sap-message">No SAP codes found</div>
+                                          )}
+                                        {!beadingAutocomplete[`${link.glassSpec}-${index}`]?.loading &&
+                                          beadingAutocomplete[`${link.glassSpec}-${index}`]?.options?.map((product) => (
+                                            <button
+                                              key={`${link.glassSpec}-${product._id || product.sapCode}`}
+                                              type="button"
+                                              className="qa-sap-option"
+                                              onMouseDown={(event) => event.preventDefault()}
+                                              onClick={() => selectBeadingSapCode(link.glassSpec, index, product)}
+                                            >
+                                              <span className="qa-sap-code">{product.sapCode}</span>
+                                              <span className="qa-sap-name">{getSapProductLabel(product)}</span>
+                                            </button>
+                                          ))}
+                                      </div>
                                     )}
-                                  {!beadingAutocomplete[link.glassSpec]?.loading &&
-                                    beadingAutocomplete[link.glassSpec]?.options?.map((product) => (
-                                      <button
-                                        key={`${link.glassSpec}-${product._id || product.sapCode}`}
-                                        type="button"
-                                        className="qa-sap-option"
-                                        onMouseDown={(event) => event.preventDefault()}
-                                        onClick={() => selectBeadingSapCode(link.glassSpec, product)}
-                                      >
-                                        <span className="qa-sap-code">{product.sapCode}</span>
-                                        <span className="qa-sap-name">{getSapProductLabel(product)}</span>
-                                      </button>
-                                    ))}
+                                  </div>
+                                  {beading.description && (
+                                    <div className="qa-meta mt-1">{beading.description}</div>
+                                  )}
+                                  {/* FORMULA */}
+                                  <input
+                                    className="qa-formula-input"
+                                    placeholder="Formula"
+                                    value={beading.formula || ""}
+                                    onChange={(e) =>
+                                      setGlassBeadingLinks((prev) =>
+                                        prev.map((item) =>
+                                          item.glassSpec === link.glassSpec
+                                            ? {
+                                              ...item,
+                                              beadings: item.beadings.map((b, i) =>
+                                                i === index
+                                                  ? {
+                                                    ...b,
+                                                    formula: e.target.value,
+                                                  }
+                                                  : b
+                                              ),
+                                            }
+                                            : item
+                                        )
+                                      )
+                                    }
+                                  />
+                                  {/* QUANTITY */}
+                                  <input
+                                    className="qa-qty-input"
+                                    placeholder="Qty"
+                                    value={beading.quantity || ""}
+                                    onChange={(e) =>
+                                      setGlassBeadingLinks((prev) =>
+                                        prev.map((item) =>
+                                          item.glassSpec === link.glassSpec
+                                            ? {
+                                              ...item,
+                                              beadings: item.beadings.map((b, i) =>
+                                                i === index
+                                                  ? {
+                                                    ...b,
+                                                    quantity: e.target.value,
+                                                  }
+                                                  : b
+                                              ),
+                                            }
+                                            : item
+                                        )
+                                      )
+                                    }
+                                  />
+                                  {link.beadings.length > 1 && (
+                                    <MDBBtn
+                                      color="danger"
+                                      size="sm"
+                                      type="button"
+                                      onClick={() => removeBeadingRow(link.glassSpec, index)}
+                                    >
+                                      <MDBIcon fas icon="trash" />
+                                    </MDBBtn>
+
+                                  )}
+
                                 </div>
-                              )}
-                            </div>
-                            {link.beadingDescription && (
-                              <div className="qa-meta mt-1">{link.beadingDescription}</div>
-                            )}
+
+                              </div>
+                            ))}
+                            <MDBBtn
+                              size="sm"
+                              color="primary"
+                              type="button"
+                              onClick={() => addBeadingRow(link.glassSpec)}
+                            >
+                              + Add Row
+                            </MDBBtn>
+
                           </td>
+
+                          <td>
+                            {link.gaskets.map((gasket, index) => (
+                              <div key={index}>
+
+                                <div className="d-flex align-items-start gap-2">
+                                  {/* SAP CODE */}
+                                  <div className="qa-sap-autocomplete qa-sap-input">
+                                    <input
+                                      value={gasket.sapCode || ""}
+                                      onChange={(e) => searchGasketSapCode(link.glassSpec, index, e.target.value)}
+                                      onBlur={() => handleGasketSapCodeBlur(link.glassSpec, index)}
+                                      onFocus={() => {
+                                        if (gasket.sapCode && !gasket.sapCodeSelected) {
+                                          setGasketAutocomplete((prev) => ({
+                                            ...prev,
+                                            [link.glassSpec]: {
+                                              ...(prev[link.glassSpec] || {}),
+                                              open: true,
+                                            },
+                                          }));
+                                        }
+                                      }}
+                                      placeholder="Type SAP code"
+                                      autoComplete="off"
+                                    />
+                                    {gasketAutocomplete[`${link.glassSpec}-${index}`]?.open && (
+                                      <div className="qa-sap-menu">
+                                        {gasketAutocomplete[`${link.glassSpec}-${index}`]?.loading && (
+                                          <div className="qa-sap-message">Searching...</div>
+                                        )}
+                                        {!gasketAutocomplete[`${link.glassSpec}-${index}`]?.loading &&
+                                          gasketAutocomplete[`${link.glassSpec}-${index}`]?.options?.length === 0 && (
+                                            <div className="qa-sap-message">No SAP codes found</div>
+                                          )}
+                                        {!gasketAutocomplete[`${link.glassSpec}-${index}`]?.loading &&
+                                          gasketAutocomplete[`${link.glassSpec}-${index}`]?.options?.map((product) => (
+                                            <button
+                                              key={`${link.glassSpec}-${product._id || product.sapCode}`}
+                                              type="button"
+                                              className="qa-sap-option"
+                                              onMouseDown={(event) => event.preventDefault()}
+                                              onClick={() => selectGasketSapCode(link.glassSpec, index, product)}
+                                            >
+                                              <span className="qa-sap-code">{product.sapCode}</span>
+                                              <span className="qa-sap-name">{getSapProductLabel(product)}</span>
+                                            </button>
+                                          ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {gasket.description && (
+                                    <div className="qa-meta mt-1">{gasket.description}</div>
+                                  )}
+                                  {/* FORMULA */}
+                                  <input
+                                    placeholder="Formula"
+                                    value={gasket.formula || ""}
+                                    onChange={(e) =>
+                                      setGlassBeadingLinks((prev) =>
+                                        prev.map((item) =>
+                                          item.glassSpec === link.glassSpec
+                                            ? {
+                                              ...item,
+                                              gaskets: item.gaskets.map((g, i) =>
+                                                i === index
+                                                  ? {
+                                                    ...g,
+                                                    formula: e.target.value,
+                                                  }
+                                                  : g
+                                              ),
+                                            }
+                                            : item
+                                        )
+                                      )
+                                    }
+                                  />
+                                  {link.gaskets.length > 1 && (
+                                    <MDBBtn
+                                      size="sm"
+                                      color="danger"
+                                      type="button"
+                                      onClick={() => removeGasketRow(link.glassSpec, index)}
+                                    >
+                                      <MDBIcon fas icon="trash" />
+                                    </MDBBtn>
+                                  )}
+                                </div>
+
+
+                              </div>
+                            ))}
+                            <MDBBtn
+                              size="sm"
+                              color="primary"
+                              type="button"
+
+                              onClick={() => addGasketRow(link.glassSpec)}
+                            >
+                              + Add Row
+                            </MDBBtn>
+
+
+                          </td>
+
                         </tr>
                       ))}
                     </tbody>
@@ -2545,52 +3062,52 @@ if (payload.systemType === "Louvers") {
                   </select>
                 </div>
                 {baseRateForm.systemType !== "Louvers" && (
-  <>
+                  <>
 
-                {/* Series */}
-                <div className="qa-form-group">
-                  <label>Series</label>
-                  <select
-                    value={baseRateForm.series}
-                    onChange={(e) =>
-                      setBaseRateForm((prev) => ({
-                        ...prev,
-                        series: e.target.value,
-                        description: "", // reset
-                      }))
-                    }
-                  >
-                    <option value="">Select series</option>
-                    {filteredSeries.map((item) => (
-                      <option key={item._id} value={item.name}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    {/* Series */}
+                    <div className="qa-form-group">
+                      <label>Series</label>
+                      <select
+                        value={baseRateForm.series}
+                        onChange={(e) =>
+                          setBaseRateForm((prev) => ({
+                            ...prev,
+                            series: e.target.value,
+                            description: "", // reset
+                          }))
+                        }
+                      >
+                        <option value="">Select series</option>
+                        {filteredSeries.map((item) => (
+                          <option key={item._id} value={item.name}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                {/* Description */}
-                <div className="qa-form-group">
-                  <label>Description</label>
-                  <select
-                    value={baseRateForm.description}
-                    onChange={(e) =>
-                      setBaseRateForm((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                  >
-                    <option value="">Select description</option>
-                    {descriptionOptions.map((desc) => (
-                      <option key={desc.name} value={desc.name}>
-                        {desc.name}
-                      </option>
-                    ))}
-                  </select>
-                
-                </div>
-                </>
+                    {/* Description */}
+                    <div className="qa-form-group">
+                      <label>Description</label>
+                      <select
+                        value={baseRateForm.description}
+                        onChange={(e) =>
+                          setBaseRateForm((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
+                        }
+                      >
+                        <option value="">Select description</option>
+                        {descriptionOptions.map((desc) => (
+                          <option key={desc.name} value={desc.name}>
+                            {desc.name}
+                          </option>
+                        ))}
+                      </select>
+
+                    </div>
+                  </>
                 )}
 
                 {/* Rates */}
@@ -3446,7 +3963,7 @@ if (payload.systemType === "Louvers") {
                     </div>
                     {/* cutting schedule */}
                     <div className="qa-actions">
-                      <MDBBtn size="sm" color="light" type="button" onClick={addGlassCuttingLine} disabled={activeCuttingLines.filter((line) => line.itemType === "glass").length>=2}>
+                      <MDBBtn size="sm" color="light" type="button" onClick={addGlassCuttingLine} disabled={activeCuttingLines.filter((line) => line.itemType === "glass").length >= 2}>
                         <MDBIcon fas icon="plus" className="me-2" />
                         Add glass row
                       </MDBBtn>
