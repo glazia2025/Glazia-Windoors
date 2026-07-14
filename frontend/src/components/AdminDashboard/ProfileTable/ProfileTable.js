@@ -239,10 +239,26 @@ const ProfileTable = () => {
 
   const handleToggleProductEnabled = async (productId) => {
     try {
-      await api.put(`${BASE_API_URL}/profile/product/${productId}/toggle-enabled`);
-      toast.success("Product status updated");
-      fetchCategories();
+      const response = await api.put(
+        `${BASE_API_URL}/profile/product/${productId}/toggle-enabled`
+      );
 
+      setProductsMap(prev => {
+        const updated = { ...prev };
+
+        Object.keys(updated).forEach(key => {
+          updated[key] = updated[key].map(product =>
+            product._id === response.data.product._id
+              ? response.data.product
+              : product
+          );
+        });
+
+        return updated;
+      });
+
+      toast.success("Product status updated");
+      // fetchCategories(); 
     } catch (err) {
       console.error("Error toggling product", err);
       toast.error("Failed to update product status");
@@ -251,26 +267,72 @@ const ProfileTable = () => {
 
   const handleUpdateProduct = async () => {
     try {
-      await api.put(`${BASE_API_URL}/profile/product/${editableProduct._id}`, {
-        sapCode: editableProduct.sapCode,
-        part: editableProduct.part,
-        description: editableProduct.description,
-        degree: editableProduct.degree,
-        per: editableProduct.per,
-        kgm: editableProduct.kgm,
-        length: editableProduct.length,
-        image: editableProduct.image
+      const response = await api.put(
+        `${BASE_API_URL}/profile/product/${editableProduct._id}`,
+        {
+          sapCode: editableProduct.sapCode,
+          part: editableProduct.part,
+          description: editableProduct.description,
+          degree: editableProduct.degree,
+          per: editableProduct.per,
+          kgm: editableProduct.kgm,
+          length: editableProduct.length,
+          image: editableProduct.image
+        }
+      );
+      setProductsMap(prev => {
+        const updated = { ...prev };
+
+        Object.keys(updated).forEach(key => {
+          updated[key] = updated[key].map(product =>
+            product._id === response.data._id
+              ? response.data
+              : product
+          );
+        });
+
+        return updated;
       });
+
       toast.success("Product updated successfully");
       setEditableProduct(null);
-      fetchCategories();
+      // fetchCategories();
 
     } catch (err) {
-      console.error("Error updating product", err);
+      console.error(err);
       toast.error("Failed to update product");
     }
   };
 
+  const handleDeleteProduct = async (productId, sizeId) => {
+
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this product?"
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await api.delete(
+        `${BASE_API_URL}/profile/delete?module=profile&type=product&id=${productId}`
+      );
+
+      toast.success("Product deleted successfully");
+
+      const response = await api.get(
+        `${BASE_API_URL}/profile/size/${sizeId}/products`
+      );
+
+      setProductsMap(prev => ({
+        ...prev,
+        [sizeId]: response.data,
+      }));
+
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete product");
+    }
+  };
   const handleEditClick = (product) => {
     setEditableProduct({ ...product });
   };
@@ -326,7 +388,7 @@ const ProfileTable = () => {
   };
 
   // Render product row
-  const renderProductRow = (product, index, sizeRate) => {
+  const renderProductRow = (product, index, sizeRate, sizeId) => {
     const isEditing = editableProduct?._id === product._id;
 
     return (
@@ -484,6 +546,15 @@ const ProfileTable = () => {
               className="visibility-switch"
               title="Toggle visibility"
             />
+            <MDBBtn
+              color="danger"
+              size="sm"
+              className="action-btn"
+              onClick={() => handleDeleteProduct(product._id, sizeId)}
+              title="Delete Product"
+            >
+              <MDBIcon fas icon="trash" />
+            </MDBBtn>
           </div>
         </td>
       </tr>
@@ -689,7 +760,7 @@ const ProfileTable = () => {
                                         </thead>
                                         <tbody>
                                           {products.map((product, index) =>
-                                            renderProductRow(product, index, size.rate)
+                                            renderProductRow(product, index, size.rate, size._id)
                                           )}
                                         </tbody>
                                       </table>
