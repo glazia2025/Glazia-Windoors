@@ -133,9 +133,19 @@ const QuotationAdminPage = () => {
   const [gasketAutocomplete, setGasketAutocomplete] = useState({});
   const [glassBeadingDescriptions, setGlassBeadingDescriptions] = useState([]);
   const [glassBeadingConfigs, setGlassBeadingConfigs] = useState([]);
+  const [mullionCouplerSeries, setMullionCouplerSeries] = useState([]);
+  const [mullionCouplerConfigs, setMullionCouplerConfigs] = useState([]);
+  const [selectedMullionCouplerRow, setSelectedMullionCouplerRow] = useState(null);
+  const [isMullionCouplerModalOpen, setIsMullionCouplerModalOpen] = useState(false);
+  const [mullionCouplerForm, setMullionCouplerForm] = useState({
+    mullions: [],
+    couplers: [],
+  });
+  const [joinProfileAutocomplete, setJoinProfileAutocomplete] = useState({});
   const sapSearchTimers = useRef({});
   const beadingSearchTimers = useRef({});
   const gasketSearchTimers = useRef({});
+  const joinProfileSearchTimers = useRef({});
 
   const [systemForm, setSystemForm] = useState({
     name: "",
@@ -376,6 +386,25 @@ const QuotationAdminPage = () => {
     }
   };
 
+  const fetchMullionCouplerData = async () => {
+    try {
+      const [seriesResponse, configResponse] = await Promise.all([
+        api.get(
+          `${QUOTATION_BASE_API_URL}/admin/quotations/mullion-coupler/series`,
+          authConfig
+        ),
+        api.get(
+          `${QUOTATION_BASE_API_URL}/admin/quotations/mullion-coupler/configs`,
+          authConfig
+        ),
+      ]);
+      setMullionCouplerSeries(seriesResponse.data.series || []);
+      setMullionCouplerConfigs(configResponse.data.configs || []);
+    } catch (error) {
+      console.error("Unable to load mullion/coupler data", error);
+    }
+  };
+
   const fetchQuotations = async (customPage = page,
     customPhone = phoneFilter,
     customLimit = limit
@@ -412,6 +441,7 @@ const QuotationAdminPage = () => {
       fetchHandleOptions(),
       fetchCuttingScheduleData(),
       fetchGlassBeadingData(),
+      fetchMullionCouplerData(),
     ]);
   };
 
@@ -1798,6 +1828,176 @@ const QuotationAdminPage = () => {
       console.error("Unable to save glass beading config", error);
     }
   };
+
+  const createJoinProfileLine = (formula = "H") => ({
+    sapCode: "",
+    description: "",
+    formula,
+    quantity: 1,
+    sapCodeSelected: false,
+  });
+
+  const selectMullionCouplerSeries = (row) => {
+    const existing = mullionCouplerConfigs.find(
+      (config) =>
+        config.systemType === row.systemType && config.series === row.series
+    );
+    const prepare = (lines, formula) =>
+      lines?.length
+        ? lines.map((line) => ({
+          ...line,
+          sapCodeSelected: Boolean(line.sapCode),
+        }))
+        : [createJoinProfileLine(formula)];
+
+    setSelectedMullionCouplerRow({ ...row, configId: existing?._id });
+    setMullionCouplerForm({
+      mullions: prepare(existing?.mullions, "H"),
+      couplers: prepare(existing?.couplers, "H"),
+    });
+    setJoinProfileAutocomplete({});
+    setIsMullionCouplerModalOpen(true);
+  };
+
+  const updateJoinProfileLine = (kind, index, patch) => {
+    setMullionCouplerForm((prev) => ({
+      ...prev,
+      [kind]: prev[kind].map((line, lineIndex) =>
+        lineIndex === index ? { ...line, ...patch } : line
+      ),
+    }));
+  };
+
+  const addJoinProfileLine = (kind) => {
+    setMullionCouplerForm((prev) => ({
+      ...prev,
+      [kind]: [...prev[kind], createJoinProfileLine("H")],
+    }));
+  };
+
+  const removeJoinProfileLine = (kind, index) => {
+    setMullionCouplerForm((prev) => ({
+      ...prev,
+      [kind]: prev[kind].filter((_, lineIndex) => lineIndex !== index),
+    }));
+  };
+
+  const searchJoinProfileSapCode = (kind, index, value) => {
+    const key = `${kind}-${index}`;
+    updateJoinProfileLine(kind, index, {
+      sapCode: value,
+      description: "",
+      sapCodeSelected: false,
+    });
+    if (joinProfileSearchTimers.current[key]) {
+      window.clearTimeout(joinProfileSearchTimers.current[key]);
+    }
+    const query = value.trim();
+    setJoinProfileAutocomplete((prev) => ({
+      ...prev,
+      [key]: { query: value, options: [], loading: Boolean(query), open: Boolean(query) },
+    }));
+    if (!query) return;
+
+    joinProfileSearchTimers.current[key] = window.setTimeout(async () => {
+      try {
+        const { data } = await api.get(
+          `${QUOTATION_BASE_API_URL}/admin/quotations/cutting-schedule/catalog`,
+          { ...authConfig, params: { itemType: "profile", sapCode: query } }
+        );
+        setJoinProfileAutocomplete((prev) => ({
+          ...prev,
+          [key]: {
+            query,
+            options: data.products || (data.product ? [data.product] : []),
+            loading: false,
+            open: true,
+          },
+        }));
+      } catch (error) {
+        console.error("Unable to search mullion/coupler SAP code", error);
+        setJoinProfileAutocomplete((prev) => ({
+          ...prev,
+          [key]: { query, options: [], loading: false, open: true },
+        }));
+      }
+    }, 250);
+  };
+
+  const selectJoinProfileSapCode = (kind, index, product) => {
+    updateJoinProfileLine(kind, index, {
+      sapCode: product.sapCode || "",
+      description: getSapProductLabel(product),
+      sapCodeSelected: true,
+    });
+    setJoinProfileAutocomplete((prev) => ({
+      ...prev,
+      [`${kind}-${index}`]: { ...(prev[`${kind}-${index}`] || {}), open: false },
+    }));
+  };
+
+  const handleJoinProfileSapCodeBlur = (kind, index) => {
+    window.setTimeout(() => {
+      setMullionCouplerForm((prev) => ({
+        ...prev,
+        [kind]: prev[kind].map((line, lineIndex) =>
+          lineIndex === index && line.sapCode && !line.sapCodeSelected
+            ? { ...line, sapCode: "", description: "" }
+            : line
+        ),
+      }));
+      setJoinProfileAutocomplete((prev) => ({
+        ...prev,
+        [`${kind}-${index}`]: { ...(prev[`${kind}-${index}`] || {}), open: false },
+      }));
+    }, 150);
+  };
+
+  const saveMullionCouplerConfig = async (event) => {
+    event.preventDefault();
+    if (!selectedMullionCouplerRow) return;
+    try {
+      const normalize = (lines) =>
+        lines
+          .filter((line) => line.sapCodeSelected)
+          .map((line) => ({
+            sapCode: line.sapCode,
+            description: line.description,
+            formula: line.formula || "H",
+            quantity: Number(line.quantity) || 1,
+          }));
+      await api.post(
+        `${QUOTATION_BASE_API_URL}/admin/quotations/mullion-coupler/configs`,
+        {
+          systemType: selectedMullionCouplerRow.systemType,
+          series: selectedMullionCouplerRow.series,
+          mullions: normalize(mullionCouplerForm.mullions),
+          couplers: normalize(mullionCouplerForm.couplers),
+        },
+        authConfig
+      );
+      await fetchMullionCouplerData();
+      setIsMullionCouplerModalOpen(false);
+    } catch (error) {
+      console.error("Unable to save mullion/coupler config", error);
+    }
+  };
+
+  const deleteMullionCouplerConfig = async () => {
+    if (!selectedMullionCouplerRow?.configId) return;
+    if (!window.confirm("Delete this mullion/coupler linking?")) return;
+    try {
+      await api.delete(
+        `${QUOTATION_BASE_API_URL}/admin/quotations/mullion-coupler/configs/${selectedMullionCouplerRow.configId}`,
+        authConfig
+      );
+      await fetchMullionCouplerData();
+      setIsMullionCouplerModalOpen(false);
+    } catch (error) {
+      console.error("Unable to delete mullion/coupler config", error);
+    }
+  };
+
   const renderTabs = () => {
     const tabs = [
       { id: "quotations", label: "Quotations", icon: "file-invoice-dollar" },
@@ -1810,6 +2010,7 @@ const QuotationAdminPage = () => {
       { id: "handleOptions", label: "Handle Options", icon: "swatchbook" },
       { id: "cuttingSchedule", label: "Cutting Schedule", icon: "ruler-combined" },
       { id: "glassBeading", label: "Glass Beading", icon: "link" },
+      { id: "mullionCoupler", label: "Mullion / Coupler", icon: "grip-lines-vertical" },
     ];
 
     const tabCounts = {
@@ -1826,6 +2027,7 @@ const QuotationAdminPage = () => {
         (total, config) => total + (config.glassBeadingLinks?.filter((link) => link.beadingSapCode).length || 0),
         0
       ),
+      mullionCoupler: mullionCouplerSeries.filter((item) => item.configured).length,
     };
 
     return (
@@ -2791,6 +2993,231 @@ const QuotationAdminPage = () => {
       </MDBModal>
     </div>
   );
+
+  const renderMullionCouplerSection = () => {
+    const renderLinkingLines = (kind, label) => (
+      <div className="qa-join-profile-section">
+        <div className="qa-line-toolbar">
+          <div>
+            <strong>{label}</strong>
+            <div className="qa-meta">SAP profile, cutting formula and quantity per divider.</div>
+          </div>
+          <MDBBtn size="sm" color="primary" type="button" onClick={() => addJoinProfileLine(kind)}>
+            <MDBIcon fas icon="plus" className="me-2" />
+            Add row
+          </MDBBtn>
+        </div>
+        <div className="qa-table-wrapper">
+          <table className="qa-table qa-editor-table">
+            <thead>
+              <tr>
+                <th>SAP Code</th>
+                <th>Profile</th>
+                <th>Cutting Schedule</th>
+                <th>Quantity</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {mullionCouplerForm[kind].map((line, index) => {
+                const autocomplete = joinProfileAutocomplete[`${kind}-${index}`];
+                return (
+                  <tr key={`${kind}-${index}`}>
+                    <td>
+                      <div className="qa-sap-autocomplete">
+                        <input
+                          value={line.sapCode || ""}
+                          onChange={(event) =>
+                            searchJoinProfileSapCode(kind, index, event.target.value)
+                          }
+                          onBlur={() => handleJoinProfileSapCodeBlur(kind, index)}
+                          placeholder="Type SAP code"
+                          autoComplete="off"
+                        />
+                        {autocomplete?.open && (
+                          <div className="qa-sap-menu">
+                            {autocomplete.loading && (
+                              <div className="qa-sap-message">Searching...</div>
+                            )}
+                            {!autocomplete.loading && autocomplete.options?.length === 0 && (
+                              <div className="qa-sap-message">No SAP codes found</div>
+                            )}
+                            {!autocomplete.loading &&
+                              autocomplete.options?.map((product) => (
+                                <button
+                                  key={product._id || product.sapCode}
+                                  type="button"
+                                  className="qa-sap-option"
+                                  onMouseDown={(event) => event.preventDefault()}
+                                  onClick={() =>
+                                    selectJoinProfileSapCode(kind, index, product)
+                                  }
+                                >
+                                  <span className="qa-sap-code">{product.sapCode}</span>
+                                  <span className="qa-sap-name">
+                                    {getSapProductLabel(product)}
+                                  </span>
+                                </button>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="qa-meta">{line.description || "Select a SAP code"}</td>
+                    <td>
+                      <input
+                        value={line.formula || ""}
+                        onChange={(event) =>
+                          updateJoinProfileLine(kind, index, { formula: event.target.value })
+                        }
+                        placeholder="e.g. H - 20"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={line.quantity}
+                        onChange={(event) =>
+                          updateJoinProfileLine(kind, index, { quantity: event.target.value })
+                        }
+                        className="qa-qty-input"
+                      />
+                    </td>
+                    <td className="qa-actions-cell">
+                      <MDBBtn
+                        size="sm"
+                        color="danger"
+                        type="button"
+                        disabled={mullionCouplerForm[kind].length === 1}
+                        onClick={() => removeJoinProfileLine(kind, index)}
+                      >
+                        <MDBIcon fas icon="trash" />
+                      </MDBBtn>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="qa-card">
+        <div className="qa-card-header">
+          <div>
+            <h4>Mullion / Coupler Linking</h4>
+            <p className="qa-subtitle">
+              Link profiles at system and series level. These rules apply to every
+              description in the series.
+            </p>
+          </div>
+          <MDBBtn size="sm" color="light" onClick={fetchMullionCouplerData}>
+            <MDBIcon fas icon="sync" className="me-2" />
+            Refresh
+          </MDBBtn>
+        </div>
+        <div className="qa-table-wrapper">
+          <table className="qa-table qa-cutting-table">
+            <thead>
+              <tr>
+                <th>System</th>
+                <th>Series</th>
+                <th>Mullion Profiles</th>
+                <th>Coupler Profiles</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {mullionCouplerSeries.map((row) => (
+                <tr key={`${row.systemType}-${row.series}`}>
+                  <td>{row.systemType}</td>
+                  <td className="qa-title">{row.series}</td>
+                  <td>{row.mullionCount || 0}</td>
+                  <td>{row.couplerCount || 0}</td>
+                  <td>
+                    <MDBBadge color={row.configured ? "success" : "warning"}>
+                      {row.configured ? "Configured" : "Not configured"}
+                    </MDBBadge>
+                  </td>
+                  <td className="qa-actions-cell">
+                    <MDBBtn
+                      size="sm"
+                      color={row.configured ? "light" : "primary"}
+                      onClick={() => selectMullionCouplerSeries(row)}
+                    >
+                      <MDBIcon fas icon={row.configured ? "pen" : "plus"} className="me-2" />
+                      Configure
+                    </MDBBtn>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!mullionCouplerSeries.length && (
+            <div className="qa-empty">No system series found.</div>
+          )}
+        </div>
+
+        <MDBModal
+          open={isMullionCouplerModalOpen}
+          onClose={() => setIsMullionCouplerModalOpen(false)}
+          tabIndex="-1"
+        >
+          <MDBModalDialog size="xl" scrollable className="qa-config-modal">
+            <MDBModalContent>
+              <form className="qa-modal-form" onSubmit={saveMullionCouplerConfig}>
+                <MDBModalHeader>
+                  <MDBModalTitle>
+                    Mullion / Coupler Config
+                    <span className="qa-modal-subtitle">
+                      {selectedMullionCouplerRow?.systemType} / {selectedMullionCouplerRow?.series}
+                    </span>
+                  </MDBModalTitle>
+                  <MDBBtn
+                    className="btn-close"
+                    color="none"
+                    type="button"
+                    onClick={() => setIsMullionCouplerModalOpen(false)}
+                  />
+                </MDBModalHeader>
+                <MDBModalBody>
+                  <div className="qa-join-profile-grid">
+                    {renderLinkingLines("mullions", "Mullion")}
+                    {renderLinkingLines("couplers", "Coupler")}
+                  </div>
+                  <div className="qa-hint mt-3">
+                    Formula variables: W = frame width, H = frame height, Q = quotation quantity.
+                  </div>
+                </MDBModalBody>
+                <MDBModalFooter>
+                  {selectedMullionCouplerRow?.configId && (
+                    <MDBBtn color="danger" type="button" onClick={deleteMullionCouplerConfig}>
+                      Delete
+                    </MDBBtn>
+                  )}
+                  <MDBBtn
+                    color="light"
+                    type="button"
+                    onClick={() => setIsMullionCouplerModalOpen(false)}
+                  >
+                    Cancel
+                  </MDBBtn>
+                  <MDBBtn color="primary" type="submit">
+                    Save links
+                  </MDBBtn>
+                </MDBModalFooter>
+              </form>
+            </MDBModalContent>
+          </MDBModalDialog>
+        </MDBModal>
+      </div>
+    );
+  };
 
   const renderAreaSlabSection = () => (
     <>
@@ -4183,6 +4610,7 @@ const QuotationAdminPage = () => {
             {activeTab === "handleOptions" && renderHandleOptionsSection()}
             {activeTab === "cuttingSchedule" && renderCuttingScheduleSection()}
             {activeTab === "glassBeading" && renderGlassBeadingSection()}
+            {activeTab === "mullionCoupler" && renderMullionCouplerSection()}
           </div>
         </div>
       </div>

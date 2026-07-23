@@ -611,4 +611,16 @@
     width:70px !important;
     min-width:70px;
 }
+
+.qa-join-profile-grid {
+  display: grid;
+  gap: 24px;
+}
+
+.qa-join-profile-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  background: #f8fafc;
+}
 }
