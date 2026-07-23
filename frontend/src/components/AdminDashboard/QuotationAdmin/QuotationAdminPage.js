@@ -1365,7 +1365,7 @@ const QuotationAdminPage = () => {
           existing?.beadings?.length > 0
             ? existing.beadings.map((beading) => ({
               sapCode: beading.sapCode || "",
-              description: beading.description||"",
+              description: beading.description || "",
               formula: beading.formula || "",
               quantity: beading.quantity || "",
               sapCodeSelected: Boolean(beading.sapCode),
@@ -1384,7 +1384,7 @@ const QuotationAdminPage = () => {
           existing?.gaskets?.length > 0
             ? existing.gaskets.map((gasket) => ({
               sapCode: gasket.sapCode || "",
-              description: gasket.description||"",
+              description: gasket.description || "",
               formula: gasket.formula || "",
               sapCodeSelected: Boolean(gasket.sapCode),
             }))
@@ -1445,7 +1445,7 @@ const QuotationAdminPage = () => {
       },
     }));
   };
- 
+
   const searchBeadingSapCode = (glassSpec, rowIndex, value) => {
     setGlassBeadingLinks((prev) =>
       prev.map((link) =>
@@ -1548,7 +1548,7 @@ const QuotationAdminPage = () => {
 
     closeBeadingAutocomplete(glassSpec, rowIndex);
   };
-  
+
   const handleBeadingSapCodeBlur = (glassSpec, rowIndex) => {
     window.setTimeout(() => {
       setGlassBeadingLinks((prev) =>
@@ -1655,7 +1655,7 @@ const QuotationAdminPage = () => {
         }
       }, 250);
   };
-  
+
   const selectGasketSapCode = (glassSpec, rowIndex, product) => {
     setGlassBeadingLinks((prev) =>
       prev.map((link) =>
@@ -1679,7 +1679,7 @@ const QuotationAdminPage = () => {
 
     closeGasketAutocomplete(`${glassSpec}-${rowIndex}`);
   };
- 
+
   const handleGasketSapCodeBlur = (glassSpec, rowIndex) => {
     window.setTimeout(() => {
       setGlassBeadingLinks((prev) =>
@@ -1797,7 +1797,7 @@ const QuotationAdminPage = () => {
             .filter((b) => b.sapCodeSelected)
             .map((b) => ({
               sapCode: b.sapCode,
-              description:b.description,
+              description: b.description,
               formula: b.formula,
               quantity: Number(b.quantity) || 1,
             })),
@@ -1806,11 +1806,11 @@ const QuotationAdminPage = () => {
             .filter((g) => g.sapCodeSelected)
             .map((g) => ({
               sapCode: g.sapCode,
-              description:g.description,
+              description: g.description,
               formula: g.formula,
             })),
 
-            
+
         };
         console.log(glassBeadingLinks);
 
@@ -3035,7 +3035,16 @@ const QuotationAdminPage = () => {
                           autoComplete="off"
                         />
                         {autocomplete?.open && (
-                          <div className="qa-sap-menu">
+                          <div
+                            className="qa-sap-menu"
+                            style={{
+                              display: "block",
+                              position: "relative",
+                              background: "white",
+                              border: "2px solid white",
+                              zIndex: 999999,
+                            }}
+                          >
                             {autocomplete.loading && (
                               <div className="qa-sap-message">Searching...</div>
                             )}
