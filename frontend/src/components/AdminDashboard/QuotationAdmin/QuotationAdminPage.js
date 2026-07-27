@@ -1834,6 +1834,7 @@ const QuotationAdminPage = () => {
     description: "",
     formula,
     quantity: 1,
+    glassDimensionEffect: 0,
     sapCodeSelected: false,
   });
 
@@ -1965,6 +1966,7 @@ const QuotationAdminPage = () => {
             description: line.description,
             formula: line.formula || "H",
             quantity: Number(line.quantity) || 1,
+            glassDimensionEffect: Math.max(0, Number(line.glassDimensionEffect) || 0),
           }));
       await api.post(
         `${QUOTATION_BASE_API_URL}/admin/quotations/mullion-coupler/configs`,
@@ -3014,6 +3016,7 @@ const QuotationAdminPage = () => {
                 <th>SAP Code</th>
                 <th>Profile</th>
                 <th>Cutting Schedule</th>
+                <th>Effect on Glass Dimension (mm)</th>
                 <th>Quantity</th>
                 <th></th>
               </tr>
@@ -3080,6 +3083,21 @@ const QuotationAdminPage = () => {
                           updateJoinProfileLine(kind, index, { formula: event.target.value })
                         }
                         placeholder="e.g. H - 20"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={line.glassDimensionEffect ?? 0}
+                        onChange={(event) =>
+                          updateJoinProfileLine(kind, index, {
+                            glassDimensionEffect: event.target.value,
+                          })
+                        }
+                        placeholder="mm"
+                        className="qa-qty-input"
                       />
                     </td>
                     <td>
@@ -3201,6 +3219,8 @@ const QuotationAdminPage = () => {
                   </div>
                   <div className="qa-hint mt-3">
                     Formula variables: W = frame width, H = frame height, Q = quotation quantity.
+                    Glass effect reduces W for vertical splits and H for horizontal splits on
+                    both sections touching the divider.
                   </div>
                 </MDBModalBody>
                 <MDBModalFooter>
