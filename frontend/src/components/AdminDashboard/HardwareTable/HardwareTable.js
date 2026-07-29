@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import {
   MDBCard,
   MDBCardBody,
@@ -12,13 +11,20 @@ import {
   MDBFile,
 } from "mdb-react-ui-kit";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  setActiveOption,
-  setActiveProfile,
-} from "../../../redux/selectionSlice";
+import { setActiveOption } from "../../../redux/selectionSlice";
 import api, { BASE_API_URL } from "../../../utils/api";
 import Search from "../../Search";
 import ImageZoom from "../../UserDashboard/ImageZoom";
+import { toast } from "react-toastify";
+
+const emptyHardwareItem = {
+  sapCode: "",
+  perticular: "",
+  rate: "",
+  system: "",
+  moq: "",
+  image: null,
+};
 
 const HardwareTable = () => {
   const dispatch = useDispatch();
@@ -28,6 +34,9 @@ const HardwareTable = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [profileData, setProfileData] = useState({});
   const [editableProduct, setEditableProduct] = useState(null);
+  const [newProduct, setNewProduct] = useState(emptyHardwareItem);
+  const [isAdding, setIsAdding] = useState(false);
+  const [isSavingNew, setIsSavingNew] = useState(false);
   const { hardwareHeirarchy } = useSelector((state) => state.heirarchy);
   const { products: hardwareData } = useSelector((state) => state.hardwares);
 
@@ -95,6 +104,7 @@ const HardwareTable = () => {
   };
 
   const handleEditClick = (product) => {
+    setIsAdding(false);
     setEditableProduct({ ...product });
   };
 
@@ -139,6 +149,62 @@ const HardwareTable = () => {
       setEditableProduct(null); // Exit edit mode
     } catch (err) {
       console.error("Error saving product", err);
+    }
+  };
+
+  const handleNewProductChange = (event) => {
+    const { name, value, files } = event.target;
+
+    if (name === "image" && files?.length > 0) {
+      const reader = new FileReader();
+      reader.onload = (readerEvent) => {
+        setNewProduct((current) => ({
+          ...current,
+          image: readerEvent.target.result,
+        }));
+      };
+      reader.readAsDataURL(files[0]);
+      return;
+    }
+
+    setNewProduct((current) => ({ ...current, [name]: value }));
+  };
+
+  const cancelAdd = () => {
+    setIsAdding(false);
+    setNewProduct(emptyHardwareItem);
+  };
+
+  const handleAdd = async () => {
+    const requiredFields = ["sapCode", "perticular", "rate", "system", "moq"];
+    const hasMissingField = requiredFields.some(
+      (field) => String(newProduct[field] ?? "").trim() === ""
+    );
+
+    if (hasMissingField) {
+      toast.error("Please fill all required hardware fields");
+      return;
+    }
+
+    try {
+      setIsSavingNew(true);
+      const token = localStorage.getItem("authToken");
+      await api.post(
+        `${BASE_API_URL}/admin/add-hardware`,
+        { option: activeOption, product: newProduct },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setSearchQuery("");
+      setSearchResults([]);
+      cancelAdd();
+      await fetchProducts(activeOption);
+      toast.success(`Hardware item added under ${activeOption}`);
+    } catch (err) {
+      console.error("Error adding hardware item", err);
+      toast.error(err.response?.data?.message || "Failed to add hardware item");
+    } finally {
+      setIsSavingNew(false);
     }
   };
 
@@ -203,6 +269,16 @@ const HardwareTable = () => {
                 >
                   Products
                 </MDBTypography>
+                <MDBBtn
+                  size="sm"
+                  onClick={() => {
+                    setEditableProduct(null);
+                    setIsAdding(true);
+                  }}
+                  disabled={isAdding}
+                >
+                  Add Item
+                </MDBBtn>
               </div>
               <Search
                 searchQuery={searchQuery}
@@ -220,11 +296,91 @@ const HardwareTable = () => {
                     <th>Sub Category</th>
                     <th>Perticular</th>
                     <th>Rate</th>
+                    <th>System / Unit</th>
                     <th>MOQ</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
+                  {isAdding && (
+                    <tr>
+                      <td>New</td>
+                      <td>
+                        <MDBFile
+                          name="image"
+                          size="sm"
+                          onChange={handleNewProductChange}
+                        />
+                      </td>
+                      <td>
+                        <MDBInput
+                          name="sapCode"
+                          value={newProduct.sapCode}
+                          onChange={handleNewProductChange}
+                          required
+                        />
+                      </td>
+                      <td>
+                        <MDBInput value={activeOption} disabled />
+                      </td>
+                      <td>
+                        <MDBInput
+                          name="perticular"
+                          value={newProduct.perticular}
+                          onChange={handleNewProductChange}
+                          required
+                        />
+                      </td>
+                      <td>
+                        <MDBInput
+                          name="rate"
+                          type="number"
+                          min="0"
+                          value={newProduct.rate}
+                          onChange={handleNewProductChange}
+                          required
+                        />
+                      </td>
+                      <td>
+                        <MDBInput
+                          name="system"
+                          value={newProduct.system}
+                          onChange={handleNewProductChange}
+                          required
+                        />
+                      </td>
+                      <td>
+                        <MDBInput
+                          name="moq"
+                          value={newProduct.moq}
+                          onChange={handleNewProductChange}
+                          required
+                        />
+                      </td>
+                      <td>
+                        <div className="d-flex">
+                          <MDBBtn
+                            color="success"
+                            size="sm"
+                            className="m-1"
+                            onClick={handleAdd}
+                            disabled={isSavingNew}
+                          >
+                            {isSavingNew ? "Saving..." : "Save"}
+                          </MDBBtn>
+                          <MDBBtn
+                            color="secondary"
+                            size="sm"
+                            className="m-1"
+                            onClick={cancelAdd}
+                            disabled={isSavingNew}
+                          >
+                            Cancel
+                          </MDBBtn>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                   {productsToDisplay?.map((product, index) => (
                     <tr key={product.id}>
                       <td>{index + 1}</td>
@@ -282,6 +438,17 @@ const HardwareTable = () => {
                           />
                         ) : (
                           product.rate
+                        )}
+                      </td>
+                      <td>
+                        {editableProduct?.id === product.id ? (
+                          <MDBInput
+                            name="system"
+                            value={editableProduct.system}
+                            onChange={handleInputChange}
+                          />
+                        ) : (
+                          product.system
                         )}
                       </td>
                       <td>

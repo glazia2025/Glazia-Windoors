@@ -55,6 +55,7 @@ const createCuttingLine = () => ({
   itemType: "profile",
   sapCode: "",
   description: "",
+  glassRef: "",
   quantityFormula: "1",
   dimensionFormula: "",
   cutAngle: "",
@@ -64,9 +65,10 @@ const createCuttingLine = () => ({
   sapCodeSelected: false,
 });
 
-const createGlassCuttingLine = () => ({
+const createGlassCuttingLine = (glassRef = "G1") => ({
   ...createCuttingLine(),
   itemType: "glass",
+  glassRef,
   quantityFormula: "Q",
   unit: "Sqft",
   sapCodeSelected: true,
@@ -93,6 +95,7 @@ const createCuttingSchedules = (schedules = [], legacyLines = []) => {
           ? sourceLines.map((line, index) => ({
             ...createCuttingLine(),
             ...line,
+            glassRef: line.itemType === "glass" ? (line.glassRef || "G1").toUpperCase() : "",
             cutAngle: line.cutAngle || line.cutAngleLeft || line.cutAngleRight || "",
             sortOrder: line.sortOrder ?? index,
             sapCodeSelected: Boolean(line.sapCode),
@@ -1036,13 +1039,18 @@ const QuotationAdminPage = () => {
                 nextLine.unit = "Pcs";
               }
               if (field === "itemType" && value === "glass") {
+                const glassCount = schedule.lines.filter(
+                  (item) => item.itemType === "glass"
+                ).length;
                 nextLine.sapCode = "";
                 nextLine.sapCodeSelected = true;
                 nextLine.cutAngle = "";
                 nextLine.unit = "Sqft";
+                nextLine.glassRef = `G${Math.floor(glassCount / 2) + 1}`;
               }
               if (field === "itemType") {
                 if (value !== "glass") {
+                  nextLine.glassRef = "";
                   nextLine.sapCode = "";
                   nextLine.sapCodeSelected = false;
                 }
@@ -1212,10 +1220,19 @@ const QuotationAdminPage = () => {
         schedule.key === activeCuttingScheduleKey
           ? {
             ...schedule,
-            lines:
-              schedule.lines.filter((line) => line.itemType === "glass").length >= 2
-                ? schedule.lines
-                : [...schedule.lines, { ...createGlassCuttingLine(), sortOrder: schedule.lines.length }],
+            lines: (() => {
+              const glassCount = schedule.lines.filter(
+                (line) => line.itemType === "glass"
+              ).length;
+              const glassRef = `G${Math.floor(glassCount / 2) + 1}`;
+              return [
+                ...schedule.lines,
+                {
+                  ...createGlassCuttingLine(glassRef),
+                  sortOrder: schedule.lines.length,
+                },
+              ];
+            })(),
           }
           : schedule
       ),
@@ -4414,12 +4431,12 @@ const QuotationAdminPage = () => {
                       <div className="qa-title">Required Items</div>
                       <div className="qa-meta">
                         Editing H {activeCuttingSchedule.horizontalAngle}° / V {activeCuttingSchedule.verticalAngle}°.
-                        Hardware rows only need SAP code and quantity. Profile rows use dimensions and cut angle. Add one glass row for the glass size formula.
+                        Hardware rows only need SAP code and quantity. Profile rows use dimensions and cut angle. Each glass needs two rows with the same reference: one W formula and one H formula.
                       </div>
                     </div>
                     {/* cutting schedule */}
                     <div className="qa-actions">
-                      <MDBBtn size="sm" color="light" type="button" onClick={addGlassCuttingLine} disabled={activeCuttingLines.filter((line) => line.itemType === "glass").length >= 2}>
+                      <MDBBtn size="sm" color="light" type="button" onClick={addGlassCuttingLine}>
                         <MDBIcon fas icon="plus" className="me-2" />
                         Add glass row
                       </MDBBtn>
@@ -4435,6 +4452,7 @@ const QuotationAdminPage = () => {
                       <thead>
                         <tr>
                           <th>Type</th>
+                          <th>Glass Ref</th>
                           <th>SAP Code</th>
                           <th>Description Override</th>
                           <th>Qty</th>
@@ -4451,14 +4469,32 @@ const QuotationAdminPage = () => {
                               <select value={line.itemType} onChange={(e) => updateCuttingLine(index, "itemType", e.target.value)}>
                                 <option value="profile">Profile</option>
                                 <option value="hardware">Hardware</option>
-                                <option value="glass" disabled={line.itemType !== "glass" && activeCuttingLines.some((item) => item.itemType === "glass")}>
+                                <option value="glass">
                                   Glass
                                 </option>
                               </select>
                             </td>
                             <td>
+                              <input
+                                value={
+                                  line.itemType === "glass"
+                                    ? line.glassRef || ""
+                                    : "-"
+                                }
+                                disabled={line.itemType !== "glass"}
+                                onChange={(e) =>
+                                  updateCuttingLine(
+                                    index,
+                                    "glassRef",
+                                    e.target.value.toUpperCase()
+                                  )
+                                }
+                                placeholder="G1"
+                              />
+                            </td>
+                            <td>
                               {line.itemType === "glass" ? (
-                                <input value="Selected quotation glass" disabled />
+                                <input value="-" disabled />
                               ) : (
                                 <div className="qa-sap-autocomplete">
                                   <input
