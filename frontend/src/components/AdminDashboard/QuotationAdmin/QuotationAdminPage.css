@@ -510,6 +510,59 @@
 
 }
 
+.qa-hardware-link-table {
+  margin-bottom: 10px;
+  overflow: visible;
+}
+
+.qa-hardware-link-table table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+}
+
+.qa-hardware-link-table th,
+.qa-hardware-link-table td {
+  padding: 6px;
+  vertical-align: top;
+}
+
+.qa-hardware-link-table th:nth-child(1) { width: 20%; }
+.qa-hardware-link-table th:nth-child(2) { width: 34%; }
+.qa-hardware-link-table th:nth-child(3) { width: 10%; }
+.qa-hardware-link-table th:nth-child(4) { width: 27%; }
+.qa-hardware-link-table th:nth-child(5) { width: 9%; }
+
+.qa-hardware-link-table input,
+.qa-hardware-link-table select {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 8px;
+}
+
+.qa-hardware-sap-input {
+  min-width: 0;
+}
+
+.qa-hardware-config-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100vh - 3.5rem);
+}
+
+.qa-hardware-config-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.qa-hardware-config-form .modal-footer {
+  flex: 0 0 auto;
+  background: #fff;
+}
+
 .qa-sap-menu {
   position: absolute;
   /* z-index: 1100;  */

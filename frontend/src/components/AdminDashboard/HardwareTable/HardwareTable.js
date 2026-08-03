@@ -9,6 +9,15 @@ import {
   MDBBtn,
   MDBInput,
   MDBFile,
+  MDBIcon,
+  MDBSwitch,
+  MDBModal,
+  MDBModalDialog,
+  MDBModalContent,
+  MDBModalHeader,
+  MDBModalTitle,
+  MDBModalBody,
+  MDBModalFooter,
 } from "mdb-react-ui-kit";
 import { useDispatch, useSelector } from "react-redux";
 import { setActiveOption } from "../../../redux/selectionSlice";
@@ -37,8 +46,32 @@ const HardwareTable = () => {
   const [newProduct, setNewProduct] = useState(emptyHardwareItem);
   const [isAdding, setIsAdding] = useState(false);
   const [isSavingNew, setIsSavingNew] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [categoryModal, setCategoryModal] = useState(null);
+  const [categoryForm, setCategoryForm] = useState({ name: "", description: "", enabled: true });
   const { hardwareHeirarchy } = useSelector((state) => state.heirarchy);
-  const { products: hardwareData } = useSelector((state) => state.hardwares);
+
+  const getAuthConfig = () => ({
+    headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
+  });
+
+  const fetchCategories = async (preferredOption = activeOption) => {
+    try {
+      const response = await api.get(
+        `${BASE_API_URL}/admin/hardware-categories`,
+        getAuthConfig()
+      );
+      const nextCategories = response.data || [];
+      setCategories(nextCategories);
+      if (nextCategories.length && !nextCategories.some((category) => category.name === preferredOption)) {
+        dispatch(setActiveOption(nextCategories[0].name));
+      }
+    } catch (err) {
+      toast.error("Failed to fetch hardware categories");
+    }
+  };
+
+  useEffect(() => { fetchCategories(); }, []);
 
   const productsToDisplay =
     searchResults.length > 0
@@ -46,12 +79,7 @@ const HardwareTable = () => {
       : profileOptions?.products?.[activeOption];
 
   useEffect(() => {
-    if (
-      hardwareHeirarchy.includes(activeOption) &&
-      !hardwareData?.[activeOption]
-    ) {
-      fetchProducts(activeOption);
-    }
+    if (activeOption) fetchProducts(activeOption);
   }, [activeOption]);
 
   useEffect(() => {
@@ -238,18 +266,78 @@ const HardwareTable = () => {
     }
   };
 
+  const openCreateCategory = () => {
+    setCategoryForm({ name: "", description: "", enabled: true });
+    setCategoryModal({ mode: "create" });
+  };
+
+  const openEditCategory = (category) => {
+    setCategoryForm({ name: category.name, description: category.description || "", enabled: category.enabled !== false });
+    setCategoryModal({ mode: "edit", category });
+  };
+
+  const saveCategory = async () => {
+    if (!categoryForm.name.trim()) return toast.error("Category name is required");
+    try {
+      const oldName = categoryModal?.category?.name;
+      if (categoryModal.mode === "create") {
+        await api.post(
+          `${BASE_API_URL}/admin/hardware-categories`,
+          categoryForm,
+          getAuthConfig()
+        );
+        toast.success("Hardware category created");
+      } else {
+        await api.put(
+          `${BASE_API_URL}/admin/hardware-categories/${categoryModal.category._id}`,
+          categoryForm,
+          getAuthConfig()
+        );
+        if (activeOption === oldName) dispatch(setActiveOption(categoryForm.name.trim().toUpperCase()));
+        toast.success("Hardware category updated");
+      }
+      setCategoryModal(null);
+      await fetchCategories(categoryModal.mode === "edit" && activeOption === oldName
+        ? categoryForm.name.trim().toUpperCase()
+        : activeOption);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to save hardware category");
+    }
+  };
+
+  const deleteCategory = async (category) => {
+    if (!window.confirm(`Delete hardware category "${category.name}"?`)) return;
+    try {
+      await api.delete(
+        `${BASE_API_URL}/admin/hardware-categories/${category._id}`,
+        getAuthConfig()
+      );
+      if (activeOption === category.name) dispatch(setActiveOption(""));
+      toast.success("Hardware category deleted");
+      await fetchCategories(activeOption === category.name ? "" : activeOption);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to delete hardware category");
+    }
+  };
+
   return (
     <>
-      <MDBTabs className="mb-4 d-flex align-items-center gap-2">
-        {profileOptions?.options?.map((option) => (
-          <MDBTabsItem key={option}>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <MDBTypography tag="h4" className="mb-0">Hardware Categories</MDBTypography>
+        <MDBBtn size="sm" onClick={openCreateCategory}><MDBIcon fas icon="plus" className="me-2" />Add Category</MDBBtn>
+      </div>
+      <MDBTabs className="mb-4 d-flex align-items-center gap-2 flex-wrap">
+        {categories.map((category) => (
+          <MDBTabsItem key={category._id} className="d-flex align-items-center">
             <MDBTabsLink
               className="rounded-2"
-              active={activeOption === option}
-              onClick={() => dispatch(setActiveOption(option))}
+              active={activeOption === category.name}
+              onClick={() => dispatch(setActiveOption(category.name))}
             >
-              {option}
+              {category.name}{!category.enabled && " (Disabled)"}
             </MDBTabsLink>
+            <MDBBtn color="link" size="sm" className="px-2" onClick={() => openEditCategory(category)} title="Edit category"><MDBIcon fas icon="pen" /></MDBBtn>
+            <MDBBtn color="link" size="sm" className="px-2 text-danger" onClick={() => deleteCategory(category)} title="Delete category"><MDBIcon fas icon="trash" /></MDBBtn>
           </MDBTabsItem>
         ))}
       </MDBTabs>
@@ -511,6 +599,25 @@ const HardwareTable = () => {
           </MDBCardBody>
         </MDBCard>
       )}
+      <MDBModal open={Boolean(categoryModal)} onClose={() => setCategoryModal(null)} tabIndex="-1">
+        <MDBModalDialog>
+          <MDBModalContent>
+            <MDBModalHeader>
+              <MDBModalTitle>{categoryModal?.mode === "create" ? "Create Hardware Category" : "Edit Hardware Category"}</MDBModalTitle>
+              <MDBBtn className="btn-close" color="none" onClick={() => setCategoryModal(null)} />
+            </MDBModalHeader>
+            <MDBModalBody>
+              <MDBInput label="Category Name" className="mb-3" value={categoryForm.name} onChange={(e) => setCategoryForm((current) => ({ ...current, name: e.target.value }))} />
+              <MDBInput label="Description" className="mb-3" value={categoryForm.description} onChange={(e) => setCategoryForm((current) => ({ ...current, description: e.target.value }))} />
+              <MDBSwitch label="Enabled" checked={categoryForm.enabled} onChange={(e) => setCategoryForm((current) => ({ ...current, enabled: e.target.checked }))} />
+            </MDBModalBody>
+            <MDBModalFooter>
+              <MDBBtn color="secondary" onClick={() => setCategoryModal(null)}>Cancel</MDBBtn>
+              <MDBBtn onClick={saveCategory}>Save</MDBBtn>
+            </MDBModalFooter>
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
     </>
   );
 };

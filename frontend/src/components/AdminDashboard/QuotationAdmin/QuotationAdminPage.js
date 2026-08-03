@@ -145,6 +145,13 @@ const QuotationAdminPage = () => {
     couplers: [],
   });
   const [joinProfileAutocomplete, setJoinProfileAutocomplete] = useState({});
+  const [hardwareLinkingDescriptions, setHardwareLinkingDescriptions] = useState([]);
+  const [hardwareLinkingConfigs, setHardwareLinkingConfigs] = useState([]);
+  const [hardwareLinkingOptions, setHardwareLinkingOptions] = useState({ glassSpecs: [], hardware: [] });
+  const [selectedHardwareLinkingRow, setSelectedHardwareLinkingRow] = useState(null);
+  const [isHardwareLinkingModalOpen, setIsHardwareLinkingModalOpen] = useState(false);
+  const [hardwareLinkingForm, setHardwareLinkingForm] = useState({ shutterCount: 1, glassRules: [] });
+  const [hardwareLinkingAutocomplete, setHardwareLinkingAutocomplete] = useState({});
   const sapSearchTimers = useRef({});
   const beadingSearchTimers = useRef({});
   const gasketSearchTimers = useRef({});
@@ -185,9 +192,9 @@ const QuotationAdminPage = () => {
   const [isSlabModalOpen, setIsSlabModalOpen] = useState(false);
 
   const [baseRateForm, setBaseRateForm] = useState({
-    systemType: "",
-    series: "",
-    description: "",
+    systemType: "Louvers",
+    series: "NA",
+    description: "NA",
     rates: ["", "", ""],
     notes: "",
   });
@@ -408,6 +415,19 @@ const QuotationAdminPage = () => {
     }
   };
 
+  const fetchHardwareLinkingData = async () => {
+    try {
+      const [descriptions, configs, options] = await Promise.all([
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/hardware-linking/descriptions`, authConfig),
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/hardware-linking/configs`, authConfig),
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/hardware-linking/options`, authConfig),
+      ]);
+      setHardwareLinkingDescriptions(descriptions.data.descriptions || []);
+      setHardwareLinkingConfigs(configs.data.configs || []);
+      setHardwareLinkingOptions(options.data || { glassSpecs: [], hardware: [] });
+    } catch (error) { console.error("Unable to load hardware linking data", error); }
+  };
+
   const fetchQuotations = async (customPage = page,
     customPhone = phoneFilter,
     customLimit = limit
@@ -438,13 +458,13 @@ const QuotationAdminPage = () => {
       fetchSystems(),
       fetchSeries(),
       fetchOptionSets(),
-      fetchAreaSlabs(),
       fetchBaseRates(),
       fetchHandleRules(),
       fetchHandleOptions(),
       fetchCuttingScheduleData(),
       fetchGlassBeadingData(),
       fetchMullionCouplerData(),
+      fetchHardwareLinkingData(),
     ]);
   };
 
@@ -723,9 +743,9 @@ const QuotationAdminPage = () => {
 
   const resetBaseRateForm = () => {
     setBaseRateForm({
-      systemType: "",
-      series: "",
-      description: "",
+      systemType: "Louvers",
+      series: "NA",
+      description: "NA",
       rates: ["", "", ""],
       notes: "",
     });
@@ -2023,13 +2043,13 @@ const QuotationAdminPage = () => {
       { id: "systems", label: "Systems", icon: "boxes" },
       { id: "series", label: "Series", icon: "sitemap" },
       { id: "optionSets", label: "Option Sets", icon: "palette" },
-      { id: "areaSlabs", label: "Area Slabs", icon: "chart-bar" },
-      { id: "baseRates", label: "Base Rates", icon: "layer-group" },
+      { id: "baseRates", label: "Louvers Rate", icon: "layer-group" },
       { id: "handleRules", label: "Handle Rules", icon: "hand-paper" },
       { id: "handleOptions", label: "Handle Options", icon: "swatchbook" },
       { id: "cuttingSchedule", label: "Cutting Schedule", icon: "ruler-combined" },
       { id: "glassBeading", label: "Glass Beading", icon: "link" },
       { id: "mullionCoupler", label: "Mullion / Coupler", icon: "grip-lines-vertical" },
+      { id: "hardwareLinking", label: "Hardware", icon: "tools" },
     ];
 
     const tabCounts = {
@@ -2037,7 +2057,6 @@ const QuotationAdminPage = () => {
       systems: systems.length,
       series: series.length,
       optionSets: optionSets.length,
-      areaSlabs: areaSlabs.length,
       baseRates: baseRates.length,
       handleRules: handleRules.length,
       handleOptions: handleOptions.length,
@@ -2047,6 +2066,7 @@ const QuotationAdminPage = () => {
         0
       ),
       mullionCoupler: mullionCouplerSeries.filter((item) => item.configured).length,
+      hardwareLinking: hardwareLinkingDescriptions.filter((item) => item.configured).length,
     };
 
     return (
@@ -3265,6 +3285,145 @@ const QuotationAdminPage = () => {
     );
   };
 
+  const openHardwareLinking = (row) => {
+    const existing = hardwareLinkingConfigs.find((config) =>
+      config.systemType === row.systemType && config.series === row.series && config.description === row.description
+    );
+    const configuredRules = new Map((existing?.glassRules || []).map((rule) => [rule.glassSpec, rule]));
+    setSelectedHardwareLinkingRow({ ...row, configId: existing?._id });
+    setHardwareLinkingForm({
+      shutterCount: existing?.shutterCount || 1,
+      glassRules: (hardwareLinkingOptions.glassSpecs || []).map((glassSpec) => ({
+        glassSpec,
+        conditions: (configuredRules.get(glassSpec)?.conditions || []).map((condition) => ({ ...condition })),
+      })),
+    });
+    setIsHardwareLinkingModalOpen(true);
+  };
+
+  const updateHardwareRule = (glassIndex, updater) => setHardwareLinkingForm((prev) => ({
+    ...prev,
+    glassRules: prev.glassRules.map((rule, index) => index === glassIndex ? updater(rule) : rule),
+  }));
+
+  const updateHardwareLine = (glassIndex, conditionIndex, lineIndex, patch) =>
+    updateHardwareRule(glassIndex, (current) => ({
+      ...current,
+      conditions: current.conditions.map((entry, index) => index === conditionIndex
+        ? { ...entry, hardware: entry.hardware.map((line, idx) => idx === lineIndex ? { ...line, ...patch } : line) }
+        : entry),
+    }));
+
+  const searchHardwareLinkingSap = (key, value, glassIndex, conditionIndex, lineIndex) => {
+    updateHardwareLine(glassIndex, conditionIndex, lineIndex, { sapCode: value });
+    const query = value.trim().toLowerCase();
+    const options = query
+      ? hardwareLinkingOptions.hardware.filter((item) =>
+        String(item.sapCode || "").toLowerCase().includes(query) ||
+        String(item.perticular || "").toLowerCase().includes(query)
+      ).slice(0, 12)
+      : [];
+    setHardwareLinkingAutocomplete((prev) => ({
+      ...prev,
+      [key]: { open: Boolean(query), options },
+    }));
+  };
+
+  const selectHardwareLinkingSap = (key, product, glassIndex, conditionIndex, lineIndex) => {
+    updateHardwareLine(glassIndex, conditionIndex, lineIndex, {
+      sapCode: product.sapCode || "",
+      description: product.perticular || "",
+    });
+    setHardwareLinkingAutocomplete((prev) => ({ ...prev, [key]: { open: false, options: [] } }));
+  };
+
+  const saveHardwareLinking = async (event) => {
+    event.preventDefault();
+    if (!selectedHardwareLinkingRow) return;
+    await api.post(
+      `${QUOTATION_BASE_API_URL}/admin/quotations/hardware-linking/configs`,
+      { ...selectedHardwareLinkingRow, ...hardwareLinkingForm },
+      authConfig
+    );
+    await fetchHardwareLinkingData();
+    setIsHardwareLinkingModalOpen(false);
+  };
+
+  const deleteHardwareLinking = async () => {
+    if (!selectedHardwareLinkingRow?.configId || !window.confirm("Delete this hardware linking?")) return;
+    await api.delete(
+      `${QUOTATION_BASE_API_URL}/admin/quotations/hardware-linking/configs/${selectedHardwareLinkingRow.configId}`,
+      authConfig
+    );
+    await fetchHardwareLinkingData();
+    setIsHardwareLinkingModalOpen(false);
+  };
+
+  const renderHardwareLinkingSection = () => (
+    <div className="qa-card">
+      <div className="qa-card-header">
+        <div><h4>Hardware Linking</h4><p className="qa-subtitle">Apply hardware by individual shutter glass weight.</p></div>
+        <MDBBtn size="sm" color="light" onClick={fetchHardwareLinkingData}>Refresh</MDBBtn>
+      </div>
+      <div className="qa-table-wrapper">
+        <table className="qa-table qa-cutting-table">
+          <thead><tr><th>System</th><th>Series</th><th>Description</th><th>Status</th><th></th></tr></thead>
+          <tbody>{hardwareLinkingDescriptions.map((row) => (
+            <tr key={row.systemType + row.series + row.description}>
+              <td>{row.systemType}</td><td>{row.series}</td><td>{row.description}</td>
+              <td><MDBBadge color={row.configured ? "success" : "warning"}>{row.configured ? "Configured" : "Not configured"}</MDBBadge></td>
+              <td><MDBBtn size="sm" onClick={() => openHardwareLinking(row)}>{row.configured ? "Edit" : "Configure"}</MDBBtn></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+      <MDBModal open={isHardwareLinkingModalOpen} onClose={() => setIsHardwareLinkingModalOpen(false)} tabIndex="-1">
+        <MDBModalDialog size="xl" scrollable className="qa-config-modal"><MDBModalContent><form className="qa-modal-form qa-hardware-config-form" onSubmit={saveHardwareLinking}>
+          <MDBModalHeader><MDBModalTitle>Hardware Config</MDBModalTitle><MDBBtn className="btn-close" color="none" type="button" onClick={() => setIsHardwareLinkingModalOpen(false)} /></MDBModalHeader>
+          <MDBModalBody className="qa-hardware-config-body">
+            <label className="qa-field">Number of shutters<input type="number" min="1" value={hardwareLinkingForm.shutterCount} onChange={(e) => setHardwareLinkingForm((prev) => ({ ...prev, shutterCount: Math.max(1, Number(e.target.value) || 1) }))} /></label>
+            <p className="qa-hint">Weight = H(m) × W(m) × 2.56 × 1.25. Quantity applies to every shutter.</p>
+            {hardwareLinkingForm.glassRules.map((rule, glassIndex) => (
+              <div className="qa-card mb-3" key={rule.glassSpec}>
+                <div className="qa-card-header"><strong>{rule.glassSpec}</strong>
+                  <MDBBtn size="sm" type="button" onClick={() => updateHardwareRule(glassIndex, (current) => ({ ...current, conditions: [...current.conditions, { operator: "<=", weightKg: 0, hardware: [] }] }))}>Add condition</MDBBtn>
+                </div>
+                {rule.conditions.map((condition, conditionIndex) => (
+                  <div className="p-3 border-top" key={conditionIndex}>
+                    <div className="d-flex gap-2 mb-2">
+                      <select value={condition.operator} onChange={(e) => updateHardwareRule(glassIndex, (current) => ({ ...current, conditions: current.conditions.map((entry, index) => index === conditionIndex ? { ...entry, operator: e.target.value } : entry) }))}>{["<", "<=", "=", ">=", ">"].map((operator) => <option key={operator}>{operator}</option>)}</select>
+                      <input type="number" min="0" step="0.001" placeholder="Weight kg" value={condition.weightKg} onChange={(e) => updateHardwareRule(glassIndex, (current) => ({ ...current, conditions: current.conditions.map((entry, index) => index === conditionIndex ? { ...entry, weightKg: Number(e.target.value) } : entry) }))} />
+                      <MDBBtn color="danger" size="sm" type="button" onClick={() => updateHardwareRule(glassIndex, (current) => ({ ...current, conditions: current.conditions.filter((_, index) => index !== conditionIndex) }))}>Remove condition</MDBBtn>
+                    </div>
+                    {condition.hardware.length > 0 && <div className="qa-table-wrapper qa-hardware-link-table"><table className="qa-table qa-editor-table"><thead><tr><th>SAP Code</th><th>Description</th><th>Qty</th><th>Applies To</th><th></th></tr></thead><tbody>
+                    {condition.hardware.map((line, lineIndex) => {
+                      const autocompleteKey = glassIndex + "-" + conditionIndex + "-" + lineIndex;
+                      const autocomplete = hardwareLinkingAutocomplete[autocompleteKey];
+                      return (
+                      <tr key={lineIndex}>
+                        <td><div className="qa-sap-autocomplete qa-hardware-sap-input"><input value={line.sapCode} placeholder="Type SAP code" autoComplete="off" onChange={(e) => searchHardwareLinkingSap(autocompleteKey, e.target.value, glassIndex, conditionIndex, lineIndex)} onFocus={() => { if (line.sapCode) searchHardwareLinkingSap(autocompleteKey, line.sapCode, glassIndex, conditionIndex, lineIndex); }} onBlur={() => window.setTimeout(() => setHardwareLinkingAutocomplete((prev) => ({ ...prev, [autocompleteKey]: { ...(prev[autocompleteKey] || {}), open: false } })), 150)} />
+                          {autocomplete?.open && <div className="qa-sap-menu">{autocomplete.options?.length ? autocomplete.options.map((product) => <button key={product._id || product.sapCode} type="button" className="qa-sap-option" onMouseDown={(event) => event.preventDefault()} onClick={() => selectHardwareLinkingSap(autocompleteKey, product, glassIndex, conditionIndex, lineIndex)}><span className="qa-sap-code">{product.sapCode}</span><span className="qa-sap-name">{product.perticular}</span></button>) : <div className="qa-sap-message">No SAP codes found</div>}</div>}
+                        </div></td>
+                        <td><input value={line.description || ""} placeholder="Description" onChange={(e) => updateHardwareLine(glassIndex, conditionIndex, lineIndex, { description: e.target.value })} /></td>
+                        <td><input type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => updateHardwareLine(glassIndex, conditionIndex, lineIndex, { quantity: Number(e.target.value) })} /></td>
+                        <td><select value={line.applicability || "always"} onChange={(e) => updateHardwareLine(glassIndex, conditionIndex, lineIndex, { applicability: e.target.value })}><option value="always">Always</option><option value="hinges">Hinges only</option><option value="frictionStay">Friction stay only</option></select></td>
+                        <td><MDBBtn color="light" size="sm" type="button" onClick={() => updateHardwareRule(glassIndex, (current) => ({ ...current, conditions: current.conditions.map((entry, index) => index === conditionIndex ? { ...entry, hardware: entry.hardware.filter((_, idx) => idx !== lineIndex) } : entry) }))}><MDBIcon fas icon="trash" /></MDBBtn></td>
+                      </tr>
+                      );
+                    })}
+                    </tbody></table></div>}
+                    <MDBBtn color="light" size="sm" type="button" onClick={() => updateHardwareRule(glassIndex, (current) => ({ ...current, conditions: current.conditions.map((entry, index) => index === conditionIndex ? { ...entry, hardware: [...entry.hardware, { sapCode: "", description: "", quantity: 1, applicability: "always" }] } : entry) }))}>Add SAP code</MDBBtn>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </MDBModalBody>
+          <MDBModalFooter>{selectedHardwareLinkingRow?.configId && <MDBBtn color="danger" type="button" onClick={deleteHardwareLinking}>Delete</MDBBtn>}<MDBBtn color="light" type="button" onClick={() => setIsHardwareLinkingModalOpen(false)}>Cancel</MDBBtn><MDBBtn type="submit">Save links</MDBBtn></MDBModalFooter>
+        </form></MDBModalContent></MDBModalDialog>
+      </MDBModal>
+    </div>
+  );
+
   const renderAreaSlabSection = () => (
     <>
       <div className="qa-card">
@@ -3425,11 +3584,11 @@ const QuotationAdminPage = () => {
       <div className="qa-card">
         <div className="qa-card-header">
           <div>
-            <h4>Base Rates</h4>
+            <h4>Louvers Rate</h4>
             <p className="qa-subtitle">
-              Map system/series/description to exactly three base rates (aligned to your three area slabs).
+              Maintain the three legacy area-based rates used only for Louvers.
             </p>
-            <p className="qa-hint">Fill all three slab rates to avoid gaps in calculations.</p>
+            <p className="qa-hint">Window and door rates are calculated from cutting schedules and NALCO.</p>
           </div>
           <div className="qa-actions">
             <MDBBtn
@@ -3440,7 +3599,7 @@ const QuotationAdminPage = () => {
                 setIsBaseRateModalOpen(true);
               }}
             >
-              Add Base Rate
+              Add Louvers Rate
             </MDBBtn>
 
           </div>
@@ -3487,7 +3646,7 @@ const QuotationAdminPage = () => {
             </tbody>
           </table>
           {!baseRates.length && (
-            <div className="qa-empty">No base rates added.</div>
+            <div className="qa-empty">No Louvers rate added.</div>
           )}
         </div>
       </div>
@@ -3497,7 +3656,7 @@ const QuotationAdminPage = () => {
 
             <MDBModalHeader>
               <MDBModalTitle>
-                {editingBaseRateId ? "Edit Base Rate" : "Add Base Rate"}
+                {editingBaseRateId ? "Edit Louvers Rate" : "Add Louvers Rate"}
               </MDBModalTitle>
               <MDBBtn
                 className='btn-close'
@@ -3517,21 +3676,9 @@ const QuotationAdminPage = () => {
                   <label>System Type</label>
                   <select
                     value={baseRateForm.systemType}
-                    onChange={(e) =>
-                      setBaseRateForm((prev) => ({
-                        ...prev,
-                        systemType: e.target.value,
-                        series: "",       // reset
-                        description: "",  // reset
-                      }))
-                    }
+                    disabled
                   >
-                    <option value="">Select system</option>
-                    {systems.map((sys) => (
-                      <option key={sys._id} value={sys.name}>
-                        {sys.name}
-                      </option>
-                    ))}
+                    <option value="Louvers">Louvers</option>
                   </select>
                 </div>
                 {baseRateForm.systemType !== "Louvers" && (
@@ -4634,11 +4781,11 @@ const QuotationAdminPage = () => {
             note: "Pair systems with description defaults",
           },
           {
-            label: "Base Rates",
+            label: "Louvers Rate",
             value: baseRates.length,
             icon: "money-check-alt",
             tone: "amber",
-            note: "Per slab pricing rows",
+            note: "Legacy Louvers pricing only",
           },
           {
             label: "Quotations",
@@ -4669,13 +4816,13 @@ const QuotationAdminPage = () => {
             {activeTab === "systems" && renderSystemSection()}
             {activeTab === "series" && renderSeriesSection()}
             {activeTab === "optionSets" && renderOptionSetSection()}
-            {activeTab === "areaSlabs" && renderAreaSlabSection()}
             {activeTab === "baseRates" && renderBaseRateSection()}
             {activeTab === "handleRules" && renderHandleRulesSection()}
             {activeTab === "handleOptions" && renderHandleOptionsSection()}
             {activeTab === "cuttingSchedule" && renderCuttingScheduleSection()}
             {activeTab === "glassBeading" && renderGlassBeadingSection()}
             {activeTab === "mullionCoupler" && renderMullionCouplerSection()}
+            {activeTab === "hardwareLinking" && renderHardwareLinkingSection()}
           </div>
         </div>
       </div>
