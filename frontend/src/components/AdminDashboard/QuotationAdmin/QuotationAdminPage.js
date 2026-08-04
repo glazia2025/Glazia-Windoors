@@ -156,6 +156,7 @@ const QuotationAdminPage = () => {
   const beadingSearchTimers = useRef({});
   const gasketSearchTimers = useRef({});
   const joinProfileSearchTimers = useRef({});
+  const loadedTabsRef = useRef(new Set());
 
   const [systemForm, setSystemForm] = useState({
     name: "",
@@ -417,15 +418,26 @@ const QuotationAdminPage = () => {
 
   const fetchHardwareLinkingData = async () => {
     try {
-      const [descriptions, configs, options] = await Promise.all([
+      const [descriptions, configs] = await Promise.all([
         api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/hardware-linking/descriptions`, authConfig),
         api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/hardware-linking/configs`, authConfig),
-        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/hardware-linking/options`, authConfig),
       ]);
       setHardwareLinkingDescriptions(descriptions.data.descriptions || []);
       setHardwareLinkingConfigs(configs.data.configs || []);
-      setHardwareLinkingOptions(options.data || { glassSpecs: [], hardware: [] });
     } catch (error) { console.error("Unable to load hardware linking data", error); }
+  };
+
+  const fetchHardwareLinkingOptions = async () => {
+    if (hardwareLinkingOptions.glassSpecs.length || hardwareLinkingOptions.hardware.length) {
+      return hardwareLinkingOptions;
+    }
+    const { data } = await api.get(
+      `${QUOTATION_BASE_API_URL}/admin/quotations/hardware-linking/options`,
+      authConfig
+    );
+    const options = data || { glassSpecs: [], hardware: [] };
+    setHardwareLinkingOptions(options);
+    return options;
   };
 
   const fetchQuotations = async (customPage = page,
@@ -469,12 +481,52 @@ const QuotationAdminPage = () => {
   };
 
   useEffect(() => {
-    refreshAllMasterData();
-  }, []);
+    if (loadedTabsRef.current.has(activeTab)) return;
+    loadedTabsRef.current.add(activeTab);
+
+    const loadActiveTab = async () => {
+      switch (activeTab) {
+        case "systems":
+          await fetchSystems();
+          break;
+        case "series":
+          await Promise.all([fetchSystems(), fetchSeries()]);
+          break;
+        case "optionSets":
+          await Promise.all([fetchSystems(), fetchOptionSets()]);
+          break;
+        case "baseRates":
+          await Promise.all([fetchSystems(), fetchSeries(), fetchAreaSlabs(), fetchBaseRates()]);
+          break;
+        case "handleRules":
+          await Promise.all([fetchSystems(), fetchSeries(), fetchHandleRules()]);
+          break;
+        case "handleOptions":
+          await Promise.all([fetchSystems(), fetchHandleOptions()]);
+          break;
+        case "cuttingSchedule":
+          await fetchCuttingScheduleData();
+          break;
+        case "glassBeading":
+          await Promise.all([fetchGlassBeadingData(), fetchOptionSets()]);
+          break;
+        case "mullionCoupler":
+          await fetchMullionCouplerData();
+          break;
+        case "hardwareLinking":
+          await fetchHardwareLinkingData();
+          break;
+        default:
+          break;
+      }
+    };
+
+    loadActiveTab();
+  }, [activeTab]);
 
   useEffect(() => {
-    fetchQuotations(page);
-  }, [page]);
+    if (activeTab === "quotations") fetchQuotations(page);
+  }, [activeTab, page]);
 
   const resetSystemForm = () => {
     setSystemForm({
@@ -3285,7 +3337,14 @@ const QuotationAdminPage = () => {
     );
   };
 
-  const openHardwareLinking = (row) => {
+  const openHardwareLinking = async (row) => {
+    let options;
+    try {
+      options = await fetchHardwareLinkingOptions();
+    } catch (error) {
+      console.error("Unable to load hardware linking options", error);
+      return;
+    }
     const existing = hardwareLinkingConfigs.find((config) =>
       config.systemType === row.systemType && config.series === row.series && config.description === row.description
     );
@@ -3293,7 +3352,7 @@ const QuotationAdminPage = () => {
     setSelectedHardwareLinkingRow({ ...row, configId: existing?._id });
     setHardwareLinkingForm({
       shutterCount: existing?.shutterCount || 1,
-      glassRules: (hardwareLinkingOptions.glassSpecs || []).map((glassSpec) => ({
+      glassRules: (options.glassSpecs || []).map((glassSpec) => ({
         glassSpec,
         conditions: (configuredRules.get(glassSpec)?.conditions || []).map((condition) => ({ ...condition })),
       })),
