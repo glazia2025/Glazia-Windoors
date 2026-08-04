@@ -37,10 +37,10 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
   const { profileHeirarchy } = useSelector((state) => state.heirarchy);
 
   const { selectedOption, productsByOption } = useSelector(
-      (state) => state.selection
-    );
+    (state) => state.selection
+  );
 
-    // const selectedProducts = Object.values(productsByOption).flat();
+  // const selectedProducts = Object.values(productsByOption).flat();
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -71,7 +71,7 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
     dispatch(setActiveProfile(profile));
     dispatch(setActiveOption(option));
     dispatch(setSelectedOption(mainOption));
-     navigate("/dashboard")
+    navigate("/dashboard")
   };
 
   useEffect(() => {
@@ -92,7 +92,7 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
         <MDBNavbarBrand
           className="cursor-pointer"
           onClick={() =>
-             navigate("/dashboard")
+            navigate("/dashboard")
           }
         >
           <img className="logo" src={logo} />
@@ -114,8 +114,8 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
               <>
                 <MDBNavbarItem>
                   <MDBNavbarLink onClick={() => navigate("/dashboard")}>
-  Dashboard
-</MDBNavbarLink>
+                    Dashboard
+                  </MDBNavbarLink>
                 </MDBNavbarItem>
                 <MDBNavbarItem>
                   <MDBDropdown>
@@ -246,12 +246,22 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
                     </MDBNavbarLink>
                   )}
                 </MDBNavbarItem>
+                <MDBNavbarItem>
+                  {userRole === "admin" && (
+                    <MDBNavbarLink
+                      onClick={() => navigate("/dashboard/blogs")}
+                      className="fw-semibold text-dark"
+                    >
+                      Add Blogs
+                    </MDBNavbarLink>
+                  )}
+                </MDBNavbarItem>
               </>
             )}
           </MDBNavbarNav>
 
           {isLoggedIn && (
-            <div className="d-flex align-items-center" style={{gap: '24px'}}>
+            <div className="d-flex align-items-center" style={{ gap: '24px' }}>
               {/* User Profile Dropdown */}
               {isLoggedIn && (
                 <div className="d-flex align-items-center">

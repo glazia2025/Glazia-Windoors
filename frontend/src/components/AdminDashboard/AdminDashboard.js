@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import "./AdminDashboard.css";
 import { MDBRow, MDBCol, MDBBtn, MDBIcon, MDBModal, MDBModalDialog, MDBModalContent, MDBModalHeader, MDBModalBody, MDBModalFooter, MDBModalTitle, MDBCardSubTitle } from "mdb-react-ui-kit";
 import { useDispatch, useSelector } from "react-redux";
+import BlogManagement from "./BlogManagement/BlogManagement";
 import ProfileOptions from "./ProfileTable/ProfileTable";
 import HardwareOptions from "./HardwareTable/HardwareTable";
 import AccessoriesOptions from "../UserDashboard/AcessoriesOptions";
