@@ -285,7 +285,7 @@ const QuotationAdminPage = () => {
         `${QUOTATION_BASE_API_URL}/admin/quotations/systems`,
         authConfig
       );
-      setSystems(data.systems || []);
+      setSystems((data.systems || []).filter((system) => system.name !== "Exhaust Fan"));
     } catch (error) {
       console.error("Unable to load systems", error);
     }
@@ -1070,8 +1070,8 @@ const QuotationAdminPage = () => {
     const existing = cuttingConfigs.find(
       (config) =>
         config.systemType === row.systemType &&
-        config.series === row.series &&
-        config.description === row.description
+        (row.systemType === "Louvers" ||
+          (config.series === row.series && config.description === row.description))
     );
 
     setCuttingForm({
@@ -1330,7 +1330,8 @@ const QuotationAdminPage = () => {
 
   const handleCuttingConfigSubmit = async (event) => {
     event.preventDefault();
-    if (!cuttingForm.systemType || !cuttingForm.series || !cuttingForm.description) return;
+    const isLouvers = cuttingForm.systemType === "Louvers";
+    if (!cuttingForm.systemType || (!isLouvers && (!cuttingForm.series || !cuttingForm.description))) return;
 
     const hasUnselectedSapCode = cuttingForm.schedules.some((schedule) =>
       schedule.lines.some((line) => line.itemType !== "glass" && line.sapCode && !line.sapCodeSelected)
@@ -1383,6 +1384,8 @@ const QuotationAdminPage = () => {
         `${QUOTATION_BASE_API_URL}/admin/quotations/cutting-schedule/configs`,
         {
           ...cuttingForm,
+          series: isLouvers ? "" : cuttingForm.series,
+          description: isLouvers ? "" : cuttingForm.description,
           lines: defaultLines,
           schedules,
         },
@@ -1408,8 +1411,8 @@ const QuotationAdminPage = () => {
     const existing = cuttingConfigs.find(
       (config) =>
         config.systemType === cuttingForm.systemType &&
-        config.series === cuttingForm.series &&
-        config.description === cuttingForm.description
+        (cuttingForm.systemType === "Louvers" ||
+          (config.series === cuttingForm.series && config.description === cuttingForm.description))
     );
     if (!existing?._id) return;
 
@@ -4435,8 +4438,8 @@ const QuotationAdminPage = () => {
     const selectedConfig = cuttingConfigs.find(
       (config) =>
         config.systemType === cuttingForm.systemType &&
-        config.series === cuttingForm.series &&
-        config.description === cuttingForm.description
+        (cuttingForm.systemType === "Louvers" ||
+          (config.series === cuttingForm.series && config.description === cuttingForm.description))
     );
     const activeCuttingSchedule =
       cuttingForm.schedules.find((schedule) => schedule.key === activeCuttingScheduleKey) ||
@@ -4479,8 +4482,12 @@ const QuotationAdminPage = () => {
               <div className="qa-side-label">Selected</div>
               {selectedCuttingRow ? (
                 <>
-                  <div className="qa-title">{selectedCuttingRow.description}</div>
-                  <div className="qa-meta">{selectedCuttingRow.systemType} / {selectedCuttingRow.series}</div>
+                  <div className="qa-title">{selectedCuttingRow.description || selectedCuttingRow.systemType}</div>
+                  <div className="qa-meta">
+                    {selectedCuttingRow.systemType === "Louvers"
+                      ? "System-level schedule"
+                      : `${selectedCuttingRow.systemType} / ${selectedCuttingRow.series}`}
+                  </div>
                   <div className="qa-badges mt-2">
                     <MDBBadge color={selectedCuttingRow.configured ? "success" : "warning"}>
                       {selectedCuttingRow.configured ? "Configured" : "Not configured"}
@@ -4537,8 +4544,8 @@ const QuotationAdminPage = () => {
                         </MDBBadge>
                       </td>
                       <td>{row.systemType}</td>
-                      <td>{row.series}</td>
-                      <td className="qa-title">{row.description}</td>
+                      <td>{row.series || "—"}</td>
+                      <td className="qa-title">{row.description || "System-level"}</td>
                       <td>{row.lineCount || 0}</td>
                       <td className="qa-actions-cell">
                         <MDBBtn size="sm" color={row.configured ? "light" : "primary"} onClick={() => selectCuttingDescription(row)}>
@@ -4565,7 +4572,9 @@ const QuotationAdminPage = () => {
                   <MDBModalTitle>
                     Cutting Schedule Config
                     <span className="qa-modal-subtitle">
-                      {cuttingForm.systemType} / {cuttingForm.series} / {cuttingForm.description}
+                      {cuttingForm.systemType === "Louvers"
+                        ? `${cuttingForm.systemType} / System-level`
+                        : `${cuttingForm.systemType} / ${cuttingForm.series} / ${cuttingForm.description}`}
                     </span>
                   </MDBModalTitle>
                   <MDBBtn className="btn-close" color="none" type="button" onClick={() => setIsCuttingModalOpen(false)} />
@@ -4576,14 +4585,18 @@ const QuotationAdminPage = () => {
                       System
                       <input value={cuttingForm.systemType} readOnly />
                     </label>
-                    <label>
-                      Series
-                      <input value={cuttingForm.series} readOnly />
-                    </label>
-                    <label>
-                      Description
-                      <input value={cuttingForm.description} readOnly />
-                    </label>
+                    {cuttingForm.systemType !== "Louvers" && (
+                      <>
+                        <label>
+                          Series
+                          <input value={cuttingForm.series} readOnly />
+                        </label>
+                        <label>
+                          Description
+                          <input value={cuttingForm.description} readOnly />
+                        </label>
+                      </>
+                    )}
                     <label>
                       Notes
                       <input
@@ -4793,7 +4806,11 @@ const QuotationAdminPage = () => {
                   <MDBBtn color="light" type="button" onClick={() => setIsCuttingModalOpen(false)}>
                     Cancel
                   </MDBBtn>
-                  <MDBBtn color="primary" type="submit" disabled={!cuttingForm.description}>
+                  <MDBBtn
+                    color="primary"
+                    type="submit"
+                    disabled={!cuttingForm.systemType || (cuttingForm.systemType !== "Louvers" && !cuttingForm.description)}
+                  >
                     Save rules
                   </MDBBtn>
                 </MDBModalFooter>
