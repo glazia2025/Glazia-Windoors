@@ -231,6 +231,14 @@ const QuotationAdminPage = () => {
     glassBeadingLinks: [],
   });
   const [activeCuttingScheduleKey, setActiveCuttingScheduleKey] = useState("45_45");
+  const [isCopyScheduleModalOpen, setIsCopyScheduleModalOpen] = useState(false);
+
+  const [copyScheduleForm, setCopyScheduleForm] = useState({
+    from: "45_45",
+    to: "45_90",
+  });
+  const [copySuccessMessage, setCopySuccessMessage] = useState("");
+  const [isOverwriteModalOpen, setIsOverwriteModalOpen] = useState(false);
   const [phoneFilter, setphoneFilter] = useState("");
   const [limit, setLimit] = useState(10);
 
@@ -1442,6 +1450,65 @@ const QuotationAdminPage = () => {
     }
   };
 
+  const performCopySchedule = () => {
+    const { from, to } = copyScheduleForm;
+
+    setCuttingForm((prev) => {
+      const sourceSchedule = prev.schedules.find(
+        (schedule) => schedule.key === from
+      );
+
+      if (!sourceSchedule) return prev;
+
+      return {
+        ...prev,
+        schedules: prev.schedules.map((schedule) => {
+          if (schedule.key !== to) return schedule;
+
+          return {
+            ...schedule,
+            lines: sourceSchedule.lines.map((line) => ({
+              ...line,
+            })),
+          };
+        }),
+      };
+    });
+
+    setActiveCuttingScheduleKey(to);
+    setIsCopyScheduleModalOpen(false);
+    setIsOverwriteModalOpen(false);
+    setCopySuccessMessage("Schedule copied successfully.");
+
+    setTimeout(() => {
+      setCopySuccessMessage("");
+    }, 2500);
+  };
+
+  const handleCopySchedule = () => {
+    const { from, to } = copyScheduleForm;
+    const targetSchedule = cuttingForm.schedules.find(
+      (schedule) => schedule.key === to
+    );
+
+    const hasExistingData =
+      targetSchedule?.lines?.some(
+        (line) =>
+          line.sapCode ||
+          line.description ||
+          line.dimensionFormula ||
+          line.cutAngle ||
+          line.position ||
+          line.itemType === "glass"
+      ) ?? false;
+    if (hasExistingData) {
+      setIsOverwriteModalOpen(true);
+      return;
+    }
+    performCopySchedule();
+
+  };
+
   const buildGlassBeadingRows = (configs = []) => {
     const byGlass = new Map(
       (configs || []).map((config) => [config.glassSpec, config])
@@ -1717,7 +1784,7 @@ const QuotationAdminPage = () => {
             {
               ...authConfig,
               params: {
-                itemType: "profile",
+                itemType: "hardware",
                 sapCode: query,
               },
             }
@@ -3458,21 +3525,21 @@ const QuotationAdminPage = () => {
                       <MDBBtn color="danger" size="sm" type="button" onClick={() => updateHardwareRule(glassIndex, (current) => ({ ...current, conditions: current.conditions.filter((_, index) => index !== conditionIndex) }))}>Remove condition</MDBBtn>
                     </div>
                     {condition.hardware.length > 0 && <div className="qa-table-wrapper qa-hardware-link-table"><table className="qa-table qa-editor-table"><thead><tr><th>SAP Code</th><th>Description</th><th>Qty</th><th>Applies To</th><th></th></tr></thead><tbody>
-                    {condition.hardware.map((line, lineIndex) => {
-                      const autocompleteKey = glassIndex + "-" + conditionIndex + "-" + lineIndex;
-                      const autocomplete = hardwareLinkingAutocomplete[autocompleteKey];
-                      return (
-                      <tr key={lineIndex}>
-                        <td><div className="qa-sap-autocomplete qa-hardware-sap-input"><input value={line.sapCode} placeholder="Type SAP code" autoComplete="off" onChange={(e) => searchHardwareLinkingSap(autocompleteKey, e.target.value, glassIndex, conditionIndex, lineIndex)} onFocus={() => { if (line.sapCode) searchHardwareLinkingSap(autocompleteKey, line.sapCode, glassIndex, conditionIndex, lineIndex); }} onBlur={() => window.setTimeout(() => setHardwareLinkingAutocomplete((prev) => ({ ...prev, [autocompleteKey]: { ...(prev[autocompleteKey] || {}), open: false } })), 150)} />
-                          {autocomplete?.open && <div className="qa-sap-menu">{autocomplete.options?.length ? autocomplete.options.map((product) => <button key={product._id || product.sapCode} type="button" className="qa-sap-option" onMouseDown={(event) => event.preventDefault()} onClick={() => selectHardwareLinkingSap(autocompleteKey, product, glassIndex, conditionIndex, lineIndex)}><span className="qa-sap-code">{product.sapCode}</span><span className="qa-sap-name">{product.perticular}</span></button>) : <div className="qa-sap-message">No SAP codes found</div>}</div>}
-                        </div></td>
-                        <td><input value={line.description || ""} placeholder="Description" onChange={(e) => updateHardwareLine(glassIndex, conditionIndex, lineIndex, { description: e.target.value })} /></td>
-                        <td><input type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => updateHardwareLine(glassIndex, conditionIndex, lineIndex, { quantity: Number(e.target.value) })} /></td>
-                        <td><select value={line.applicability || "always"} onChange={(e) => updateHardwareLine(glassIndex, conditionIndex, lineIndex, { applicability: e.target.value })}><option value="always">Always</option><option value="hinges">Hinges only</option><option value="frictionStay">Friction stay only</option></select></td>
-                        <td><MDBBtn color="light" size="sm" type="button" onClick={() => updateHardwareRule(glassIndex, (current) => ({ ...current, conditions: current.conditions.map((entry, index) => index === conditionIndex ? { ...entry, hardware: entry.hardware.filter((_, idx) => idx !== lineIndex) } : entry) }))}><MDBIcon fas icon="trash" /></MDBBtn></td>
-                      </tr>
-                      );
-                    })}
+                      {condition.hardware.map((line, lineIndex) => {
+                        const autocompleteKey = glassIndex + "-" + conditionIndex + "-" + lineIndex;
+                        const autocomplete = hardwareLinkingAutocomplete[autocompleteKey];
+                        return (
+                          <tr key={lineIndex}>
+                            <td><div className="qa-sap-autocomplete qa-hardware-sap-input"><input value={line.sapCode} placeholder="Type SAP code" autoComplete="off" onChange={(e) => searchHardwareLinkingSap(autocompleteKey, e.target.value, glassIndex, conditionIndex, lineIndex)} onFocus={() => { if (line.sapCode) searchHardwareLinkingSap(autocompleteKey, line.sapCode, glassIndex, conditionIndex, lineIndex); }} onBlur={() => window.setTimeout(() => setHardwareLinkingAutocomplete((prev) => ({ ...prev, [autocompleteKey]: { ...(prev[autocompleteKey] || {}), open: false } })), 150)} />
+                              {autocomplete?.open && <div className="qa-sap-menu">{autocomplete.options?.length ? autocomplete.options.map((product) => <button key={product._id || product.sapCode} type="button" className="qa-sap-option" onMouseDown={(event) => event.preventDefault()} onClick={() => selectHardwareLinkingSap(autocompleteKey, product, glassIndex, conditionIndex, lineIndex)}><span className="qa-sap-code">{product.sapCode}</span><span className="qa-sap-name">{product.perticular}</span></button>) : <div className="qa-sap-message">No SAP codes found</div>}</div>}
+                            </div></td>
+                            <td><input value={line.description || ""} placeholder="Description" onChange={(e) => updateHardwareLine(glassIndex, conditionIndex, lineIndex, { description: e.target.value })} /></td>
+                            <td><input type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => updateHardwareLine(glassIndex, conditionIndex, lineIndex, { quantity: Number(e.target.value) })} /></td>
+                            <td><select value={line.applicability || "always"} onChange={(e) => updateHardwareLine(glassIndex, conditionIndex, lineIndex, { applicability: e.target.value })}><option value="always">Always</option><option value="hinges">Hinges only</option><option value="frictionStay">Friction stay only</option></select></td>
+                            <td><MDBBtn color="light" size="sm" type="button" onClick={() => updateHardwareRule(glassIndex, (current) => ({ ...current, conditions: current.conditions.map((entry, index) => index === conditionIndex ? { ...entry, hardware: entry.hardware.filter((_, idx) => idx !== lineIndex) } : entry) }))}><MDBIcon fas icon="trash" /></MDBBtn></td>
+                          </tr>
+                        );
+                      })}
                     </tbody></table></div>}
                     <MDBBtn color="light" size="sm" type="button" onClick={() => updateHardwareRule(glassIndex, (current) => ({ ...current, conditions: current.conditions.map((entry, index) => index === conditionIndex ? { ...entry, hardware: [...entry.hardware, { sapCode: "", description: "", quantity: 1, applicability: "always" }] } : entry) }))}>Add SAP code</MDBBtn>
                   </div>
@@ -4563,6 +4630,20 @@ const QuotationAdminPage = () => {
             )}
           </div>
         </div>
+        {copySuccessMessage && (
+          <div
+            className="alert alert-success position-fixed"
+            style={{
+              top: "20px",
+              right: "20px",
+              zIndex: 9999,
+              minWidth: "320px",
+            }}
+          >
+            <MDBIcon fas icon="check-circle" className="me-2" />
+            {copySuccessMessage}
+          </div>
+        )}
 
         <MDBModal open={isCuttingModalOpen} onClose={() => setIsCuttingModalOpen(false)} tabIndex="-1">
           <MDBModalDialog size="xl" scrollable className="qa-config-modal">
@@ -4798,6 +4879,14 @@ const QuotationAdminPage = () => {
                   </div>
                 </MDBModalBody>
                 <MDBModalFooter>
+                  <MDBBtn
+                    type="button"
+                    color="info"
+                    outline
+                    onClick={() => setIsCopyScheduleModalOpen(true)}
+                  >
+                    Copy
+                  </MDBBtn>
                   {selectedConfig?._id && (
                     <MDBBtn color="danger" outline type="button" onClick={handleCuttingConfigDelete}>
                       Delete config
@@ -4818,9 +4907,161 @@ const QuotationAdminPage = () => {
             </MDBModalContent>
           </MDBModalDialog>
         </MDBModal>
+        <MDBModal
+          open={isCopyScheduleModalOpen}
+          onClose={() => setIsCopyScheduleModalOpen(false)}
+          tabIndex="-1"
+        >
+          <MDBModalDialog>
+            <MDBModalContent>
+
+              <MDBModalHeader>
+                <MDBModalTitle>Copy Schedule
+                  <span className="qa-modal-subtitle">
+                      {cuttingForm.systemType} / {cuttingForm.series} / {cuttingForm.description}
+                    </span>
+                </MDBModalTitle>
+
+                <MDBBtn
+                  className="btn-close"
+                  color="none"
+                  type="button"
+                  onClick={() => setIsCopyScheduleModalOpen(false)}
+                />
+              </MDBModalHeader>
+
+              <MDBModalBody>
+
+                <label className="mb-3 w-100">
+                  Copy From
+
+                  <select
+                    className="form-select mt-2"
+                    value={copyScheduleForm.from}
+                    onChange={(e) =>
+                      setCopyScheduleForm((prev) => ({
+                        ...prev,
+                        from: e.target.value,
+                      }))
+                    }
+                  >
+                    {CUTTING_SCHEDULES.map((schedule) => (
+                      <option key={schedule.key} value={schedule.key}>
+                        {schedule.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="w-100">
+                  Copy To
+
+                  <select
+                    className="form-select mt-2"
+                    value={copyScheduleForm.to}
+                    onChange={(e) =>
+                      setCopyScheduleForm((prev) => ({
+                        ...prev,
+                        to: e.target.value,
+                      }))
+                    }
+                  >
+                    {CUTTING_SCHEDULES.map((schedule) => (
+                      <option key={schedule.key} value={schedule.key}>
+                        {schedule.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {isSameSchedule && (
+                  <div className="alert alert-danger mt-3 mb-0">
+                    Source and destination schedules cannot be the same.
+                  </div>
+                )}
+
+              </MDBModalBody>
+
+              <MDBModalFooter>
+
+                <MDBBtn
+                  type="button"
+                  color="light"
+                  onClick={() => setIsCopyScheduleModalOpen(false)}
+                >
+                  Cancel
+                </MDBBtn>
+
+                <MDBBtn
+                  type="button"
+                  color="primary"
+                  onClick={handleCopySchedule}
+                  disabled={isSameSchedule}
+                >
+                  Copy
+                </MDBBtn>
+
+              </MDBModalFooter>
+
+            </MDBModalContent>
+          </MDBModalDialog>
+        </MDBModal>
+        <MDBModal
+          open={isOverwriteModalOpen}
+          onClose={() => setIsOverwriteModalOpen(false)}
+          tabIndex="-1"
+        >
+          <MDBModalDialog centered>
+            <MDBModalContent>
+
+              <MDBModalHeader>
+                <MDBModalTitle>Overwrite Schedule</MDBModalTitle>
+
+                <MDBBtn
+                  className="btn-close"
+                  color="none"
+                  type="button"
+                  onClick={() => setIsOverwriteModalOpen(false)}
+                />
+              </MDBModalHeader>
+
+              <MDBModalBody>
+                The destination schedule already contains data.
+                <br />
+                Continuing will replace all existing rows.
+              </MDBModalBody>
+
+              <MDBModalFooter>
+
+                <MDBBtn
+                  type="button"
+                  color="light"
+                  onClick={() => setIsOverwriteModalOpen(false)}
+                >
+                  Cancel
+                </MDBBtn>
+                <MDBBtn
+                  type="button"
+                  color="danger"
+                  onClick={() => {
+                    performCopySchedule();
+                    setIsOverwriteModalOpen(false);
+                  }}
+                >
+                  Overwrite
+                </MDBBtn>
+
+
+
+              </MDBModalFooter>
+
+            </MDBModalContent>
+          </MDBModalDialog>
+        </MDBModal>
       </div>
     );
   };
+  const isSameSchedule =
+    copyScheduleForm.from === copyScheduleForm.to;
 
   return (
     <div className="quotation-admin">
