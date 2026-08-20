@@ -27,9 +27,7 @@ const parseKeyValuePairs = (value = "") =>
     .filter(Boolean)
     .reduce((acc, line) => {
       const [key, rate] = line.split(":").map((part) => part.trim());
-      if (key) {
-        acc[key] = Number(rate) || 0;
-      }
+      if (key) acc[key] = Number(rate) || 0;
       return acc;
     }, {});
 
@@ -44,6 +42,13 @@ const toPlainObject = (value) =>
 const entriesFromMap = (value) => Object.entries(toPlainObject(value));
 
 const GLOBAL_OPTION_TYPES = ["colorFinish", "meshType", "glassSpec"];
+let optionRowSequence = 0;
+const createOptionRow = (label = "", rate = "", color = "#C0C0C0") => ({
+  id: `option-row-${optionRowSequence += 1}`,
+  label,
+  rate,
+  color,
+});
 const CUTTING_SCHEDULES = [
   { key: "45_45", label: "45 / 45", horizontalAngle: "45", verticalAngle: "45" },
   { key: "45_90", label: "45 / 90", horizontalAngle: "45", verticalAngle: "90" },
@@ -179,7 +184,7 @@ const QuotationAdminPage = () => {
   const [optionForm, setOptionForm] = useState({
     type: "colorFinish",
     systemId: "",
-    valuesText: "",
+    items: [createOptionRow()],
   });
   const [editingOptionId, setEditingOptionId] = useState(null);
   const [isOptionModalOpen, setIsOptionModalOpen] = useState(false);
@@ -685,7 +690,7 @@ const QuotationAdminPage = () => {
     setOptionForm({
       type: "colorFinish",
       systemId: "",
-      valuesText: "",
+      items: [createOptionRow()],
     });
     setEditingOptionId(null);
   };
@@ -694,7 +699,18 @@ const QuotationAdminPage = () => {
     e.preventDefault();
     const payload = {
       type: optionForm.type,
-      values: parseKeyValuePairs(optionForm.valuesText),
+      values: Object.fromEntries(
+        optionForm.items
+          .map((item) => [item.label.trim(), Number(item.rate) || 0])
+          .filter(([label]) => label)
+      ),
+      colors: optionForm.type === "colorFinish"
+        ? Object.fromEntries(
+          optionForm.items
+            .map((item) => [item.label.trim(), item.color || "#C0C0C0"])
+            .filter(([label]) => label)
+        )
+        : {},
       systemId: GLOBAL_OPTION_TYPES.includes(optionForm.type)
         ? undefined
         : optionForm.systemId || undefined,
@@ -722,13 +738,31 @@ const QuotationAdminPage = () => {
   };
 
   const handleOptionEdit = (optionSet) => {
+    const values = entriesFromMap(optionSet.values);
+    const colors = toPlainObject(optionSet.colors);
     setEditingOptionId(optionSet._id);
     setOptionForm({
       type: optionSet.type,
       systemId: optionSet.system?._id || "",
-      valuesText: stringifyKeyValuePairs(toPlainObject(optionSet.values)),
+      items: values.length
+        ? values.map(([label, rate]) => createOptionRow(label, rate, colors[label] || "#C0C0C0"))
+        : [createOptionRow()],
     });
     setIsOptionModalOpen(true);
+  };
+
+  const updateOptionRow = (id, field, value) => {
+    setOptionForm((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => item.id === id ? { ...item, [field]: value } : item),
+    }));
+  };
+
+  const removeOptionRow = (id) => {
+    setOptionForm((prev) => ({
+      ...prev,
+      items: prev.items.length > 1 ? prev.items.filter((item) => item.id !== id) : [createOptionRow()],
+    }));
   };
 
   const handleOptionDelete = async (id) => {
@@ -2666,7 +2700,14 @@ const QuotationAdminPage = () => {
                   <td>
                     <div className="qa-meta">
                       {entriesFromMap(item.values).map(([label, rate]) => (
-                        <div key={label}>
+                        <div key={label} className="qa-option-summary-row">
+                          {item.type === "colorFinish" && (
+                            <span
+                              className="qa-option-swatch"
+                              style={{ backgroundColor: toPlainObject(item.colors)[label] || "#C0C0C0" }}
+                              title={toPlainObject(item.colors)[label] || "#C0C0C0"}
+                            />
+                          )}
                           {label}: <strong>{rate}</strong>
                         </div>
                       ))}
@@ -2698,7 +2739,7 @@ const QuotationAdminPage = () => {
         </div>
       </div>
       <MDBModal open={isOptionModalOpen} setOpen={setIsOptionModalOpen} tabIndex='-1'>
-        <MDBModalDialog centered>
+        <MDBModalDialog centered size="lg">
           <MDBModalContent>
 
             <MDBModalHeader>
@@ -2766,19 +2807,64 @@ const QuotationAdminPage = () => {
                   </div>
                 )}
 
-                {/* Values */}
-                <div className="qa-form-group">
-                  <label>Values (Label: Rate)</label>
-                  <textarea
-                    rows={4}
-                    value={optionForm.valuesText}
-                    onChange={(e) =>
-                      setOptionForm((prev) => ({
-                        ...prev,
-                        valuesText: e.target.value,
-                      }))
-                    }
-                  />
+                <div className="qa-option-editor">
+                  <div className="qa-option-editor-header">
+                    <div>
+                      <label>Options</label>
+                      <p>Add each option and its rate separately.</p>
+                    </div>
+                    <MDBBtn
+                      size="sm"
+                      color="light"
+                      type="button"
+                      onClick={() => setOptionForm((prev) => ({ ...prev, items: [...prev.items, createOptionRow()] }))}
+                    >
+                      <MDBIcon fas icon="plus" className="me-2" />
+                      Add option
+                    </MDBBtn>
+                  </div>
+
+                  <div className={`qa-option-editor-columns ${optionForm.type === "colorFinish" ? "has-color" : ""}`} aria-hidden="true">
+                    <span>Option name</span>
+                    <span>Rate</span>
+                    {optionForm.type === "colorFinish" && <span>Frame colour</span>}
+                    <span />
+                  </div>
+
+                  <div className="qa-option-editor-rows">
+                    {optionForm.items.map((item) => (
+                      <div className={`qa-option-editor-row ${optionForm.type === "colorFinish" ? "has-color" : ""}`} key={item.id}>
+                        <input
+                          type="text"
+                          aria-label="Option name"
+                          placeholder="e.g. Matt Black"
+                          value={item.label}
+                          onChange={(e) => updateOptionRow(item.id, "label", e.target.value)}
+                        />
+                        <input
+                          type="number"
+                          aria-label={`${item.label || "Option"} rate`}
+                          placeholder="0.00"
+                          value={item.rate}
+                          onChange={(e) => updateOptionRow(item.id, "rate", e.target.value)}
+                        />
+                        {optionForm.type === "colorFinish" && (
+                          <label className="qa-option-color-control">
+                            <input
+                              type="color"
+                              aria-label={`${item.label || "Option"} frame colour`}
+                              value={item.color || "#C0C0C0"}
+                              onChange={(e) => updateOptionRow(item.id, "color", e.target.value)}
+                            />
+                            <span>{item.color || "#C0C0C0"}</span>
+                          </label>
+                        )}
+                        <button type="button" className="qa-option-remove" onClick={() => removeOptionRow(item.id)} aria-label={`Remove ${item.label || "option"}`}>
+                          <MDBIcon fas icon="trash" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
               </form>

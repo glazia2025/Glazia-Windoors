@@ -267,6 +267,117 @@
   font-size: 13px;
 }
 
+.qa-option-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.qa-option-swatch {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px #fff;
+}
+
+.qa-option-editor {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.qa-option-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.qa-option-editor-header label {
+  display: block;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.qa-option-editor-header p {
+  margin: 2px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.qa-option-editor-columns,
+.qa-option-editor-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(110px, 0.4fr) 44px;
+  gap: 10px;
+  align-items: center;
+}
+
+.qa-option-editor-columns.has-color,
+.qa-option-editor-row.has-color {
+  grid-template-columns: minmax(180px, 1fr) minmax(110px, 0.4fr) minmax(150px, 0.55fr) 44px;
+}
+
+.qa-option-editor-columns {
+  padding: 10px 16px 6px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.qa-option-editor-rows {
+  display: grid;
+  gap: 9px;
+  padding: 6px 16px 16px;
+}
+
+.qa-option-color-control {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 5px 8px;
+  border: 1px solid #d9dfeb;
+  border-radius: 10px;
+  background: #fff;
+  color: #64748b;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.qa-form .qa-option-color-control input[type="color"] {
+  width: 36px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.qa-option-remove {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fff;
+  color: #dc2626;
+}
+
+.qa-option-remove:hover {
+  background: #fef2f2;
+}
+
 .qa-badges {
   display: flex;
   flex-wrap: wrap;
@@ -648,6 +759,24 @@
   .qa-line-toolbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .qa-option-editor-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .qa-option-editor-columns {
+    display: none;
+  }
+
+  .qa-option-editor-row,
+  .qa-option-editor-row.has-color {
+    grid-template-columns: 1fr 1fr 40px;
+  }
+
+  .qa-option-editor-row.has-color .qa-option-color-control {
+    grid-column: 1 / 3;
   }
 
   .qa-sap-input{
