@@ -31,6 +31,17 @@ export const hasAdminAccess = permission => {
 };
 
 export const firstAllowedAdminPath = () => {
-  const routes = [["DASHBOARD", "/dashboard"], ["ORDERS", "/dashboard/orders"], ["INVENTORY", "/dashboard/inventory"], ["QUOTATIONS", "/dashboard/quotations"], ["USERS", "/dashboard/users"], ["STOCK_APPROVALS", "/dashboard/stock-approvals"], ["PRODUCTS", "/dashboard/add-product"], ["BLOGS", "/dashboard/blogs"], ["ADMIN_ACCOUNTS", "/dashboard/admin-accounts"]];
+  const routes = [
+    ["DASHBOARD", "/dashboard"],
+    ["ORDERS", "/dashboard/orders"],
+    ["INVENTORY", "/dashboard/inventory"],
+    ["QUOTATIONS", "/dashboard/quotations"],
+    ["USERS", "/dashboard/users"],
+    ["DYNAMIC_PRICING", "/dashboard/dynamic-pricing"],
+    ["LEADS", "/dashboard/leads"],
+    ["STOCK_APPROVALS", "/dashboard/stock-approvals"],
+    ["BLOGS", "/dashboard/blogs"],
+    ["ADMIN_ACCOUNTS", "/dashboard/admin-accounts"]
+  ];
   return routes.find(([permission]) => hasAdminAccess(permission))?.[1] || "/login";
 };

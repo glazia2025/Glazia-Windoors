@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
-  BrowserRouter as Router,
   Route,
   Routes,
-  Link,
   Navigate,
   useNavigate,
   useLocation,
@@ -12,40 +10,32 @@ import AdminLoginForm from "./components/AdminLoginForm/AdminLoginForm";
 import AdminDashboard from "./components/AdminDashboard/AdminDashboard";
 import UserOrders from "./components/UserOrders";
 import { jwtDecode } from "jwt-decode";
-import AdminAddProduct from "./components/AdminAddProduct";
-import Header from "./components/Header/Header";
+import DashboardLayout from "./components/layout/DashboardLayout";
 import { useSelector } from "react-redux";
 import SyncLoader from "react-spinners/SyncLoader";
 import Footer from "./components/Footer";
 import "./App.css";
-// import SelectionContainer from "./components/UserDashboard/SelectionContainer";
-import AdminForm from "./components/AdminDashboard/AdminForm";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Orders from "./components/AdminDashboard/Orders/Orders";
-import ExcelDataFetcher from "./components/Excel";
 import OrderDetails from "./components/OrderDetails";
-import Squares from "./components/ui/Squares/Squares";
 import QuotationAdminPage from "./components/AdminDashboard/QuotationAdmin/QuotationAdminPage";
 import UserManagement from "./components/AdminDashboard/UserManagement/UserManagement";
 import BlogManagement from "./components/AdminDashboard/BlogManagement/BlogManagement";
 import StockApprovals from "./components/AdminDashboard/StockApprovals/StockApprovals";
 import Inventory from "./components/AdminDashboard/Inventory/Inventory";
 import AdminAccounts from "./components/AdminDashboard/AdminAccounts/AdminAccounts";
+import UserListing from "./components/AdminDashboard/UserListing/UserListing";
+import LeadManagement from "./components/AdminDashboard/LeadManagement/LeadManagement";
 import { clearCurrentAdminPermissions, firstAllowedAdminPath, hasAdminAccess, setCurrentAdminPermissions } from "./utils/adminAccess";
 import api, { BASE_API_URL } from "./utils/api";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isSliderOpen, setIsSliderOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [, setPermissionVersion] = useState(0);
 
-
   const navigate = useNavigate();
   const isLoading = useSelector((state) => state.loader.isLoading);
-
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const location = useLocation();
 
   useEffect(() => {
@@ -68,7 +58,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const refreshPermissions = () => setPermissionVersion(value => value + 1);
+    const refreshPermissions = () => setPermissionVersion((value) => value + 1);
     window.addEventListener("admin-permissions-changed", refreshPermissions);
     return () => window.removeEventListener("admin-permissions-changed", refreshPermissions);
   }, []);
@@ -79,9 +69,10 @@ function App() {
 
   const onLogout = () => {
     setIsLoggedIn(false);
-    setIsInitialLoad(true);
     localStorage.removeItem("authToken");
+    localStorage.removeItem("userRole");
     clearCurrentAdminPermissions();
+    navigate("/login");
   };
 
   const checkTokenExpiration = () => {
@@ -106,14 +97,26 @@ function App() {
       }
     }
   };
+
   if (!authChecked) {
-    return null; // ya loader
+    return null;
   }
-  const adminRoute = (permission, element) => localStorage.getItem("userRole") === "admin" && isLoggedIn && hasAdminAccess(permission) ? element : <Navigate to={isLoggedIn ? firstAllowedAdminPath() : "/login"} replace />;
+
+  const authenticated = isLoggedIn && Boolean(localStorage.getItem("userRole"));
+
+  const adminRoute = (permission, element) => {
+    const isAllowed = Array.isArray(permission)
+      ? permission.some((p) => hasAdminAccess(p))
+      : hasAdminAccess(permission);
+    return localStorage.getItem("userRole") === "admin" && isLoggedIn && isAllowed
+      ? element
+      : <Navigate to={isLoggedIn ? firstAllowedAdminPath() : "/login"} replace />;
+  };
+
   return (
-    <div style={{ overflowX: "hidden", fontFamily: "Nunito Sans" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "var(--color-page-bg, #f8fafc)" }}>
       <ToastContainer
-        style={{ marginTop: "100px" }}
+        style={{ marginTop: "70px" }}
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}
@@ -122,99 +125,125 @@ function App() {
         pauseOnHover
         draggable
       />
-      <>
-        {isLoading && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              backgroundColor: "rgba(255, 255, 255, 0.2)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 9999,
-            }}
-          >
-            <SyncLoader color="#123abc" />
-          </div>
-        )}
-        {/* Your app content */}
-      </>
-      {isLoggedIn && localStorage.getItem("userRole") && (
-        <Header isLoggedIn={isLoggedIn} onLogout={onLogout} isSliderOpen={isSliderOpen} setIsSliderOpen={setIsSliderOpen} />
+
+      {isLoading && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(15, 23, 42, 0.4)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999,
+          }}
+        >
+          <SyncLoader color="#1e293b" />
+        </div>
       )}
-      <div className="app-container position-relative">
-        <Routes>
 
-          <Route
-            path="/"
-            element={
-              isLoggedIn && localStorage.getItem("userRole") === "admin" ? (
-                <Navigate to={firstAllowedAdminPath()} replace />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-          <Route
-            path="/login"
-            element={isLoggedIn && firstAllowedAdminPath() !== "/login" ? <Navigate to={firstAllowedAdminPath()} replace /> : <AdminLoginForm setUserRole={setUserRole} setIsLoggedIn={setIsLoggedIn} />}
-          />
-
-          {/* Admin Dashboard (protected by role check) */}
-          <Route
-            path="/dashboard"
-            element={
-              adminRoute("DASHBOARD", <AdminDashboard />)
-            }
-          ></Route>
-          <Route
-            path="/dashboard/add-product"
-            element={
-              adminRoute("PRODUCTS", <ExcelDataFetcher />)
-            }
-          />
-          <Route
-            path="/dashboard/orders"
-            element={
-              adminRoute("ORDERS", <UserOrders />)
-            }
-          />
-
-          <Route
-            path="/dashboard/quotations"
-            element={
-              adminRoute("QUOTATIONS", <QuotationAdminPage />)
-            }
-          />
-          <Route
-            path="/dashboard/users"
-            element={
-              adminRoute("USERS", <UserManagement />)
-            }
-          />
-          <Route
-            path="/dashboard/blogs"
-            element={
-              adminRoute("BLOGS", <BlogManagement />)
-            }
-          />
-          <Route path="/dashboard/stock-approvals" element={adminRoute("STOCK_APPROVALS", <StockApprovals />)} />
-          <Route path="/dashboard/inventory" element={adminRoute("INVENTORY", <Inventory />)} />
-          <Route path="/dashboard/admin-accounts" element={adminRoute("ADMIN_ACCOUNTS", <AdminAccounts />)} />
-
-          <Route
-            path="/dashboard/orders/:orderId"
-            element={
-              adminRoute("ORDERS", <OrderDetails />)
-            }
-          />
-        </Routes>
-      </div>
-      {location.pathname !== "/" && <Footer />}
+      {authenticated ? (
+        <DashboardLayout onLogout={onLogout}>
+          <div className="app-container position-relative">
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  localStorage.getItem("userRole") === "admin" ? (
+                    <Navigate to={firstAllowedAdminPath()} replace />
+                  ) : (
+                    <Navigate to="/dashboard" replace />
+                  )
+                }
+              />
+              <Route
+                path="/login"
+                element={
+                  <Navigate
+                    to={localStorage.getItem("userRole") === "admin" ? firstAllowedAdminPath() : "/dashboard"}
+                    replace
+                  />
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={adminRoute("DASHBOARD", <AdminDashboard />)}
+              />
+              <Route
+                path="/dashboard/orders"
+                element={adminRoute("ORDERS", <UserOrders />)}
+              />
+              <Route
+                path="/dashboard/quotations"
+                element={adminRoute("QUOTATIONS", <QuotationAdminPage />)}
+              />
+              <Route
+                path="/dashboard/users"
+                element={adminRoute("USERS", <UserManagement />)}
+              />
+              <Route
+                path="/dashboard/dynamic-pricing"
+                element={adminRoute(["DYNAMIC_PRICING", "USERS"], <UserListing />)}
+              />
+              <Route
+                path="/dashboard/leads"
+                element={adminRoute(["LEADS", "DASHBOARD", "USERS"], <LeadManagement />)}
+              />
+              <Route
+                path="/dashboard/lead-management"
+                element={<Navigate to="/dashboard/leads" replace />}
+              />
+              <Route
+                path="/dashboard/blogs"
+                element={adminRoute("BLOGS", <BlogManagement />)}
+              />
+              <Route
+                path="/dashboard/stock-approvals"
+                element={adminRoute("STOCK_APPROVALS", <StockApprovals />)}
+              />
+              <Route
+                path="/dashboard/inventory"
+                element={adminRoute("INVENTORY", <Inventory />)}
+              />
+              <Route
+                path="/dashboard/admin-accounts"
+                element={adminRoute("ADMIN_ACCOUNTS", <AdminAccounts />)}
+              />
+              <Route
+                path="/dashboard/orders/:orderId"
+                element={adminRoute("ORDERS", <OrderDetails />)}
+              />
+              <Route
+                path="*"
+                element={
+                  <Navigate
+                    to={localStorage.getItem("userRole") === "admin" ? firstAllowedAdminPath() : "/dashboard"}
+                    replace
+                  />
+                }
+              />
+            </Routes>
+          </div>
+        </DashboardLayout>
+      ) : (
+        <div className="login-page-container">
+          <Routes>
+            <Route
+              path="/login"
+              element={
+                <AdminLoginForm
+                  setUserRole={setUserRole}
+                  setIsLoggedIn={setIsLoggedIn}
+                />
+              }
+            />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </div>
+      )}
     </div>
   );
 }

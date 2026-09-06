@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
 import "./AdminDashboard.css";
-import { MDBRow, MDBCol, MDBBtn, MDBIcon, MDBModal, MDBModalDialog, MDBModalContent, MDBModalHeader, MDBModalBody, MDBModalFooter, MDBModalTitle, MDBCardSubTitle } from "mdb-react-ui-kit";
+import { MDBRow, MDBCol, MDBBtn, MDBIcon, MDBModal, MDBModalDialog, MDBModalContent, MDBModalHeader, MDBModalBody, MDBModalFooter, MDBModalTitle } from "mdb-react-ui-kit";
 import { useDispatch, useSelector } from "react-redux";
 import BlogManagement from "./BlogManagement/BlogManagement";
 import ProfileOptions from "./ProfileTable/ProfileTable";
 import HardwareOptions from "./HardwareTable/HardwareTable";
 import AccessoriesOptions from "../UserDashboard/AcessoriesOptions";
-import UserListing from "./UserListing/UserListing";
-import LeadManagement from "./LeadManagement/LeadManagement";
 import { setActiveOption, setActiveProfile } from "../../redux/selectionSlice";
 import api, { BASE_API_URL } from '../../utils/api';
 
@@ -83,7 +81,7 @@ const AdminDashboard = () => {
   }, []);
 
   return (
-    <MDBRow className="pdf-row-wrapper mt-5">
+    <MDBRow className="pdf-row-wrapper">
       <MDBCol className="admin-dashboard" style={{ flex: "1 1 auto" }}>
         <MDBRow className="d-flex" style={{ marginTop: "20px", maxWidth: "600px" }}>
           <MDBCol md="auto" className="mb-3" style={{ flex: "1 1 auto" }}>
@@ -114,16 +112,7 @@ const AdminDashboard = () => {
           </MDBCol>
         </MDBRow>
 
-        <MDBRow>
-          <MDBCol md="12">
-            <UserListing />
-          </MDBCol>
-        </MDBRow>
-        <MDBRow>
-          <MDBCol md="12">
-            <LeadManagement />
-          </MDBCol>
-        </MDBRow>
+
 
         <MDBModal open={basicModal} onClose={() => setBasicModal(false)} tabIndex="-1">
           <MDBModalDialog>

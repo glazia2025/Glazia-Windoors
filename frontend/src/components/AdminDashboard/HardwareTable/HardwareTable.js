@@ -1,15 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
-  MDBCard,
-  MDBCardBody,
-  MDBTabs,
-  MDBTabsItem,
-  MDBTabsLink,
-  MDBTypography,
-  MDBBtn,
   MDBInput,
   MDBFile,
-  MDBIcon,
   MDBSwitch,
   MDBModal,
   MDBModalDialog,
@@ -18,6 +10,7 @@ import {
   MDBModalTitle,
   MDBModalBody,
   MDBModalFooter,
+  MDBBtn,
 } from "mdb-react-ui-kit";
 import { useDispatch, useSelector } from "react-redux";
 import { setActiveOption } from "../../../redux/selectionSlice";
@@ -25,6 +18,7 @@ import api, { BASE_API_URL } from "../../../utils/api";
 import Search from "../../Search";
 import ImageZoom from "../../UserDashboard/ImageZoom";
 import { toast } from "react-toastify";
+import "./HardwareTable.css";
 
 const emptyHardwareItem = {
   sapCode: "",
@@ -83,8 +77,10 @@ const HardwareTable = () => {
   }, [activeOption]);
 
   useEffect(() => {
-    dispatch(setActiveOption(hardwareHeirarchy[0]));
-  }, [hardwareHeirarchy]);
+    if (hardwareHeirarchy && hardwareHeirarchy.length > 0) {
+      dispatch(setActiveOption(hardwareHeirarchy[0]));
+    }
+  }, [hardwareHeirarchy, dispatch]);
 
   const fetchProducts = async (reqOption) => {
     try {
@@ -106,7 +102,7 @@ const HardwareTable = () => {
     if (!activeOption && profileData?.options?.length > 0) {
       dispatch(setActiveOption(profileData.options[0]));
     }
-  }, [profileData]);
+  }, [profileData, activeOption, dispatch]);
 
   const handleSearch = async (e) => {
     typeof e?.preventDefault === "function" && e?.preventDefault();
@@ -120,7 +116,7 @@ const HardwareTable = () => {
         },
         headers: { Authorization: `Bearer ${token}` },
       });
-      setSearchResults(response.data.products);
+      setSearchResults(response.data.products || []);
     } catch (error) {
       console.error("Error searching products:", error);
     }
@@ -137,9 +133,9 @@ const HardwareTable = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, files } = e.target;
+    const { name, files, value } = e.target;
 
-    if (name === "image" && files.length > 0) {
+    if (name === "image" && files?.length > 0) {
       const file = files[0];
       const reader = new FileReader();
 
@@ -153,7 +149,6 @@ const HardwareTable = () => {
 
       reader.readAsDataURL(file);
     } else {
-      const { value } = e.target;
       setEditableProduct((prevState) => ({
         ...prevState,
         [name]: value,
@@ -173,10 +168,12 @@ const HardwareTable = () => {
           },
         }
       );
-      fetchProducts(activeOption); // Refresh product list
-      setEditableProduct(null); // Exit edit mode
+      toast.success("Hardware item updated");
+      fetchProducts(activeOption);
+      setEditableProduct(null);
     } catch (err) {
       console.error("Error saving product", err);
+      toast.error("Failed to update hardware item");
     }
   };
 
@@ -237,6 +234,7 @@ const HardwareTable = () => {
   };
 
   const handleDelete = async (productId) => {
+    if (!window.confirm("Are you sure you want to delete this hardware item?")) return;
     try {
       const token = localStorage.getItem("authToken");
       await api.delete(
@@ -247,11 +245,12 @@ const HardwareTable = () => {
           },
         }
       );
+      toast.success("Hardware item deleted");
       fetchProducts(activeOption);
-      // Update state after deletion
       setProfileOptions((prevOptions) => {
-        const updatedProducts = prevOptions.products[activeOption].filter(
-          (product) => product.id !== productId
+        const currentProducts = prevOptions?.products?.[activeOption] || [];
+        const updatedProducts = currentProducts.filter(
+          (product) => (product._id || product.id) !== productId
         );
         return {
           ...prevOptions,
@@ -263,6 +262,7 @@ const HardwareTable = () => {
       });
     } catch (err) {
       console.error("Error deleting product", err);
+      toast.error("Failed to delete hardware item");
     }
   };
 
@@ -272,7 +272,11 @@ const HardwareTable = () => {
   };
 
   const openEditCategory = (category) => {
-    setCategoryForm({ name: category.name, description: category.description || "", enabled: category.enabled !== false });
+    setCategoryForm({
+      name: category.name,
+      description: category.description || "",
+      enabled: category.enabled !== false,
+    });
     setCategoryModal({ mode: "edit", category });
   };
 
@@ -293,13 +297,17 @@ const HardwareTable = () => {
           categoryForm,
           getAuthConfig()
         );
-        if (activeOption === oldName) dispatch(setActiveOption(categoryForm.name.trim().toUpperCase()));
+        if (activeOption === oldName) {
+          dispatch(setActiveOption(categoryForm.name.trim().toUpperCase()));
+        }
         toast.success("Hardware category updated");
       }
       setCategoryModal(null);
-      await fetchCategories(categoryModal.mode === "edit" && activeOption === oldName
-        ? categoryForm.name.trim().toUpperCase()
-        : activeOption);
+      await fetchCategories(
+        categoryModal.mode === "edit" && activeOption === oldName
+          ? categoryForm.name.trim().toUpperCase()
+          : activeOption
+      );
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to save hardware category");
     }
@@ -321,304 +329,479 @@ const HardwareTable = () => {
   };
 
   return (
-    <>
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <MDBTypography tag="h4" className="mb-0">Hardware Categories</MDBTypography>
-        <MDBBtn size="sm" onClick={openCreateCategory}><MDBIcon fas icon="plus" className="me-2" />Add Category</MDBBtn>
-      </div>
-      <MDBTabs className="mb-4 d-flex align-items-center gap-2 flex-wrap">
-        {categories.map((category) => (
-          <MDBTabsItem key={category._id} className="d-flex align-items-center">
-            <MDBTabsLink
-              className="rounded-2"
-              active={activeOption === category.name}
-              onClick={() => dispatch(setActiveOption(category.name))}
-            >
-              {category.name}{!category.enabled && " (Disabled)"}
-            </MDBTabsLink>
-            <MDBBtn color="link" size="sm" className="px-2" onClick={() => openEditCategory(category)} title="Edit category"><MDBIcon fas icon="pen" /></MDBBtn>
-            <MDBBtn color="link" size="sm" className="px-2 text-danger" onClick={() => deleteCategory(category)} title="Delete category"><MDBIcon fas icon="trash" /></MDBBtn>
-          </MDBTabsItem>
-        ))}
-      </MDBTabs>
-      {/* <hr /> */}
-      {activeOption && (
-        <MDBCard className="mt-4">
-          <MDBCardBody>
-            <div
-              className="d-flex justify-content-between align-items-center mb-3 sticky-top bg-white p-3"
-              style={{ top: "0", zIndex: 1 }}
-            >
-              <div className="d-flex align-items-center">
-                <MDBTypography
-                  tag="h4"
-                  className="mb-0"
-                  style={{ marginRight: "20px" }}
-                >
-                  Products
-                </MDBTypography>
-                <MDBBtn
-                  size="sm"
-                  onClick={() => {
-                    setEditableProduct(null);
-                    setIsAdding(true);
-                  }}
-                  disabled={isAdding}
-                >
-                  Add Item
-                </MDBBtn>
+    <div className="hw-container">
+      {/* 1. Hardware Categories Section */}
+      <div className="hw-categories-section">
+        <div className="hw-categories-header">
+          <div className="hw-header-left">
+            <div className="hw-header-icon">
+              <i className="fas fa-cubes"></i>
+            </div>
+            <div>
+              <h4 className="hw-header-title">Hardware Categories</h4>
+              <p className="hw-header-subtitle">
+                Manage hardware fittings, accessories, and category specifications
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="hw-btn-add-category"
+            onClick={openCreateCategory}
+          >
+            <i className="fas fa-plus"></i>
+            <span>Add Category</span>
+          </button>
+        </div>
+
+        {/* Category Chips */}
+        <div className="hw-chips-wrapper">
+          {categories.map((category) => {
+            const isActive = activeOption === category.name;
+            return (
+              <div
+                key={category._id}
+                className={`hw-category-chip ${isActive ? "active" : ""}`}
+                onClick={() => dispatch(setActiveOption(category.name))}
+              >
+                <div className="hw-chip-main">
+                  <i className="fas fa-cube hw-chip-icon"></i>
+                  <span className="hw-chip-name">{category.name}</span>
+                  {!category.enabled && (
+                    <span className="hw-chip-disabled-badge">Disabled</span>
+                  )}
+                </div>
+                <div className="hw-chip-actions">
+                  <button
+                    type="button"
+                    className="hw-chip-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditCategory(category);
+                    }}
+                    title="Edit category"
+                  >
+                    <i className="far fa-edit"></i>
+                  </button>
+                  <button
+                    type="button"
+                    className="hw-chip-btn btn-trash"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteCategory(category);
+                    }}
+                    title="Delete category"
+                  >
+                    <i className="far fa-trash-alt"></i>
+                  </button>
+                </div>
               </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2. Products Section Card */}
+      {activeOption && (
+        <div className="hw-products-card">
+          <div className="hw-products-header">
+            <div className="hw-products-header-left">
+              <div className="hw-products-title-group">
+                <div className="hw-products-icon">
+                  <i className="fas fa-boxes"></i>
+                </div>
+                <h5 className="hw-products-title">Products</h5>
+                <span className="hw-active-badge">
+                  <i className="fas fa-tag me-1"></i>
+                  {activeOption}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="hw-btn-add-item"
+                onClick={() => {
+                  setEditableProduct(null);
+                  setIsAdding(true);
+                }}
+                disabled={isAdding}
+              >
+                <i className="fas fa-plus"></i>
+                <span>Add Item</span>
+              </button>
+            </div>
+
+            <div className="hw-search-wrapper">
               <Search
                 searchQuery={searchQuery}
                 setSearchQuery={searchProduct}
                 handleSearch={handleSearch}
               />
             </div>
-            <div className="table-responsive">
-              <table className="table table-bordered">
-                <thead>
-                  <tr>
-                    <th>S No.</th>
-                    <th>Image</th>
-                    <th>SAP Code</th>
-                    <th>Sub Category</th>
-                    <th>Perticular</th>
-                    <th>Rate</th>
-                    <th>System / Unit</th>
-                    <th>MOQ</th>
-                    <th>Actions</th>
+          </div>
+
+          <div className="hw-table-wrapper">
+            <table className="hw-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "5%", textAlign: "center" }}>S NO.</th>
+                  <th style={{ width: "7%", textAlign: "center" }}>IMAGE</th>
+                  <th style={{ width: "12%" }}>SAP CODE</th>
+                  <th style={{ width: "14%" }}>SUB CATEGORY</th>
+                  <th style={{ width: "20%" }}>PERTICULAR</th>
+                  <th style={{ width: "10%" }}>RATE</th>
+                  <th style={{ width: "14%" }}>SYSTEM / UNIT</th>
+                  <th style={{ width: "8%" }}>MOQ</th>
+                  <th style={{ width: "10%", textAlign: "center" }}>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Adding New Item Row */}
+                {isAdding && (
+                  <tr className="hw-inline-row">
+                    <td className="hw-index-cell">
+                      <span className="badge bg-primary">NEW</span>
+                    </td>
+                    <td>
+                      <MDBFile
+                        name="image"
+                        size="sm"
+                        onChange={handleNewProductChange}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="hw-input-control"
+                        name="sapCode"
+                        placeholder="SAP Code"
+                        value={newProduct.sapCode}
+                        onChange={handleNewProductChange}
+                        required
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="hw-input-control"
+                        value={activeOption}
+                        disabled
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="hw-input-control"
+                        name="perticular"
+                        placeholder="Description"
+                        value={newProduct.perticular}
+                        onChange={handleNewProductChange}
+                        required
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        className="hw-input-control"
+                        name="rate"
+                        placeholder="₹ Rate"
+                        value={newProduct.rate}
+                        onChange={handleNewProductChange}
+                        required
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="hw-input-control"
+                        name="system"
+                        placeholder="System / Unit"
+                        value={newProduct.system}
+                        onChange={handleNewProductChange}
+                        required
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="hw-input-control"
+                        name="moq"
+                        placeholder="MOQ"
+                        value={newProduct.moq}
+                        onChange={handleNewProductChange}
+                        required
+                      />
+                    </td>
+                    <td>
+                      <div className="hw-actions-cell">
+                        <button
+                          type="button"
+                          className="hw-btn-action hw-btn-save"
+                          onClick={handleAdd}
+                          disabled={isSavingNew}
+                        >
+                          <i className="fas fa-check"></i>
+                          <span>{isSavingNew ? "Saving..." : "Save"}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="hw-btn-action hw-btn-cancel"
+                          onClick={cancelAdd}
+                          disabled={isSavingNew}
+                        >
+                          <i className="fas fa-times"></i>
+                          <span>Cancel</span>
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {isAdding && (
+                )}
+
+                {/* Normal / Editing Product Rows */}
+                {productsToDisplay && productsToDisplay.length > 0 ? (
+                  productsToDisplay.map((product, index) => {
+                    const isEditing = editableProduct?._id === product._id || editableProduct?.id === product.id;
+
+                    if (isEditing) {
+                      return (
+                        <tr key={product._id || product.id || index} className="hw-inline-row">
+                          <td className="hw-index-cell">{index + 1}</td>
+                          <td>
+                            <MDBFile
+                              name="image"
+                              size="sm"
+                              onChange={handleInputChange}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              className="hw-input-control"
+                              name="sapCode"
+                              value={editableProduct.sapCode || ""}
+                              onChange={handleInputChange}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              className="hw-input-control"
+                              name="subCategory"
+                              value={editableProduct.subCategory || ""}
+                              onChange={handleInputChange}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              className="hw-input-control"
+                              name="perticular"
+                              value={editableProduct.perticular || ""}
+                              onChange={handleInputChange}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              className="hw-input-control"
+                              name="rate"
+                              value={editableProduct.rate || ""}
+                              onChange={handleInputChange}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              className="hw-input-control"
+                              name="system"
+                              value={editableProduct.system || ""}
+                              onChange={handleInputChange}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              className="hw-input-control"
+                              name="moq"
+                              value={editableProduct.moq || ""}
+                              onChange={handleInputChange}
+                            />
+                          </td>
+                          <td>
+                            <div className="hw-actions-cell">
+                              <button
+                                type="button"
+                                className="hw-btn-action hw-btn-save"
+                                onClick={handleSave}
+                              >
+                                <i className="fas fa-check"></i>
+                                <span>Save</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="hw-btn-action hw-btn-cancel"
+                                onClick={() => setEditableProduct(null)}
+                              >
+                                <i className="fas fa-times"></i>
+                                <span>Cancel</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return (
+                      <tr key={product._id || product.id || index}>
+                        <td className="hw-index-cell">{index + 1}</td>
+                        <td style={{ textAlign: "center" }}>
+                          <ImageZoom productImage={product.image} imageWidth="40px" />
+                        </td>
+                        <td>
+                          <span className="hw-sap-code">{product.sapCode}</span>
+                        </td>
+                        <td>
+                          <span className="hw-sub-category">{product.subCategory}</span>
+                        </td>
+                        <td>
+                          <span className="hw-perticular">{product.perticular}</span>
+                        </td>
+                        <td>
+                          <span className="hw-rate-cell">₹ {product.rate}</span>
+                        </td>
+                        <td>
+                          <span className="hw-system-badge">{product.system}</span>
+                        </td>
+                        <td>
+                          <span className="hw-moq-badge">{product.moq}</span>
+                        </td>
+                        <td>
+                          <div className="hw-actions-cell">
+                            <button
+                              type="button"
+                              className="hw-btn-action hw-btn-edit"
+                              onClick={() => handleEditClick(product)}
+                              title="Edit item"
+                            >
+                              <i className="far fa-edit"></i>
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="hw-btn-action hw-btn-delete"
+                              onClick={() => handleDelete(product._id || product.id)}
+                              title="Delete item"
+                            >
+                              <i className="far fa-trash-alt"></i>
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  !isAdding && (
                     <tr>
-                      <td>New</td>
-                      <td>
-                        <MDBFile
-                          name="image"
-                          size="sm"
-                          onChange={handleNewProductChange}
-                        />
-                      </td>
-                      <td>
-                        <MDBInput
-                          name="sapCode"
-                          value={newProduct.sapCode}
-                          onChange={handleNewProductChange}
-                          required
-                        />
-                      </td>
-                      <td>
-                        <MDBInput value={activeOption} disabled />
-                      </td>
-                      <td>
-                        <MDBInput
-                          name="perticular"
-                          value={newProduct.perticular}
-                          onChange={handleNewProductChange}
-                          required
-                        />
-                      </td>
-                      <td>
-                        <MDBInput
-                          name="rate"
-                          type="number"
-                          min="0"
-                          value={newProduct.rate}
-                          onChange={handleNewProductChange}
-                          required
-                        />
-                      </td>
-                      <td>
-                        <MDBInput
-                          name="system"
-                          value={newProduct.system}
-                          onChange={handleNewProductChange}
-                          required
-                        />
-                      </td>
-                      <td>
-                        <MDBInput
-                          name="moq"
-                          value={newProduct.moq}
-                          onChange={handleNewProductChange}
-                          required
-                        />
-                      </td>
-                      <td>
-                        <div className="d-flex">
-                          <MDBBtn
-                            color="success"
-                            size="sm"
-                            className="m-1"
-                            onClick={handleAdd}
-                            disabled={isSavingNew}
-                          >
-                            {isSavingNew ? "Saving..." : "Save"}
-                          </MDBBtn>
-                          <MDBBtn
-                            color="secondary"
-                            size="sm"
-                            className="m-1"
-                            onClick={cancelAdd}
-                            disabled={isSavingNew}
-                          >
-                            Cancel
-                          </MDBBtn>
+                      <td colSpan={9}>
+                        <div className="hw-empty-state">
+                          <div className="hw-empty-icon">
+                            <i className="fas fa-box-open"></i>
+                          </div>
+                          <h6 className="hw-empty-title">No products found</h6>
+                          <p className="hw-empty-desc">
+                            No hardware items found under "{activeOption}". Click "Add Item" to register one.
+                          </p>
                         </div>
                       </td>
                     </tr>
-                  )}
-                  {productsToDisplay?.map((product, index) => (
-                    <tr key={product.id}>
-                      <td>{index + 1}</td>
-                      <td>
-                        {editableProduct?.id === product.id ? (
-                          <MDBFile
-                            name="image"
-                            size="sm"
-                            onChange={handleInputChange}
-                            id="formFileSm"
-                          />
-                        ) : (
-                          <ImageZoom productImage={product.image} />
-                        )}
-                      </td>
-                      <td>
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="sapCode"
-                            value={editableProduct.sapCode}
-                            onChange={handleInputChange}
-                          />
-                        ) : (
-                          product.sapCode
-                        )}
-                      </td>
-                      <td>
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="subCategory"
-                            value={editableProduct.subCategory}
-                            onChange={handleInputChange}
-                          />
-                        ) : (
-                          product.subCategory
-                        )}
-                      </td>
-                      <td>
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="perticular"
-                            value={editableProduct.perticular}
-                            onChange={handleInputChange}
-                          />
-                        ) : (
-                          product.perticular
-                        )}
-                      </td>
-                      <td>
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="rate"
-                            value={editableProduct.rate}
-                            onChange={handleInputChange}
-                          />
-                        ) : (
-                          product.rate
-                        )}
-                      </td>
-                      <td>
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="system"
-                            value={editableProduct.system}
-                            onChange={handleInputChange}
-                          />
-                        ) : (
-                          product.system
-                        )}
-                      </td>
-                      <td>
-                        {editableProduct?.id === product.id ? (
-                          <MDBInput
-                            name="moq"
-                            value={editableProduct.moq}
-                            onChange={handleInputChange}
-                          />
-                        ) : (
-                          product.moq
-                        )}
-                      </td>
-                      <td className="d-flex">
-                        {editableProduct?.id === product.id ? (
-                          <>
-                            <MDBBtn
-                              color="success"
-                              size="sm"
-                              className="m-1"
-                              onClick={handleSave}
-                            >
-                              Save
-                            </MDBBtn>
-                            <MDBBtn
-                              color="secondary"
-                              size="sm"
-                              className="m-1"
-                              onClick={() => setEditableProduct(null)}
-                            >
-                              Cancel
-                            </MDBBtn>
-                          </>
-                        ) : (
-                          <>
-                            <MDBBtn
-                              color="warning"
-                              size="sm"
-                              className="m-1"
-                              onClick={() => handleEditClick(product)}
-                            >
-                              Edit
-                            </MDBBtn>
-                            <MDBBtn
-                              color="danger"
-                              size="sm"
-                              className="m-1"
-                              onClick={() => handleDelete(product._id)}
-                            >
-                              Delete
-                            </MDBBtn>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </MDBCardBody>
-        </MDBCard>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
-      <MDBModal open={Boolean(categoryModal)} onClose={() => setCategoryModal(null)} tabIndex="-1">
+
+      {/* Category Modal (Create / Edit) */}
+      <MDBModal
+        open={Boolean(categoryModal)}
+        onClose={() => setCategoryModal(null)}
+        tabIndex="-1"
+      >
         <MDBModalDialog>
           <MDBModalContent>
             <MDBModalHeader>
-              <MDBModalTitle>{categoryModal?.mode === "create" ? "Create Hardware Category" : "Edit Hardware Category"}</MDBModalTitle>
-              <MDBBtn className="btn-close" color="none" onClick={() => setCategoryModal(null)} />
+              <MDBModalTitle>
+                <i className="fas fa-layer-group me-2 text-primary"></i>
+                {categoryModal?.mode === "create"
+                  ? "Create Hardware Category"
+                  : "Edit Hardware Category"}
+              </MDBModalTitle>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={() => setCategoryModal(null)}
+              ></button>
             </MDBModalHeader>
             <MDBModalBody>
-              <MDBInput label="Category Name" className="mb-3" value={categoryForm.name} onChange={(e) => setCategoryForm((current) => ({ ...current, name: e.target.value }))} />
-              <MDBInput label="Description" className="mb-3" value={categoryForm.description} onChange={(e) => setCategoryForm((current) => ({ ...current, description: e.target.value }))} />
-              <MDBSwitch label="Enabled" checked={categoryForm.enabled} onChange={(e) => setCategoryForm((current) => ({ ...current, enabled: e.target.checked }))} />
+              <div className="mb-3">
+                <label className="form-label fw-bold text-dark small">Category Name</label>
+                <MDBInput
+                  placeholder="e.g. CORNER JOINERY"
+                  value={categoryForm.name}
+                  onChange={(e) =>
+                    setCategoryForm((current) => ({ ...current, name: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label fw-bold text-dark small">Description</label>
+                <MDBInput
+                  placeholder="Category description or specifications"
+                  value={categoryForm.description}
+                  onChange={(e) =>
+                    setCategoryForm((current) => ({
+                      ...current,
+                      description: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="mt-3">
+                <MDBSwitch
+                  label="Category Enabled"
+                  checked={categoryForm.enabled}
+                  onChange={(e) =>
+                    setCategoryForm((current) => ({
+                      ...current,
+                      enabled: e.target.checked,
+                    }))
+                  }
+                />
+              </div>
             </MDBModalBody>
             <MDBModalFooter>
-              <MDBBtn color="secondary" onClick={() => setCategoryModal(null)}>Cancel</MDBBtn>
-              <MDBBtn onClick={saveCategory}>Save</MDBBtn>
+              <MDBBtn
+                color="secondary"
+                size="sm"
+                onClick={() => setCategoryModal(null)}
+              >
+                Cancel
+              </MDBBtn>
+              <button
+                type="button"
+                className="hw-btn-add-category"
+                onClick={saveCategory}
+              >
+                <i className="fas fa-save me-1"></i>
+                Save Category
+              </button>
             </MDBModalFooter>
           </MDBModalContent>
         </MDBModalDialog>
       </MDBModal>
-    </>
+    </div>
   );
 };
 

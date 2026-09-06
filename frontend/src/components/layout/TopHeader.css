@@ -1,0 +1,198 @@
+.glazia-topbar {
+  height: var(--topbar-height, 62px);
+  background-color: var(--color-surface, #ffffff);
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 990;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.topbar-toggle-btn {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-heading, #1e293b);
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md, 8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(15, 23, 42, 0.03));
+}
+
+.topbar-toggle-btn:hover {
+  background: var(--color-surface-muted, #f1f5f9);
+  border-color: var(--color-border-dark, #cbd5e1);
+}
+
+.topbar-heading {
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-heading, #1e293b);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.topbar-subtitle {
+  font-size: 12px;
+  color: var(--color-text-secondary, #64748b);
+  font-weight: 400;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.topbar-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  background-color: var(--color-surface-muted, #f1f5f9);
+  color: var(--color-heading, #1e293b);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-pill, 9999px);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* User Menu */
+.topbar-user-menu {
+  position: relative;
+}
+
+.topbar-user-btn {
+  background: transparent;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-pill, 9999px);
+  padding: 4px 12px 4px 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.topbar-user-btn:hover {
+  background: var(--color-surface-muted, #f1f5f9);
+  border-color: var(--color-border-dark, #cbd5e1);
+}
+
+.topbar-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--color-primary, #1e293b);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.topbar-username {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-heading, #1e293b);
+}
+
+.topbar-chevron {
+  font-size: 10px;
+  color: var(--color-text-secondary, #64748b);
+}
+
+/* Dropdown */
+.topbar-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 200px;
+  background-color: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-lg, 10px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.05));
+  padding: 6px;
+  z-index: 1050;
+  animation: dropdownFade 0.15s ease-out;
+}
+
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-user-header {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-heading, #1e293b);
+}
+
+.dropdown-role {
+  font-size: 11px;
+  color: var(--color-text-secondary, #64748b);
+  text-transform: capitalize;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--color-border-light, #eef2f6);
+  margin: 4px 0;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  color: var(--color-text, #475569);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: var(--color-surface-muted, #f1f5f9);
+  color: var(--color-heading, #1e293b);
+}
+
+.dropdown-item.text-danger:hover {
+  background: var(--color-danger-bg, #fee2e2);
+  color: var(--color-danger, #dc2626);
+}
