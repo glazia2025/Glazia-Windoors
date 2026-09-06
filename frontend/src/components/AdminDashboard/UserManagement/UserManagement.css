@@ -5,3 +5,7 @@
 .user-management-wrapper .table > :not(caption) > * > * {
   vertical-align: middle;
 }
+.promotion-backdrop{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(12,27,34,.62)}
+.promotion-modal{width:min(580px,100%);border-radius:14px;background:#fff;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+.promotion-close{display:flex;width:34px;height:34px;align-items:center;justify-content:center;border:0;border-radius:8px;background:#f1f3f4;font-size:24px;line-height:1}
+.promotion-agreement{border:1px solid #dce3e5;border-radius:9px;background:#f8fafb;padding:13px}

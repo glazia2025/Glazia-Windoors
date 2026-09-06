@@ -49,6 +49,10 @@ const UserManagement = () => {
   const [form, setForm] = useState(emptyForm);
   const [showAgreement, setShowAgreement] = useState(false);
   const [paBlob, setPaBlob] = useState(null);
+  const [promotionUser, setPromotionUser] = useState(null);
+  const [promotionBlob, setPromotionBlob] = useState(null);
+  const [promotionAccepted, setPromotionAccepted] = useState(false);
+  const [promotionLoading, setPromotionLoading] = useState(false);
 
   const token = localStorage.getItem("authToken");
 
@@ -174,6 +178,19 @@ const UserManagement = () => {
     } finally {
       setFormLoading(false);
     }
+  };
+
+  const promoteToDealership = async () => {
+    if (!promotionUser || !promotionBlob || !promotionAccepted) return;
+    setPromotionLoading(true); setError("");
+    try {
+      const data = new FormData();
+      data.append("partnerAgreementAccepted", "true");
+      data.append("paPdf", new File([promotionBlob], "glazia-dealership-agreement.pdf", { type: "application/pdf" }));
+      await api.post(`${BASE_API_URL}/admin/users/${promotionUser._id}/promote-dealership`, data, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } });
+      setPromotionUser(null); setPromotionBlob(null); setPromotionAccepted(false); await fetchUsers();
+    } catch (err) { setError(err.response?.data?.message || "Failed to promote fabricator"); }
+    finally { setPromotionLoading(false); }
   };
 
   return (
@@ -379,13 +396,15 @@ const UserManagement = () => {
                     <th>City</th>
                     <th>State</th>
                     <th>Registered At</th>
+                    <th>Account</th>
+                    <th>Action</th>
                   </tr>
                 </MDBTableHead>
 
                 <MDBTableBody>
                   {userRows.length === 0 ? (
                     <tr>
-                      <td colSpan="9" className="text-center py-4 text-muted">
+                      <td colSpan="11" className="text-center py-4 text-muted">
                         No users available
                       </td>
                     </tr>
@@ -401,6 +420,8 @@ const UserManagement = () => {
                             .filter((num) => num !== user.phoneNumber)
                             .join(", ") || "-"}
                         </td>
+                        <td><span className={`badge ${user.accountType === "DEALERSHIP" ? "bg-success" : "bg-secondary"}`}>{user.accountType || "FABRICATOR"}</span></td>
+                        <td>{user.accountType === "FABRICATOR" ? <MDBBtn size="sm" color="secondary" onClick={() => { setPromotionUser(user); setPromotionBlob(null); setPromotionAccepted(false); }}>Promote to dealership</MDBBtn> : "—"}</td>
                         <td>{user.gstNumber || "-"}</td>
                         <td>{user.city || "-"}</td>
                         <td>{user.state || "-"}</td>
@@ -420,6 +441,7 @@ const UserManagement = () => {
           </MDBCardBody>
         </MDBCard>
       </MDBCol>
+      {promotionUser && <div className="promotion-backdrop"><div className="promotion-modal" role="dialog" aria-modal="true"><div className="d-flex justify-content-between align-items-start"><div><h4>Promote to dealership</h4><p className="text-muted">{promotionUser.name} · {promotionUser.phoneNumber}</p></div><button className="promotion-close" onClick={() => setPromotionUser(null)}>×</button></div><div className="alert alert-warning small">The existing Glazia–Fabricator agreement will be deleted from S3 and replaced by this Glazia–Dealership agreement.</div><div className="promotion-agreement"><ParterAgreement agreementType="GLAZIA_DEALERSHIP" userName={promotionUser.name} completeAddress={promotionUser.address || ""} gstNumber={promotionUser.gstNumber} pincode={promotionUser.pincode || ""} city={promotionUser.city} state={promotionUser.state} phoneNumber={promotionUser.phoneNumber} email={promotionUser.email} setBlob={setPromotionBlob}/></div><label className="d-flex align-items-start gap-2 mt-3"><input type="checkbox" className="mt-1" checked={promotionAccepted} onChange={event => setPromotionAccepted(event.target.checked)}/><span>I confirm the dealership has reviewed and accepted the new agreement.</span></label><div className="d-flex justify-content-end gap-2 mt-4"><MDBBtn color="light" onClick={() => setPromotionUser(null)}>Cancel</MDBBtn><MDBBtn disabled={!promotionBlob || !promotionAccepted || promotionLoading} onClick={promoteToDealership}>{promotionLoading ? "Promoting…" : "Promote dealership"}</MDBBtn></div></div></div>}
     </MDBRow>
   );
 };

@@ -28,6 +28,7 @@ import {
   setActiveProfile,
   setSelectedOption,
 } from "../../redux/selectionSlice";
+import { firstAllowedAdminPath, hasAdminAccess } from "../../utils/adminAccess";
 
 const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
   const { user } = useSelector((state) => state.user);
@@ -77,7 +78,7 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
   useEffect(() => {
     const role = localStorage.getItem("userRole");
     setUserRole(role);
-    if (isLoggedIn) {
+    if (isLoggedIn && hasAdminAccess("PRODUCTS")) {
       fetchProfileAndHardwareData();
     }
   }, []);
@@ -92,7 +93,7 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
         <MDBNavbarBrand
           className="cursor-pointer"
           onClick={() =>
-            navigate("/dashboard")
+            navigate(firstAllowedAdminPath())
           }
         >
           <img className="logo" src={logo} />
@@ -112,12 +113,12 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
           <MDBNavbarNav className="mr-auto mb-2 mb-lg-0 gap-3">
             {isLoggedIn && (
               <>
-                <MDBNavbarItem>
+                {hasAdminAccess("DASHBOARD") && <MDBNavbarItem>
                   <MDBNavbarLink onClick={() => navigate("/dashboard")}>
                     Dashboard
                   </MDBNavbarLink>
-                </MDBNavbarItem>
-                <MDBNavbarItem>
+                </MDBNavbarItem>}
+                {hasAdminAccess("PRODUCTS") && <MDBNavbarItem>
                   <MDBDropdown>
                     <MDBDropdownToggle
                       tag="a"
@@ -157,8 +158,8 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
                       ))}
                     </MDBDropdownMenu>
                   </MDBDropdown>
-                </MDBNavbarItem>
-                <MDBNavbarItem>
+                </MDBNavbarItem>}
+                {hasAdminAccess("PRODUCTS") && <MDBNavbarItem>
                   <MDBDropdown>
                     <MDBDropdownToggle
                       tag="a"
@@ -182,9 +183,9 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
                       ))}
                     </MDBDropdownMenu>
                   </MDBDropdown>
-                </MDBNavbarItem>
+                </MDBNavbarItem>}
 
-                <MDBNavbarItem>
+                {hasAdminAccess("ORDERS") && <MDBNavbarItem>
                   <MDBDropdown>
                     <MDBDropdownToggle
                       tag="a"
@@ -212,10 +213,24 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
                       </MDBDropdownItem>
                     </MDBDropdownMenu>
                   </MDBDropdown>
-                </MDBNavbarItem>
+                </MDBNavbarItem>}
 
                 <MDBNavbarItem>
-                  {userRole === "admin" && (
+                  {userRole === "admin" && hasAdminAccess("STOCK_APPROVALS") && (
+                    <MDBNavbarLink onClick={() => navigate("/dashboard/stock-approvals")} className="fw-semibold text-dark">
+                      Stock Approvals
+                    </MDBNavbarLink>
+                  )}
+                </MDBNavbarItem>
+                <MDBNavbarItem>
+                  {userRole === "admin" && hasAdminAccess("INVENTORY") && (
+                    <MDBNavbarLink onClick={() => navigate("/dashboard/inventory")} className="fw-semibold text-dark">
+                      Inventory
+                    </MDBNavbarLink>
+                  )}
+                </MDBNavbarItem>
+                <MDBNavbarItem>
+                  {userRole === "admin" && hasAdminAccess("QUOTATIONS") && (
                     <MDBNavbarLink
                       onClick={() => navigate("/dashboard/quotations")}
                       className="fw-semibold text-dark"
@@ -226,7 +241,7 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
                 </MDBNavbarItem>
 
                 <MDBNavbarItem>
-                  {userRole === "admin" && (
+                  {userRole === "admin" && hasAdminAccess("USERS") && (
                     <MDBNavbarLink
                       onClick={() => navigate("/dashboard/users")}
                       className="fw-semibold text-dark"
@@ -237,7 +252,7 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
                 </MDBNavbarItem>
 
                 <MDBNavbarItem>
-                  {userRole === "admin" && (
+                  {userRole === "admin" && hasAdminAccess("PRODUCTS") && (
                     <MDBNavbarLink
                       onClick={() => navigate("/dashboard/add-product")}
                       className="fw-semibold text-dark"
@@ -247,12 +262,19 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
                   )}
                 </MDBNavbarItem>
                 <MDBNavbarItem>
-                  {userRole === "admin" && (
+                  {userRole === "admin" && hasAdminAccess("BLOGS") && (
                     <MDBNavbarLink
                       onClick={() => navigate("/dashboard/blogs")}
                       className="fw-semibold text-dark"
                     >
                       Add Blogs
+                    </MDBNavbarLink>
+                  )}
+                </MDBNavbarItem>
+                <MDBNavbarItem>
+                  {userRole === "admin" && hasAdminAccess("ADMIN_ACCOUNTS") && (
+                    <MDBNavbarLink onClick={() => navigate("/dashboard/admin-accounts")} className="fw-semibold text-dark">
+                      Admin Accounts
                     </MDBNavbarLink>
                   )}
                 </MDBNavbarItem>

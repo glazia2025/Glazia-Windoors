@@ -1,7 +1,7 @@
 import React from 'react';
 import html2pdf from "html2pdf.js";
 
-const ParterAgreement = ({userName, completeAddress, gstNumber, pincode, city, state, phoneNumber, email, setBlob}) => {
+const ParterAgreement = ({userName, completeAddress, gstNumber, pincode, city, state, phoneNumber, email, setBlob, agreementType = 'GLAZIA_FABRICATOR'}) => {
 
     const [url, setUrl] = React.useState("");
 
@@ -10,7 +10,7 @@ const ParterAgreement = ({userName, completeAddress, gstNumber, pincode, city, s
         const date = day.getDate();
         const month = day.getMonth();
         const year = day.getFullYear();
-        const htmlStr = `<!DOCTYPE html>
+        let htmlStr = `<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -650,10 +650,17 @@ const ParterAgreement = ({userName, completeAddress, gstNumber, pincode, city, s
 </body>
 
 </html>`
+        if (agreementType === 'GLAZIA_DEALERSHIP') {
+            htmlStr = htmlStr
+                .replace('<h1>AGREEMENT</h1>', '<h1>GLAZIA–DEALERSHIP PARTNER AGREEMENT</h1>')
+                .replaceAll('Fabricator/Dealer', 'Dealership')
+                .replaceAll('Fabricator', 'Dealership')
+                .replaceAll('dealer/Dealership', 'Dealership');
+        }
 
          const opt = {
             margin:       0.5,
-            filename:     'document.pdf',
+            filename:     agreementType === 'GLAZIA_DEALERSHIP' ? 'glazia-dealership-agreement.pdf' : 'glazia-fabricator-agreement.pdf',
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2 },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }

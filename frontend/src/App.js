@@ -29,11 +29,17 @@ import Squares from "./components/ui/Squares/Squares";
 import QuotationAdminPage from "./components/AdminDashboard/QuotationAdmin/QuotationAdminPage";
 import UserManagement from "./components/AdminDashboard/UserManagement/UserManagement";
 import BlogManagement from "./components/AdminDashboard/BlogManagement/BlogManagement";
+import StockApprovals from "./components/AdminDashboard/StockApprovals/StockApprovals";
+import Inventory from "./components/AdminDashboard/Inventory/Inventory";
+import AdminAccounts from "./components/AdminDashboard/AdminAccounts/AdminAccounts";
+import { clearCurrentAdminPermissions, firstAllowedAdminPath, hasAdminAccess, setCurrentAdminPermissions } from "./utils/adminAccess";
+import api, { BASE_API_URL } from "./utils/api";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isSliderOpen, setIsSliderOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [, setPermissionVersion] = useState(0);
 
 
   const navigate = useNavigate();
@@ -43,17 +49,28 @@ function App() {
   const location = useLocation();
 
   useEffect(() => {
-    const decoded = checkTokenExpiration();
+    const initializeAuth = async () => {
+      const decoded = checkTokenExpiration();
+      if (decoded?.role === "admin") {
+        try {
+          const response = await api.get(`${BASE_API_URL}/auth/admin/session`, { headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` } });
+          setCurrentAdminPermissions(response.data.admin?.permissions || []);
+          setUserRole(decoded.role); setIsLoggedIn(true);
+        } catch (_error) {
+          localStorage.removeItem("authToken"); localStorage.removeItem("userRole"); clearCurrentAdminPermissions(); setIsLoggedIn(false);
+        }
+      } else {
+        clearCurrentAdminPermissions(); setIsLoggedIn(false); setUserRole(null);
+      }
+      setAuthChecked(true);
+    };
+    initializeAuth();
+  }, []);
 
-    if (decoded) {
-      setUserRole(decoded.role);
-      setIsLoggedIn(true);
-    } else {
-      setIsLoggedIn(false);
-      setUserRole(null);
-    }
-
-    setAuthChecked(true); //  VERY IMPORTANT
+  useEffect(() => {
+    const refreshPermissions = () => setPermissionVersion(value => value + 1);
+    window.addEventListener("admin-permissions-changed", refreshPermissions);
+    return () => window.removeEventListener("admin-permissions-changed", refreshPermissions);
   }, []);
 
   const setUserRole = (role) => {
@@ -64,6 +81,7 @@ function App() {
     setIsLoggedIn(false);
     setIsInitialLoad(true);
     localStorage.removeItem("authToken");
+    clearCurrentAdminPermissions();
   };
 
   const checkTokenExpiration = () => {
@@ -74,7 +92,8 @@ function App() {
         const decoded = jwtDecode(token);
         const currentTime = Date.now() / 1000;
 
-        if (decoded.exp < currentTime) {
+        const isLegacyAdminToken = decoded.role === "admin" && !Array.isArray(decoded.permissions);
+        if (decoded.exp < currentTime || isLegacyAdminToken) {
           localStorage.removeItem("authToken");
           localStorage.removeItem("userRole");
         } else {
@@ -90,6 +109,7 @@ function App() {
   if (!authChecked) {
     return null; // ya loader
   }
+  const adminRoute = (permission, element) => localStorage.getItem("userRole") === "admin" && isLoggedIn && hasAdminAccess(permission) ? element : <Navigate to={isLoggedIn ? firstAllowedAdminPath() : "/login"} replace />;
   return (
     <div style={{ overflowX: "hidden", fontFamily: "Nunito Sans" }}>
       <ToastContainer
@@ -133,98 +153,63 @@ function App() {
             path="/"
             element={
               isLoggedIn && localStorage.getItem("userRole") === "admin" ? (
-                <Navigate to="/dashboard/orders" replace />
+                <Navigate to={firstAllowedAdminPath()} replace />
               ) : (
                 <Navigate to="/login" replace />
               )
             }
           />
-          {/* Admin Login Route */}
-          {!isLoggedIn && (
-            <>
-              <Route
-                path="/login"
-                element={
-                  <AdminLoginForm
-                    setUserRole={setUserRole}
-                    setIsLoggedIn={setIsLoggedIn}
-                  />
-                }
-              />
-            </>
-          )}
+          <Route
+            path="/login"
+            element={isLoggedIn && firstAllowedAdminPath() !== "/login" ? <Navigate to={firstAllowedAdminPath()} replace /> : <AdminLoginForm setUserRole={setUserRole} setIsLoggedIn={setIsLoggedIn} />}
+          />
 
           {/* Admin Dashboard (protected by role check) */}
           <Route
             path="/dashboard"
             element={
-              localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
-                <AdminDashboard />
-              ) : (
-                <Navigate to="/" />
-              )
+              adminRoute("DASHBOARD", <AdminDashboard />)
             }
           ></Route>
           <Route
             path="/dashboard/add-product"
             element={
-              localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
-                <ExcelDataFetcher />
-              ) : (
-                <Navigate to="/" />
-              )
+              adminRoute("PRODUCTS", <ExcelDataFetcher />)
             }
           />
           <Route
             path="/dashboard/orders"
             element={
-              localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
-                <UserOrders />
-              ) : (
-                <Navigate to="/" />
-              )
+              adminRoute("ORDERS", <UserOrders />)
             }
           />
 
           <Route
             path="/dashboard/quotations"
             element={
-              localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
-                <QuotationAdminPage />
-              ) : (
-                <Navigate to="/" />
-              )
+              adminRoute("QUOTATIONS", <QuotationAdminPage />)
             }
           />
           <Route
             path="/dashboard/users"
             element={
-              localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
-                <UserManagement />
-              ) : (
-                <Navigate to="/" />
-              )
+              adminRoute("USERS", <UserManagement />)
             }
           />
           <Route
             path="/dashboard/blogs"
             element={
-              localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
-                <BlogManagement />
-              ) : (
-                <Navigate to="/" />
-              )
+              adminRoute("BLOGS", <BlogManagement />)
             }
           />
+          <Route path="/dashboard/stock-approvals" element={adminRoute("STOCK_APPROVALS", <StockApprovals />)} />
+          <Route path="/dashboard/inventory" element={adminRoute("INVENTORY", <Inventory />)} />
+          <Route path="/dashboard/admin-accounts" element={adminRoute("ADMIN_ACCOUNTS", <AdminAccounts />)} />
 
           <Route
             path="/dashboard/orders/:orderId"
             element={
-              localStorage.getItem("userRole") === "admin" && isLoggedIn ? (
-                <OrderDetails />
-              ) : (
-                <Navigate to="/" />
-              )
+              adminRoute("ORDERS", <OrderDetails />)
             }
           />
         </Routes>
