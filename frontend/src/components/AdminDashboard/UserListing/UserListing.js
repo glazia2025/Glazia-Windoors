@@ -1,22 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./UserListing.css";
-import {
-  MDBCard,
-  MDBCardBody,
-  MDBCardHeader,
-  MDBCol,
-  MDBRow,
-  MDBListGroup,
-  MDBListGroupItem,
-  MDBSpinner,
-  MDBBtn,
-  MDBTable,
-  MDBTableBody,
-  MDBTableHead,
-  MDBInput,
-  MDBTypography,
-  MDBIcon,
-} from "mdb-react-ui-kit";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAdminUsers,
@@ -128,71 +111,89 @@ const buildSubcategoryGroups = (subcategoryRows) => {
   return { groups, unmatched };
 };
 
+const getInitials = (name = "") => {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase() || "CL";
+};
+
 const PricingTable = ({
   title,
   rows,
   onChange,
-  onAddRow,
   onDeleteRow,
   loading,
 }) => (
-  <MDBCard className="mb-4">
-    <MDBCardHeader className="d-flex justify-content-between align-items-center">
-      <MDBTypography tag="h6" className="mb-0">
-        {title}
-      </MDBTypography>
-    </MDBCardHeader>
-    <MDBCardBody className="p-0">
-      <MDBTable responsive hover className="mb-0" style={{color: 'black'}}>
-        <MDBTableHead className="bg-light">
+  <div className="udp-section-card mb-4">
+    <div className="udp-section-header">
+      <div className="udp-section-title-wrapper">
+        <div className="udp-section-icon">
+          <i className="fas fa-cubes"></i>
+        </div>
+        <h5 className="udp-section-title">{title}</h5>
+        <span className="udp-section-badge">{rows.length} items</span>
+      </div>
+    </div>
+
+    <div className="udp-table-responsive">
+      <table className="udp-table">
+        <thead>
           <tr>
-            <th style={{ width: "45%" }}>Key</th>
-            <th style={{ width: "35%" }}>Value</th>
-            <th style={{ width: "20%" }} className="text-center">
-              Actions
-            </th>
+            <th style={{ width: "8%", textAlign: "center" }}>#</th>
+            <th style={{ width: "47%" }}>Hardware Item</th>
+            <th style={{ width: "30%" }}>Custom Rate</th>
+            <th style={{ width: "15%", textAlign: "center" }}>Action</th>
           </tr>
-        </MDBTableHead>
-        <MDBTableBody>
-          {rows.length === 0 && (
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
             <tr>
-              <td colSpan={3} className="text-center py-4 text-muted">
-                No entries configured
+              <td colSpan={4} className="udp-table-empty">
+                <i className="fas fa-inbox me-2"></i> No hardware dynamic entries configured
               </td>
             </tr>
+          ) : (
+            rows.map((row, index) => (
+              <tr key={`${row.key}-${index}`}>
+                <td style={{ textAlign: "center", color: "#94a3b8", fontSize: "12px" }}>
+                  {index + 1}
+                </td>
+                <td>
+                  <strong style={{ color: "#1e293b" }}>{row.key}</strong>
+                </td>
+                <td>
+                  <div className="udp-currency-box">
+                    <span className="udp-currency-prefix">₹</span>
+                    <input
+                      type="number"
+                      className="udp-rate-input"
+                      value={row.value}
+                      onChange={(e) => onChange(index, "value", e.target.value)}
+                      disabled={loading}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </td>
+                <td style={{ textAlign: "center" }}>
+                  <button
+                    type="button"
+                    className="udp-btn-trash"
+                    onClick={() => onDeleteRow(index)}
+                    disabled={loading}
+                    title="Remove rate"
+                  >
+                    <i className="far fa-trash-alt"></i>
+                  </button>
+                </td>
+              </tr>
+            ))
           )}
-          {rows.map((row, index) => (
-            <tr key={`${row.key}-${index}`}>
-              <td>
-                {row.key}
-              </td>
-              <td>
-                <MDBInput
-                  type="number"
-                  size="sm"
-                  value={row.value}
-                  onChange={(e) => onChange(index, "value", e.target.value)}
-                  disabled={loading}
-                  
-                />
-              </td>
-              <td className="text-center">
-                <MDBBtn
-                  size="sm"
-                  color="danger"
-                  outline
-                  onClick={() => onDeleteRow(index)}
-                  disabled={loading}
-                >
-                  <MDBIcon icon="trash" />
-                </MDBBtn>
-              </td>
-            </tr>
-          ))}
-        </MDBTableBody>
-      </MDBTable>
-    </MDBCardBody>
-  </MDBCard>
+        </tbody>
+      </table>
+    </div>
+  </div>
 );
 
 const ProfilePricingTable = ({
@@ -219,150 +220,197 @@ const ProfilePricingTable = ({
     }
   });
 
+  const totalCount = categoryRows.length + subcategoryRows.length;
+
   return (
-    <MDBCard className="mb-4">
-      <MDBCardHeader className="d-flex justify-content-between align-items-center">
-        <MDBTypography tag="h6" className="mb-0">
-          Profile Pricing
-        </MDBTypography>
-      </MDBCardHeader>
-      <MDBCardBody className="p-0">
-        <MDBTable responsive hover className="mb-0" style={{ color: "black" }}>
-          <MDBTableHead className="bg-light">
+    <div className="udp-section-card mb-4">
+      <div className="udp-section-header">
+        <div className="udp-section-title-wrapper">
+          <div className="udp-section-icon">
+            <i className="fas fa-layer-group"></i>
+          </div>
+          <h5 className="udp-section-title">Profile Dynamic Pricing</h5>
+          <span className="udp-section-badge">{totalCount} rates configured</span>
+        </div>
+      </div>
+
+      <div className="udp-table-responsive">
+        <table className="udp-table">
+          <thead>
             <tr>
-              <th style={{ width: "45%" }}>Key</th>
-              <th style={{ width: "35%" }}>Value</th>
-              <th style={{ width: "20%" }} className="text-center">
-                Actions
-              </th>
+              <th style={{ width: "8%", textAlign: "center" }}>#</th>
+              <th style={{ width: "47%" }}>Profile Category / Sub-size</th>
+              <th style={{ width: "30%" }}>Custom Rate</th>
+              <th style={{ width: "15%", textAlign: "center" }}>Action</th>
             </tr>
-          </MDBTableHead>
-          <MDBTableBody>
-            {categoryRows.length === 0 && subcategoryRows.length === 0 && (
+          </thead>
+          <tbody>
+            {categoryRows.length === 0 && subcategoryRows.length === 0 ? (
               <tr>
-                <td colSpan={3} className="text-center py-4 text-muted">
-                  No entries configured
+                <td colSpan={4} className="udp-table-empty">
+                  <i className="fas fa-inbox me-2"></i> No profile dynamic entries configured
                 </td>
               </tr>
-            )}
-            {categoryRows.map((row, index) => {
-              const subcategories = [...(groups.get(row.key) || [])];
-              const orderMap = sizeOrderByCategory.get(row.key);
-              if (orderMap) {
-                subcategories.sort((a, b) => {
-                  const orderA = orderMap.has(a.label)
-                    ? orderMap.get(a.label)
-                    : Number.MAX_SAFE_INTEGER;
-                  const orderB = orderMap.has(b.label)
-                    ? orderMap.get(b.label)
-                    : Number.MAX_SAFE_INTEGER;
-                  if (orderA !== orderB) {
-                    return orderA - orderB;
-                  }
-                  return a.label.localeCompare(b.label);
-                });
-              }
-              return (
-                <React.Fragment key={`${row.key}-${index}`}>
-                  <tr>
-                    <td>
-                      <strong>{row.key}</strong>
-                    </td>
-                    <td>
-                      <MDBInput
-                        type="number"
-                        size="sm"
-                        value={row.value}
-                        onChange={(e) =>
-                          onCategoryChange(index, "value", e.target.value)
-                        }
-                        disabled={loading}
-                      />
-                    </td>
-                    <td className="text-center">
-                      <MDBBtn
-                        size="sm"
-                        color="danger"
-                        outline
-                        onClick={() => onCategoryDelete(index)}
-                        disabled={loading}
-                      >
-                        <MDBIcon icon="trash" />
-                      </MDBBtn>
-                    </td>
-                  </tr>
-                  {subcategories.map((sub) => (
-                    <tr key={`${sub.row.key}-${sub.index}`}>
-                      <td style={{ paddingLeft: "1.5rem" }}>
-                        {sub.label}
+            ) : (
+              categoryRows.map((row, index) => {
+                const subcategories = [...(groups.get(row.key) || [])];
+                const orderMap = sizeOrderByCategory.get(row.key);
+                if (orderMap) {
+                  subcategories.sort((a, b) => {
+                    const orderA = orderMap.has(a.label)
+                      ? orderMap.get(a.label)
+                      : Number.MAX_SAFE_INTEGER;
+                    const orderB = orderMap.has(b.label)
+                      ? orderMap.get(b.label)
+                      : Number.MAX_SAFE_INTEGER;
+                    if (orderA !== orderB) {
+                      return orderA - orderB;
+                    }
+                    return a.label.localeCompare(b.label);
+                  });
+                }
+
+                return (
+                  <React.Fragment key={`${row.key}-${index}`}>
+                    <tr className="udp-category-row">
+                      <td style={{ textAlign: "center", color: "#64748b", fontWeight: "600" }}>
+                        {index + 1}
                       </td>
                       <td>
-                        <MDBInput
+                        <div className="udp-category-name">
+                          <i className="fas fa-folder-open"></i>
+                          <span>{row.key}</span>
+                          <span className="udp-category-pill">Base Category</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="udp-currency-box">
+                          <span className="udp-currency-prefix">₹</span>
+                          <input
+                            type="number"
+                            className="udp-rate-input"
+                            value={row.value}
+                            onChange={(e) =>
+                              onCategoryChange(index, "value", e.target.value)
+                            }
+                            disabled={loading}
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <button
+                          type="button"
+                          className="udp-btn-trash"
+                          onClick={() => onCategoryDelete(index)}
+                          disabled={loading}
+                          title="Remove category rate"
+                        >
+                          <i className="far fa-trash-alt"></i>
+                        </button>
+                      </td>
+                    </tr>
+
+                    {subcategories.map((sub, subIdx) => (
+                      <tr className="udp-subcategory-row" key={`${sub.row.key}-${sub.index}`}>
+                        <td style={{ textAlign: "center", color: "#cbd5e1", fontSize: "11px" }}>
+                          {index + 1}.{subIdx + 1}
+                        </td>
+                        <td>
+                          <div className="udp-subcategory-name">
+                            <span className="udp-sub-indicator">↳</span>
+                            <span>{sub.label}</span>
+                            <span className="udp-sub-badge">Sub-size</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="udp-currency-box">
+                            <span className="udp-currency-prefix">₹</span>
+                            <input
+                              type="number"
+                              className="udp-rate-input"
+                              value={sub.row.value}
+                              onChange={(e) =>
+                                onSubcategoryChange(sub.index, "value", e.target.value)
+                              }
+                              disabled={loading}
+                              placeholder="0.00"
+                            />
+                          </div>
+                        </td>
+                        <td style={{ textAlign: "center" }}>
+                          <button
+                            type="button"
+                            className="udp-btn-trash"
+                            onClick={() => onSubcategoryDelete(sub.index)}
+                            disabled={loading}
+                            title="Remove sub-size rate"
+                          >
+                            <i className="far fa-trash-alt"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                );
+              })
+            )}
+
+            {unmatched.length > 0 && (
+              <>
+                <tr className="udp-category-row">
+                  <td colSpan={4}>
+                    <div className="udp-category-name">
+                      <i className="fas fa-list-ul"></i>
+                      <span>Additional Subcategories</span>
+                    </div>
+                  </td>
+                </tr>
+                {unmatched.map((sub, uIdx) => (
+                  <tr className="udp-subcategory-row" key={`${sub.row.key}-${sub.index}`}>
+                    <td style={{ textAlign: "center", color: "#cbd5e1", fontSize: "11px" }}>
+                      *
+                    </td>
+                    <td>
+                      <div className="udp-subcategory-name">
+                        <span className="udp-sub-indicator">↳</span>
+                        <span>{sub.label}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="udp-currency-box">
+                        <span className="udp-currency-prefix">₹</span>
+                        <input
                           type="number"
-                          size="sm"
+                          className="udp-rate-input"
                           value={sub.row.value}
                           onChange={(e) =>
                             onSubcategoryChange(sub.index, "value", e.target.value)
                           }
                           disabled={loading}
+                          placeholder="0.00"
                         />
-                      </td>
-                      <td className="text-center">
-                        <MDBBtn
-                          size="sm"
-                          color="danger"
-                          outline
-                          onClick={() => onSubcategoryDelete(sub.index)}
-                          disabled={loading}
-                        >
-                          <MDBIcon icon="trash" />
-                        </MDBBtn>
-                      </td>
-                    </tr>
-                  ))}
-                </React.Fragment>
-              );
-            })}
-            {unmatched.length > 0 && (
-              <>
-                <tr>
-                  <td colSpan={3} className="text-muted">
-                    Other subcategories
-                  </td>
-                </tr>
-                {unmatched.map((sub) => (
-                  <tr key={`${sub.row.key}-${sub.index}`}>
-                    <td style={{ paddingLeft: "1.5rem" }}>{sub.label}</td>
-                    <td>
-                      <MDBInput
-                        type="number"
-                        size="sm"
-                        value={sub.row.value}
-                        onChange={(e) =>
-                          onSubcategoryChange(sub.index, "value", e.target.value)
-                        }
-                        disabled={loading}
-                      />
+                      </div>
                     </td>
-                    <td className="text-center">
-                      <MDBBtn
-                        size="sm"
-                        color="danger"
-                        outline
+                    <td style={{ textAlign: "center" }}>
+                      <button
+                        type="button"
+                        className="udp-btn-trash"
                         onClick={() => onSubcategoryDelete(sub.index)}
                         disabled={loading}
+                        title="Remove rate"
                       >
-                        <MDBIcon icon="trash" />
-                      </MDBBtn>
+                        <i className="far fa-trash-alt"></i>
+                      </button>
                     </td>
                   </tr>
                 ))}
               </>
             )}
-          </MDBTableBody>
-        </MDBTable>
-      </MDBCardBody>
-    </MDBCard>
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 };
 
@@ -378,6 +426,7 @@ const UserListing = () => {
     dynamicPricing,
   } = useSelector((state) => state.adminUsers);
 
+  const [searchTerm, setSearchTerm] = useState("");
   const [hardwareRows, setHardwareRows] = useState([]);
   const [profileRows, setProfileRows] = useState([]);
   const [profileSubcategoryRows, setProfileSubcategoryRows] = useState([]);
@@ -444,6 +493,21 @@ const UserListing = () => {
   }, []);
 
   const userList = useMemo(() => users ?? [], [users]);
+
+  // Filter users based on search
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm.trim()) return userList;
+    const q = searchTerm.toLowerCase();
+    return userList.filter(
+      (u) =>
+        u.name?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.phoneNumber?.toLowerCase().includes(q) ||
+        u.gstNumber?.toLowerCase().includes(q) ||
+        u.city?.toLowerCase().includes(q) ||
+        u.state?.toLowerCase().includes(q)
+    );
+  }, [userList, searchTerm]);
 
   const handleSelectUser = (user) => {
     dispatch(setSelectedUser(user));
@@ -518,81 +582,171 @@ const UserListing = () => {
   };
 
   return (
-    <MDBCard className="mt-5">
-      <MDBCardHeader>
-        <MDBTypography tag="h5" className="mb-0">
-          Manage User Dynamic Pricing
-        </MDBTypography>
-      </MDBCardHeader>
-      <MDBCardBody>
+    <div className="udp-container">
+      <div className="udp-card">
+        {/* Card Top Header */}
+        <div className="udp-card-header">
+          <div className="udp-header-left">
+            <div className="udp-header-icon">
+              <i className="fas fa-sliders-h"></i>
+            </div>
+            <div>
+              <h4 className="udp-card-title">Manage User Dynamic Pricing</h4>
+              <p className="udp-card-subtitle">
+                Configure custom hardware & profile pricing rules for specific client accounts
+              </p>
+            </div>
+          </div>
+          <div className="udp-header-badges">
+            <span className="udp-badge-clients">
+              <i className="fas fa-users"></i>
+              {userList.length} Registered Clients
+            </span>
+          </div>
+        </div>
+
+        {/* Global Error Alert */}
         {error && (
-          <div className="alert alert-danger mb-3" role="alert">
-            {error}
+          <div className="alert alert-danger m-3 mb-0 d-flex align-items-center" role="alert">
+            <i className="fas fa-exclamation-triangle me-2"></i>
+            <span>{error}</span>
           </div>
         )}
-        <MDBRow>
-          <MDBCol md="4" className="mb-4">
-            <MDBTypography tag="h6" className="mb-3">
-              Users
-            </MDBTypography>
-            {listLoading ? (
-              <div className="d-flex justify-content-center py-4">
-                <MDBSpinner role="status" />
-              </div>
-            ) : (
-              <MDBListGroup style={{ maxHeight: "380px", overflowY: "auto" }}>
-                {userList.length === 0 && (
-                  <MDBListGroupItem className="text-muted">
-                    No users available
-                  </MDBListGroupItem>
-                )}
-                {userList.map((user) => {
-                  const isActive = selectedUser?._id === user._id;
-                  return (
-                    <MDBListGroupItem
-                      key={user._id}
-                      action
-                      active={isActive}
-                      onClick={() => handleSelectUser(user)}
-                      className="d-flex flex-column"
-                    >
-                      <strong>{user.name}</strong>
-                      <small className="text-muted">{user.email}</small>
-                      <small className="text-muted">{user.phoneNumber}</small>
-                    </MDBListGroupItem>
-                  );
-                })}
-              </MDBListGroup>
-            )}
-          </MDBCol>
 
-          <MDBCol md="8">
+        {/* Two-Column Workspace */}
+        <div className="udp-layout">
+          {/* Left Column: Client Directory */}
+          <aside className="udp-users-sidebar">
+            <div className="udp-sidebar-header">
+              <div className="udp-sidebar-title-row">
+                <span className="udp-sidebar-title">Client Directory</span>
+                <span className="udp-count-pill">{filteredUsers.length}</span>
+              </div>
+              <div className="udp-search-wrapper">
+                <i className="fas fa-search udp-search-icon"></i>
+                <input
+                  type="text"
+                  className="udp-search-input"
+                  placeholder="Search by name, phone, GST..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    className="udp-search-clear"
+                    onClick={() => setSearchTerm("")}
+                    title="Clear search"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="udp-users-list">
+              {listLoading ? (
+                <div className="udp-spinner-center">
+                  <div className="spinner-border text-primary spinner-border-sm" role="status"></div>
+                  <span>Loading clients...</span>
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="udp-users-empty">
+                  <i className="fas fa-user-slash"></i>
+                  <span>No matching clients found</span>
+                </div>
+              ) : (
+                filteredUsers.map((user) => {
+                  const isActive = selectedUser?._id === user._id;
+                  const initials = getInitials(user.name);
+                  return (
+                    <div
+                      key={user._id}
+                      onClick={() => handleSelectUser(user)}
+                      className={`udp-user-item ${isActive ? "active" : ""}`}
+                    >
+                      <div className="udp-user-avatar">{initials}</div>
+                      <div className="udp-user-info">
+                        <h6 className="udp-user-name">{user.name}</h6>
+                        {user.phoneNumber && (
+                          <div className="udp-user-meta">
+                            <i className="fas fa-phone-alt"></i>
+                            <span>{user.phoneNumber}</span>
+                          </div>
+                        )}
+                        {user.email && (
+                          <div className="udp-user-meta">
+                            <i className="far fa-envelope"></i>
+                            <span>{user.email}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="udp-active-arrow">
+                        <i className="fas fa-chevron-right"></i>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </aside>
+
+          {/* Right Column: Dynamic Pricing Editor */}
+          <main className="udp-pricing-panel">
             {selectedUser ? (
               <>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <div>
-                    <MDBTypography tag="h6" className="mb-1">
-                      {selectedUser.name}
-                    </MDBTypography>
-                    <small className="text-muted">
-                      GST: {selectedUser.gstNumber || "N/A"} | {selectedUser.city}, {" "}
-                      {selectedUser.state}
-                    </small>
+                {/* Client Overview Card Banner */}
+                <div className="udp-client-banner">
+                  <div className="udp-client-profile">
+                    <div className="udp-client-avatar-lg">
+                      {getInitials(selectedUser.name)}
+                    </div>
+                    <div className="udp-client-details">
+                      <h4>{selectedUser.name}</h4>
+                      <div className="udp-client-tags">
+                        {selectedUser.gstNumber && (
+                          <span className="udp-client-tag">
+                            <i className="fas fa-file-invoice"></i>
+                            GST: {selectedUser.gstNumber}
+                          </span>
+                        )}
+                        {(selectedUser.city || selectedUser.state) && (
+                          <span className="udp-client-tag">
+                            <i className="fas fa-map-marker-alt"></i>
+                            {[selectedUser.city, selectedUser.state].filter(Boolean).join(", ")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  {pricingLoading && <MDBSpinner size="sm" role="status" />}
+
+                  <div className="d-flex align-items-center gap-3">
+                    {pricingLoading ? (
+                      <div className="d-flex align-items-center text-muted small">
+                        <div className="spinner-border spinner-border-sm me-2 text-primary" role="status"></div>
+                        <span>Fetching rates...</span>
+                      </div>
+                    ) : (
+                      <div className="udp-status-pill">
+                        <span className="udp-status-dot"></span>
+                        <span>Dynamic Rates Active</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
+                {/* Section 1: Hardware Pricing */}
                 <PricingTable
-                  title="Hardware Pricing"
+                  title="Hardware Dynamic Pricing"
                   rows={hardwareRows}
                   onChange={(index, field, value) =>
                     handleRowChange("hardware", index, field, value)
                   }
-                  onAddRow={() => handleAddRow("hardware")}
                   onDeleteRow={(index) => handleDeleteRow("hardware", index)}
                   loading={updateLoading}
                 />
 
+                {/* Section 2: Profile Pricing */}
                 <ProfilePricingTable
                   categoryRows={profileRows}
                   subcategoryRows={profileSubcategoryRows}
@@ -610,33 +764,49 @@ const UserListing = () => {
                   loading={updateLoading}
                 />
 
-                <div className="d-flex justify-content-end">
-                  <MDBBtn
-                    color="success"
+                {/* Save Changes Docked Bar */}
+                <div className="udp-save-bar">
+                  <div className="udp-save-info">
+                    <i className="fas fa-shield-alt"></i>
+                    <span>
+                      Dynamic rates override standard catalogue pricing for <strong>{selectedUser.name}</strong>.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="udp-btn-save"
                     onClick={handleSave}
                     disabled={updateLoading}
                   >
                     {updateLoading ? (
                       <>
-                        <MDBSpinner size="sm" role="status" className="me-2" />
-                        Saving...
+                        <span className="spinner-border spinner-border-sm" role="status"></span>
+                        <span>Saving Changes...</span>
                       </>
                     ) : (
-                      "Save Changes"
+                      <>
+                        <i className="fas fa-save"></i>
+                        <span>Save Dynamic Pricing</span>
+                      </>
                     )}
-                  </MDBBtn>
+                  </button>
                 </div>
               </>
             ) : (
-              <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted">
-                <MDBIcon icon="arrow-left" size="2x" className="mb-3" />
-                <p>Select a user to view pricing</p>
+              <div className="udp-no-selection">
+                <div className="udp-no-selection-icon">
+                  <i className="fas fa-user-edit"></i>
+                </div>
+                <h5 className="udp-no-selection-title">No Client Selected</h5>
+                <p className="udp-no-selection-desc">
+                  Select a client account from the directory on the left to view and configure custom dynamic pricing rates.
+                </p>
               </div>
             )}
-          </MDBCol>
-        </MDBRow>
-      </MDBCardBody>
-    </MDBCard>
+          </main>
+        </div>
+      </div>
+    </div>
   );
 };
 

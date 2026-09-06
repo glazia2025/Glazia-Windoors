@@ -130,6 +130,8 @@ const QuotationAdminPage = () => {
   const [cuttingConfigs, setCuttingConfigs] = useState([]);
   const [quotations, setQuotations] = useState([]);
   const [totalQuotations, setTotalQuotations] = useState(0);
+  const [isRefreshingMaster, setIsRefreshingMaster] = useState(false);
+  const [isRefreshingQuotes, setIsRefreshingQuotes] = useState(false);
   const [cuttingSearch, setCuttingSearch] = useState("");
   const [isCuttingModalOpen, setIsCuttingModalOpen] = useState(false);
   const [isGlassBeadingModalOpen, setIsGlassBeadingModalOpen] = useState(false);
@@ -492,6 +494,32 @@ const QuotationAdminPage = () => {
       fetchHardwareLinkingData(),
     ]);
   };
+
+  const handleRefreshMasterData = async () => {
+    setIsRefreshingMaster(true);
+    try {
+      await refreshAllMasterData();
+    } catch (error) {
+      console.error("Error refreshing master data:", error);
+    } finally {
+      setTimeout(() => setIsRefreshingMaster(false), 450);
+    }
+  };
+
+  const handleRefreshQuotes = async () => {
+    setIsRefreshingQuotes(true);
+    try {
+      await fetchQuotations(page);
+    } catch (error) {
+      console.error("Error refreshing quotations:", error);
+    } finally {
+      setTimeout(() => setIsRefreshingQuotes(false), 450);
+    }
+  };
+
+  useEffect(() => {
+    refreshAllMasterData();
+  }, []);
 
   useEffect(() => {
     if (loadedTabsRef.current.has(activeTab)) return;
@@ -2293,20 +2321,26 @@ const QuotationAdminPage = () => {
                   <td>{(system.glassSpecs || []).join(", ")}</td>
                   <td>{(system.handleColors || []).join(", ")}</td>
                   <td className="qa-actions">
-                    <MDBBtn
-                      size="sm"
-                      color="light"
-                      onClick={() => handleSystemEdit(system)}
-                    >
-                      <MDBIcon fas icon="edit" />
-                    </MDBBtn>
-                    <MDBBtn
-                      size="sm"
-                      color="danger"
-                      onClick={() => handleSystemDelete(system._id)}
-                    >
-                      <MDBIcon fas icon="trash" />
-                    </MDBBtn>
+                    <div className="qa-action-wrap">
+                      <button
+                        type="button"
+                        className="qa-btn-action qa-btn-edit"
+                        onClick={() => handleSystemEdit(system)}
+                        title="Edit System"
+                      >
+                        <i className="fas fa-edit"></i>
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="qa-btn-action qa-btn-delete"
+                        onClick={() => handleSystemDelete(system._id)}
+                        title="Delete System"
+                      >
+                        <i className="fas fa-trash-alt"></i>
+                        <span>Delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -2456,31 +2490,39 @@ const QuotationAdminPage = () => {
                 <tr key={item._id}>
                   <td className="qa-title">{item.name}</td>
                   <td>{item.system?.name}</td>
-                  <td className="qa-badges">
-                    {(item.descriptions || []).map((desc) => (
-                      <MDBBadge key={desc.name} color="secondary" light className="me-1">
-                        {desc.name}
-                        {desc.handleCount
-                          ? ` · ${desc.handleCount} handles`
-                          : ""}
-                      </MDBBadge>
-                    ))}
+                  <td>
+                    <div className="qa-badges">
+                      {(item.descriptions || []).map((desc) => (
+                        <MDBBadge key={desc.name} color="secondary" light className="me-1">
+                          {desc.name}
+                          {desc.handleCount
+                            ? ` · ${desc.handleCount} handles`
+                            : ""}
+                        </MDBBadge>
+                      ))}
+                    </div>
                   </td>
                   <td className="qa-actions">
-                    <MDBBtn
-                      size="sm"
-                      color="light"
-                      onClick={() => handleSeriesEdit(item)}
-                    >
-                      <MDBIcon fas icon="edit" />
-                    </MDBBtn>
-                    <MDBBtn
-                      size="sm"
-                      color="danger"
-                      onClick={() => handleSeriesDelete(item._id)}
-                    >
-                      <MDBIcon fas icon="trash" />
-                    </MDBBtn>
+                    <div className="qa-action-wrap">
+                      <button
+                        type="button"
+                        className="qa-btn-action qa-btn-edit"
+                        onClick={() => handleSeriesEdit(item)}
+                        title="Edit Series"
+                      >
+                        <i className="fas fa-edit"></i>
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="qa-btn-action qa-btn-delete"
+                        onClick={() => handleSeriesDelete(item._id)}
+                        title="Delete Series"
+                      >
+                        <i className="fas fa-trash-alt"></i>
+                        <span>Delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -2714,20 +2756,26 @@ const QuotationAdminPage = () => {
                     </div>
                   </td>
                   <td className="qa-actions">
-                    <MDBBtn
-                      size="sm"
-                      color="light"
-                      onClick={() => handleOptionEdit(item)}
-                    >
-                      <MDBIcon fas icon="edit" />
-                    </MDBBtn>
-                    <MDBBtn
-                      size="sm"
-                      color="danger"
-                      onClick={() => handleOptionDelete(item._id)}
-                    >
-                      <MDBIcon fas icon="trash" />
-                    </MDBBtn>
+                    <div className="qa-action-wrap">
+                      <button
+                        type="button"
+                        className="qa-btn-action qa-btn-edit"
+                        onClick={() => handleOptionEdit(item)}
+                        title="Edit Option Set"
+                      >
+                        <i className="fas fa-edit"></i>
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="qa-btn-action qa-btn-delete"
+                        onClick={() => handleOptionDelete(item._id)}
+                        title="Delete Option Set"
+                      >
+                        <i className="fas fa-trash-alt"></i>
+                        <span>Delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -4389,9 +4437,16 @@ const QuotationAdminPage = () => {
           </p>
         </div>
         <div className="qa-actions">
-          <MDBBtn size="sm" color="light" onClick={fetchQuotations}>
-            Refresh list
-          </MDBBtn>
+          <button
+            type="button"
+            className="qa-btn-refresh-list"
+            onClick={handleRefreshQuotes}
+            disabled={isRefreshingQuotes}
+            title="Refresh quotations list"
+          >
+            <i className={`fas fa-sync-alt ${isRefreshingQuotes ? "fa-spin" : ""}`}></i>
+            <span>Refresh list</span>
+          </button>
         </div>
       </div>
 
@@ -4511,8 +4566,10 @@ const QuotationAdminPage = () => {
                     {(page - 1) * limit + index + 1}
                   </td>
                   {/* QUOTATION ID */}
-                  <td className="qa-title">
-                    {quote.generatedId || "—"}
+                  <td>
+                    <span className="qa-quote-id-badge">
+                      {quote.generatedId || "—"}
+                    </span>
                   </td>
                   {/* CUSTOMER */}
                   <td>
@@ -4546,10 +4603,13 @@ const QuotationAdminPage = () => {
                   </td>
 
                   {/* AMOUNT */}
-                  <td>
+                  <td className="qa-amount-cell">
                     <strong>
                       {quote.breakdown?.totalAmount !== undefined
-                        ? `₹ ${quote.breakdown.totalAmount.toLocaleString()}`
+                        ? `₹ ${Number(quote.breakdown.totalAmount).toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}`
                         : "—"}
                     </strong>
                   </td>
@@ -4557,31 +4617,55 @@ const QuotationAdminPage = () => {
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="qa-meta" style={{ textAlign: "center" }}>
+                <td colSpan={7} className="qa-meta" style={{ textAlign: "center" }}>
                   No quotations found
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-        <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
-          <MDBBtn
-            size="sm"
-            disabled={page === 1}
-            onClick={() => setPage(page - 1)}
-          >
-            Previous
-          </MDBBtn>
+        <div className="qa-pagination-bar">
+          <div className="qa-pagination-info">
+            Showing{" "}
+            <strong>
+              {quotations?.length > 0 ? (page - 1) * limit + 1 : 0}
+            </strong>{" "}
+            to{" "}
+            <strong>
+              {quotations?.length > 0
+                ? Math.min(page * limit, totalQuotations)
+                : 0}
+            </strong>{" "}
+            of <strong>{totalQuotations}</strong> quotations
+          </div>
 
-          <span>Page {page} of {totalPages}</span>
+          <div className="qa-pagination-controls">
+            <button
+              type="button"
+              className="qa-page-btn"
+              disabled={page === 1}
+              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+              title="Go to previous page"
+            >
+              <i className="fas fa-chevron-left"></i>
+              <span>Previous</span>
+            </button>
 
-          <MDBBtn
-            size="sm"
-            disabled={page === totalPages}
-            onClick={() => setPage(page + 1)}
-          >
-            Next
-          </MDBBtn>
+            <div className="qa-page-indicator">
+              Page <strong>{page}</strong> of <span>{totalPages || 1}</span>
+            </div>
+
+            <button
+              type="button"
+              className="qa-page-btn"
+              disabled={page >= totalPages}
+              onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+              title="Go to next page"
+            >
+              <span>Next</span>
+              <i className="fas fa-chevron-right"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -5160,10 +5244,16 @@ const QuotationAdminPage = () => {
           </p>
         </div>
         <div className="qa-actions">
-          <MDBBtn color="info" outline size="sm" onClick={refreshAllMasterData}>
-            <MDBIcon fas icon="sync" className="me-2" />
-            Refresh master data
-          </MDBBtn>
+          <button
+            type="button"
+            className="qa-btn-refresh-master"
+            onClick={handleRefreshMasterData}
+            disabled={isRefreshingMaster}
+            title="Reload all master data"
+          >
+            <i className={`fas fa-sync-alt ${isRefreshingMaster ? "fa-spin" : ""}`}></i>
+            <span>Refresh Master Data</span>
+          </button>
         </div>
       </div>
 
@@ -5174,35 +5264,35 @@ const QuotationAdminPage = () => {
             value: systems.length,
             icon: "cubes",
             tone: "indigo",
-            note: "Define your core product families",
+            note: "Define core product families",
           },
           {
             label: "Series",
             value: series.length,
             icon: "layer-group",
             tone: "emerald",
-            note: "Pair systems with description defaults",
+            note: "Pair systems with descriptions",
           },
           {
-            label: "Louvers Rate",
-            value: baseRates.length,
-            icon: "money-check-alt",
+            label: "Option Sets",
+            value: optionSets.length,
+            icon: "palette",
             tone: "amber",
-            note: "Legacy Louvers pricing only",
+            note: "Finishes, mesh & glass specs",
           },
           {
             label: "Quotations",
             value: totalQuotations,
             icon: "file-invoice-dollar",
-            tone: "cyan",
-            note: "Filtered results",
+            tone: "crimson",
+            note: "Total created quotations",
           },
         ].map((item) => (
           <div key={item.label} className={`qa-chip qa-chip-${item.tone}`}>
             <div className="qa-chip-icon">
-              <MDBIcon fas icon={item.icon} />
+              <i className={`fas fa-${item.icon}`} />
             </div>
-            <div>
+            <div className="qa-chip-content">
               <div className="qa-chip-value">{item.value}</div>
               <div className="qa-chip-label">{item.label}</div>
               <div className="qa-chip-note">{item.note}</div>
