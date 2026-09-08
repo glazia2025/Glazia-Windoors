@@ -6,13 +6,25 @@ import { firstAllowedAdminPath, setCurrentAdminPermissions } from "../../utils/a
 import "./AdminLoginForm.css";
 
 export default function AdminLoginForm({ setUserRole, setIsLoggedIn }) {
+  const [loginMethod, setLoginMethod] = useState("otp");
   const [step, setStep] = useState("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const inputs = useRef([]);
   const navigate = useNavigate();
+
+  const completeLogin = (response) => {
+    localStorage.setItem("authToken", response.data.token);
+    setCurrentAdminPermissions(response.data.admin?.permissions || []);
+    const session = jwtDecode(response.data.token);
+    setUserRole(session.role);
+    setIsLoggedIn(true);
+    navigate(firstAllowedAdminPath(), { replace: true });
+  };
 
   const sendOtp = async (event) => {
     event?.preventDefault();
@@ -37,14 +49,23 @@ export default function AdminLoginForm({ setUserRole, setIsLoggedIn }) {
         phoneNumber: phoneNumber.trim(),
         otp: otp.join(""),
       });
-      localStorage.setItem("authToken", response.data.token);
-      setCurrentAdminPermissions(response.data.admin?.permissions || []);
-      const session = jwtDecode(response.data.token);
-      setUserRole(session.role);
-      setIsLoggedIn(true);
-      navigate(firstAllowedAdminPath(), { replace: true });
+      completeLogin(response);
     } catch (error) {
       setMessage(getApiErrorMessage(error, "verify the admin OTP"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const loginAsSuperAdmin = async (event) => {
+    event.preventDefault();
+    setMessage("");
+    setBusy(true);
+    try {
+      const response = await api.post("/auth/admin/super-login", { email: email.trim(), password });
+      completeLogin(response);
+    } catch (error) {
+      setMessage(getApiErrorMessage(error, "sign in as super admin"));
     } finally {
       setBusy(false);
     }
@@ -100,7 +121,7 @@ export default function AdminLoginForm({ setUserRole, setIsLoggedIn }) {
         {/* Right Side: Clean Monochromatic Form */}
         <div className="clean-form-pane">
           <div className="clean-top-bar">
-            {step === "otp" ? (
+            {loginMethod === "otp" && step === "otp" ? (
               <button
                 type="button"
                 className="clean-back-circle"
@@ -123,10 +144,21 @@ export default function AdminLoginForm({ setUserRole, setIsLoggedIn }) {
           <div className="clean-form-body">
             <h2 className="clean-form-title">Welcome back</h2>
             <p className="clean-form-sub">
-              {step === "phone"
+              {loginMethod === "super"
+                ? "Sign in with the protected super-admin credentials."
+                : step === "phone"
                 ? "Enter your mobile number to receive a secure login OTP."
                 : `We've sent a 6-digit verification code to +91 ${phoneNumber}`}
             </p>
+
+            <div className="clean-login-methods" role="tablist" aria-label="Login method">
+              <button type="button" className={loginMethod === "otp" ? "active" : ""} onClick={() => { setLoginMethod("otp"); setStep("phone"); setMessage(""); }}>
+                Admin OTP
+              </button>
+              <button type="button" className={loginMethod === "super" ? "active" : ""} onClick={() => { setLoginMethod("super"); setMessage(""); }}>
+                Super Admin
+              </button>
+            </div>
 
             {message && (
               <div className="clean-alert-error">
@@ -135,7 +167,26 @@ export default function AdminLoginForm({ setUserRole, setIsLoggedIn }) {
               </div>
             )}
 
-            {step === "phone" ? (
+            {loginMethod === "super" ? (
+              <form onSubmit={loginAsSuperAdmin} className="clean-interactive-form">
+                <div className="clean-field-wrap">
+                  <label className="clean-label">Email Address</label>
+                  <div className="clean-input-box">
+                    <input autoFocus required type="email" autoComplete="username" className="clean-text-input" placeholder="Enter super-admin email" value={email} onChange={(event) => setEmail(event.target.value)} />
+                  </div>
+                </div>
+                <div className="clean-field-wrap">
+                  <label className="clean-label">Password</label>
+                  <div className="clean-input-box">
+                    <input required type="password" autoComplete="current-password" className="clean-text-input" placeholder="Enter password" value={password} onChange={(event) => setPassword(event.target.value)} />
+                  </div>
+                </div>
+                <button type="submit" disabled={busy || !email.trim() || !password} className="clean-action-btn">
+                  {busy ? "Signing in..." : "Log In as Super Admin"}
+                </button>
+                <p className="clean-form-footnote">This account has unrestricted access to every admin module.</p>
+              </form>
+            ) : step === "phone" ? (
               <form onSubmit={sendOtp} className="clean-interactive-form">
                 <div className="clean-field-wrap">
                   <label className="clean-label">Mobile Number</label>

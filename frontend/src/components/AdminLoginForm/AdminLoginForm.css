@@ -204,6 +204,33 @@
   margin: 0 0 24px 0;
 }
 
+.clean-login-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 20px;
+  border-radius: 12px;
+  background: #f3f4f6;
+}
+
+.clean-login-methods button {
+  border: 0;
+  border-radius: 9px;
+  padding: 9px 10px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clean-login-methods button.active {
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.1);
+}
+
 /* Error Alert */
 .clean-alert-error {
   display: flex;
