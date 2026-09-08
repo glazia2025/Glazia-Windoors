@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import {
   MDBInput,
   MDBFile,
@@ -29,8 +30,33 @@ const emptyHardwareItem = {
   image: null,
 };
 
+const slugifyCategory = (name) => {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+};
+
+const findCategoryName = (identifier, catList) => {
+  if (!identifier || !catList || !catList.length) return null;
+  const decoded = decodeURIComponent(identifier);
+  const exact = catList.find(
+    (c) => c.name.toLowerCase() === decoded.toLowerCase() || c.name === identifier
+  );
+  if (exact) return exact.name;
+  const targetSlug = slugifyCategory(identifier);
+  const matched = catList.find((c) => slugifyCategory(c.name) === targetSlug);
+  return matched ? matched.name : null;
+};
+
 const HardwareTable = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { categorySlug } = useParams();
+  const [searchParams] = useSearchParams();
+
   const { activeOption } = useSelector((state) => state.selection);
   const [profileOptions, setProfileOptions] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,11 +69,16 @@ const HardwareTable = () => {
   const [categories, setCategories] = useState([]);
   const [categoryModal, setCategoryModal] = useState(null);
   const [categoryForm, setCategoryForm] = useState({ name: "", description: "", enabled: true });
-  const { hardwareHeirarchy } = useSelector((state) => state.heirarchy);
 
   const getAuthConfig = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
   });
+
+  const selectCategory = (categoryName) => {
+    dispatch(setActiveOption(categoryName));
+    const slug = slugifyCategory(categoryName);
+    navigate(`/dashboard/hardware/${slug}`, { replace: true });
+  };
 
   const fetchCategories = async (preferredOption = activeOption) => {
     try {
@@ -57,8 +88,22 @@ const HardwareTable = () => {
       );
       const nextCategories = response.data || [];
       setCategories(nextCategories);
-      if (nextCategories.length && !nextCategories.some((category) => category.name === preferredOption)) {
-        dispatch(setActiveOption(nextCategories[0].name));
+
+      const urlVal = categorySlug || searchParams.get("category");
+      const matchedName = findCategoryName(urlVal, nextCategories);
+
+      if (matchedName) {
+        dispatch(setActiveOption(matchedName));
+        const targetSlug = slugifyCategory(matchedName);
+        if (categorySlug !== targetSlug) {
+          navigate(`/dashboard/hardware/${targetSlug}`, { replace: true });
+        }
+      } else if (nextCategories.length) {
+        const defaultCat = preferredOption && nextCategories.some((c) => c.name === preferredOption)
+          ? preferredOption
+          : nextCategories[0].name;
+        dispatch(setActiveOption(defaultCat));
+        navigate(`/dashboard/hardware/${slugifyCategory(defaultCat)}`, { replace: true });
       }
     } catch (err) {
       toast.error("Failed to fetch hardware categories");
@@ -67,20 +112,38 @@ const HardwareTable = () => {
 
   useEffect(() => { fetchCategories(); }, []);
 
+  useEffect(() => {
+    const urlVal = categorySlug || searchParams.get("category");
+    if (urlVal && categories.length) {
+      const matchedName = findCategoryName(urlVal, categories);
+      if (matchedName && matchedName !== activeOption) {
+        dispatch(setActiveOption(matchedName));
+      }
+    }
+  }, [categorySlug, searchParams, categories, activeOption, dispatch]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const productsToDisplay =
     searchResults.length > 0
       ? searchResults
-      : profileOptions?.products?.[activeOption];
+      : profileOptions?.products?.[activeOption] || [];
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeOption, searchQuery]);
+
+  const totalProducts = productsToDisplay.length;
+  const totalPages = Math.ceil(totalProducts / itemsPerPage) || 1;
+  const paginatedProducts = productsToDisplay.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   useEffect(() => {
     if (activeOption) fetchProducts(activeOption);
   }, [activeOption]);
-
-  useEffect(() => {
-    if (hardwareHeirarchy && hardwareHeirarchy.length > 0) {
-      dispatch(setActiveOption(hardwareHeirarchy[0]));
-    }
-  }, [hardwareHeirarchy, dispatch]);
 
   const fetchProducts = async (reqOption) => {
     try {
@@ -99,10 +162,7 @@ const HardwareTable = () => {
 
   useEffect(() => {
     setProfileOptions(profileData);
-    if (!activeOption && profileData?.options?.length > 0) {
-      dispatch(setActiveOption(profileData.options[0]));
-    }
-  }, [profileData, activeOption, dispatch]);
+  }, [profileData]);
 
   const handleSearch = async (e) => {
     typeof e?.preventDefault === "function" && e?.preventDefault();
@@ -362,7 +422,7 @@ const HardwareTable = () => {
               <div
                 key={category._id}
                 className={`hw-category-chip ${isActive ? "active" : ""}`}
-                onClick={() => dispatch(setActiveOption(category.name))}
+                onClick={() => selectCategory(category.name)}
               >
                 <div className="hw-chip-main">
                   <i className="fas fa-cube hw-chip-icon"></i>
@@ -558,14 +618,15 @@ const HardwareTable = () => {
                 )}
 
                 {/* Normal / Editing Product Rows */}
-                {productsToDisplay && productsToDisplay.length > 0 ? (
-                  productsToDisplay.map((product, index) => {
+                {paginatedProducts && paginatedProducts.length > 0 ? (
+                  paginatedProducts.map((product, index) => {
+                    const globalIndex = (currentPage - 1) * itemsPerPage + index;
                     const isEditing = editableProduct?._id === product._id || editableProduct?.id === product.id;
 
                     if (isEditing) {
                       return (
                         <tr key={product._id || product.id || index} className="hw-inline-row">
-                          <td className="hw-index-cell">{index + 1}</td>
+                          <td className="hw-index-cell">{globalIndex + 1}</td>
                           <td>
                             <MDBFile
                               name="image"
@@ -653,7 +714,7 @@ const HardwareTable = () => {
 
                     return (
                       <tr key={product._id || product.id || index}>
-                        <td className="hw-index-cell">{index + 1}</td>
+                        <td className="hw-index-cell">{globalIndex + 1}</td>
                         <td style={{ textAlign: "center" }}>
                           <ImageZoom productImage={product.image} imageWidth="40px" />
                         </td>
@@ -720,6 +781,49 @@ const HardwareTable = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Hardware Table Pagination Bar */}
+          {productsToDisplay.length > 0 && (
+            <div className="hw-pagination-bar">
+              <div className="hw-pagination-info">
+                Showing <strong>{(currentPage - 1) * itemsPerPage + 1}</strong> to{" "}
+                <strong>
+                  {Math.min(currentPage * itemsPerPage, productsToDisplay.length)}
+                </strong>{" "}
+                of <strong>{productsToDisplay.length}</strong> products
+              </div>
+
+              <div className="hw-pagination-controls">
+                <button
+                  type="button"
+                  className="hw-page-btn"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  title="Go to previous page"
+                >
+                  <i className="fas fa-chevron-left"></i>
+                  <span>Previous</span>
+                </button>
+
+                <div className="hw-page-indicator">
+                  Page <strong>{currentPage}</strong> of <span>{totalPages}</span>
+                </div>
+
+                <button
+                  type="button"
+                  className="hw-page-btn"
+                  disabled={currentPage >= totalPages}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  title="Go to next page"
+                >
+                  <span>Next</span>
+                  <i className="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -729,36 +833,57 @@ const HardwareTable = () => {
         onClose={() => setCategoryModal(null)}
         tabIndex="-1"
       >
-        <MDBModalDialog>
-          <MDBModalContent>
-            <MDBModalHeader>
-              <MDBModalTitle>
-                <i className="fas fa-layer-group me-2 text-primary"></i>
-                {categoryModal?.mode === "create"
-                  ? "Create Hardware Category"
-                  : "Edit Hardware Category"}
-              </MDBModalTitle>
+        <MDBModalDialog className="glazia-modal-dialog">
+          <MDBModalContent className="glazia-modal-content">
+            <MDBModalHeader className="glazia-modal-header">
+              <div className="glazia-modal-header-content">
+                <div className="glazia-modal-icon-badge">
+                  <i className="fas fa-layer-group"></i>
+                </div>
+                <div>
+                  <MDBModalTitle className="glazia-modal-title">
+                    {categoryModal?.mode === "create"
+                      ? "Create Hardware Category"
+                      : "Edit Hardware Category"}
+                  </MDBModalTitle>
+                  <p className="glazia-modal-subtitle">
+                    {categoryModal?.mode === "create"
+                      ? "Add a new hardware fitting category"
+                      : "Update hardware category details"}
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
-                className="btn-close"
+                className="glazia-modal-close-btn"
                 onClick={() => setCategoryModal(null)}
-              ></button>
+                aria-label="Close"
+              >
+                <i className="fas fa-times"></i>
+              </button>
             </MDBModalHeader>
-            <MDBModalBody>
-              <div className="mb-3">
-                <label className="form-label fw-bold text-dark small">Category Name</label>
-                <MDBInput
-                  placeholder="e.g. CORNER JOINERY"
+            <MDBModalBody className="glazia-modal-body">
+              <div className="glazia-form-group">
+                <label className="glazia-form-label">
+                  Category Name <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="glazia-form-control"
+                  placeholder="e.g. CORNER JOINERY, LOCKING PARTS..."
                   value={categoryForm.name}
                   onChange={(e) =>
                     setCategoryForm((current) => ({ ...current, name: e.target.value }))
                   }
                 />
               </div>
-              <div className="mb-3">
-                <label className="form-label fw-bold text-dark small">Description</label>
-                <MDBInput
-                  placeholder="Category description or specifications"
+
+              <div className="glazia-form-group">
+                <label className="glazia-form-label">Description</label>
+                <textarea
+                  className="glazia-form-control glazia-textarea"
+                  placeholder="Category description or specifications..."
+                  rows="3"
                   value={categoryForm.description}
                   onChange={(e) =>
                     setCategoryForm((current) => ({
@@ -768,30 +893,38 @@ const HardwareTable = () => {
                   }
                 />
               </div>
-              <div className="mt-3">
-                <MDBSwitch
-                  label="Category Enabled"
-                  checked={categoryForm.enabled}
-                  onChange={(e) =>
-                    setCategoryForm((current) => ({
-                      ...current,
-                      enabled: e.target.checked,
-                    }))
-                  }
-                />
+
+              <div className="glazia-switch-group">
+                <div className="glazia-switch-info">
+                  <span className="glazia-switch-title">Category Status</span>
+                  <span className="glazia-switch-desc">Enable category for hardware selection</span>
+                </div>
+                <label className="glazia-toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={categoryForm.enabled}
+                    onChange={(e) =>
+                      setCategoryForm((current) => ({
+                        ...current,
+                        enabled: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
               </div>
             </MDBModalBody>
-            <MDBModalFooter>
-              <MDBBtn
-                color="secondary"
-                size="sm"
+            <MDBModalFooter className="glazia-modal-footer">
+              <button
+                type="button"
+                className="btn-modal-cancel"
                 onClick={() => setCategoryModal(null)}
               >
                 Cancel
-              </MDBBtn>
+              </button>
               <button
                 type="button"
-                className="hw-btn-add-category"
+                className="btn-modal-submit"
                 onClick={saveCategory}
               >
                 <i className="fas fa-save me-1"></i>

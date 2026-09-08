@@ -35,7 +35,8 @@ const CompletedOrders = () => {
           params: params,
         });
         console.log("response", response.data);
-        setCompletedOrders(response.data);
+        const data = response.data;
+        setCompletedOrders(data.orders ? data.orders : (Array.isArray(data) ? data : []));
       } catch (error) {
         console.error("Error fetching completed orders:", error);
       }

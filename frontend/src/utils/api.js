@@ -19,6 +19,7 @@ export const QUOTATION_API_BASE_URL = trimTrailingSlash(
   process.env.REACT_APP_QUOTATION_API_BASE_URL || "https://quotation-api.glazia.in"
 );
 
+
  export const BASE_API_URL = `${MAIN_API_BASE_URL}/api`;
  export const QUOTATION_BASE_API_URL = `${QUOTATION_API_BASE_URL}/api`;
 export const getApiErrorMessage = (error, action = "complete the request") => {

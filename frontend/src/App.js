@@ -26,6 +26,8 @@ import Inventory from "./components/AdminDashboard/Inventory/Inventory";
 import AdminAccounts from "./components/AdminDashboard/AdminAccounts/AdminAccounts";
 import UserListing from "./components/AdminDashboard/UserListing/UserListing";
 import LeadManagement from "./components/AdminDashboard/LeadManagement/LeadManagement";
+import ProfileOptions from "./components/AdminDashboard/ProfileTable/ProfileTable";
+import HardwareOptions from "./components/AdminDashboard/HardwareTable/HardwareTable";
 import { clearCurrentAdminPermissions, firstAllowedAdminPath, hasAdminAccess, setCurrentAdminPermissions } from "./utils/adminAccess";
 import api, { BASE_API_URL } from "./utils/api";
 
@@ -172,21 +174,99 @@ function App() {
                 path="/dashboard"
                 element={adminRoute("DASHBOARD", <AdminDashboard />)}
               />
+
+              {/* Profile */}
+              <Route
+                path="/profile"
+                element={adminRoute(["PRODUCTS", "DASHBOARD"], <ProfileOptions />)}
+              />
+              <Route
+                path="/dashboard/profile"
+                element={adminRoute(["PRODUCTS", "DASHBOARD"], <ProfileOptions />)}
+              />
+
+              {/* Hardware */}
+              <Route
+                path="/hardware"
+                element={adminRoute(["PRODUCTS", "DASHBOARD"], <HardwareOptions />)}
+              />
+              <Route
+                path="/hardware/:categorySlug"
+                element={adminRoute(["PRODUCTS", "DASHBOARD"], <HardwareOptions />)}
+              />
+              <Route
+                path="/dashboard/hardware"
+                element={adminRoute(["PRODUCTS", "DASHBOARD"], <HardwareOptions />)}
+              />
+              <Route
+                path="/dashboard/hardware/:categorySlug"
+                element={adminRoute(["PRODUCTS", "DASHBOARD"], <HardwareOptions />)}
+              />
+
+              {/* Orders */}
+              <Route
+                path="/orders"
+                element={adminRoute("ORDERS", <UserOrders />)}
+              />
+              <Route
+                path="/orders/:orderId"
+                element={adminRoute("ORDERS", <OrderDetails />)}
+              />
               <Route
                 path="/dashboard/orders"
                 element={adminRoute("ORDERS", <UserOrders />)}
+              />
+              <Route
+                path="/dashboard/orders/:orderId"
+                element={adminRoute("ORDERS", <OrderDetails />)}
+              />
+
+              {/* Quotations */}
+              <Route
+                path="/quotations"
+                element={adminRoute("QUOTATIONS", <QuotationAdminPage />)}
+              />
+              <Route
+                path="/quotations/:subTab"
+                element={adminRoute("QUOTATIONS", <QuotationAdminPage />)}
               />
               <Route
                 path="/dashboard/quotations"
                 element={adminRoute("QUOTATIONS", <QuotationAdminPage />)}
               />
               <Route
+                path="/dashboard/quotations/:subTab"
+                element={adminRoute("QUOTATIONS", <QuotationAdminPage />)}
+              />
+
+              {/* Users */}
+              <Route
+                path="/users"
+                element={adminRoute("USERS", <UserManagement />)}
+              />
+              <Route
                 path="/dashboard/users"
                 element={adminRoute("USERS", <UserManagement />)}
+              />
+
+              {/* Dynamic Pricing */}
+              <Route
+                path="/dynamic-pricing"
+                element={adminRoute(["DYNAMIC_PRICING", "USERS"], <UserListing />)}
               />
               <Route
                 path="/dashboard/dynamic-pricing"
                 element={adminRoute(["DYNAMIC_PRICING", "USERS"], <UserListing />)}
+              />
+
+              {/* Leads */}
+              <Route
+                path="/leads"
+                element={adminRoute(["LEADS", "DASHBOARD", "USERS"], <LeadManagement />)}
+              />
+              <Route
+                path="/lead-management"
+                element={<Navigate to="/leads" replace />}
               />
               <Route
                 path="/dashboard/leads"
@@ -196,25 +276,45 @@ function App() {
                 path="/dashboard/lead-management"
                 element={<Navigate to="/dashboard/leads" replace />}
               />
+
+              {/* Blogs */}
+              <Route
+                path="/blogs"
+                element={adminRoute("BLOGS", <BlogManagement />)}
+              />
               <Route
                 path="/dashboard/blogs"
                 element={adminRoute("BLOGS", <BlogManagement />)}
+              />
+
+              {/* Stock Approvals */}
+              <Route
+                path="/stock-approvals"
+                element={adminRoute("STOCK_APPROVALS", <StockApprovals />)}
               />
               <Route
                 path="/dashboard/stock-approvals"
                 element={adminRoute("STOCK_APPROVALS", <StockApprovals />)}
               />
+
+              {/* Inventory */}
+              <Route
+                path="/inventory"
+                element={adminRoute("INVENTORY", <Inventory />)}
+              />
               <Route
                 path="/dashboard/inventory"
                 element={adminRoute("INVENTORY", <Inventory />)}
               />
+
+              {/* Admin Accounts */}
               <Route
-                path="/dashboard/admin-accounts"
+                path="/admin-accounts"
                 element={adminRoute("ADMIN_ACCOUNTS", <AdminAccounts />)}
               />
               <Route
-                path="/dashboard/orders/:orderId"
-                element={adminRoute("ORDERS", <OrderDetails />)}
+                path="/dashboard/admin-accounts"
+                element={adminRoute("ADMIN_ACCOUNTS", <AdminAccounts />)}
               />
               <Route
                 path="*"

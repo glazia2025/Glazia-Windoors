@@ -33,6 +33,7 @@ export const hasAdminAccess = permission => {
 export const firstAllowedAdminPath = () => {
   const routes = [
     ["DASHBOARD", "/dashboard"],
+    ["PRODUCTS", "/dashboard/profile"],
     ["ORDERS", "/dashboard/orders"],
     ["INVENTORY", "/dashboard/inventory"],
     ["QUOTATIONS", "/dashboard/quotations"],

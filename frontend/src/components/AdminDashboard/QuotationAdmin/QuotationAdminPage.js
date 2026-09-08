@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   MDBBadge,
   MDBBtn,
@@ -13,6 +14,36 @@ import {
 } from "mdb-react-ui-kit";
 import api, { QUOTATION_BASE_API_URL } from "../../../utils/api";
 import "./QuotationAdminPage.css";
+
+const ROUTE_SLUG_TO_TAB = {
+  "quotations": "quotations",
+  "systems": "systems",
+  "series": "series",
+  "option-sets": "optionSets",
+  "louvers-rate": "baseRates",
+  "base-rates": "baseRates",
+  "handle-rules": "handleRules",
+  "handle-options": "handleOptions",
+  "cutting-schedule": "cuttingSchedule",
+  "glass-beading": "glassBeading",
+  "mullion-coupler": "mullionCoupler",
+  "hardware-linking": "hardwareLinking",
+  "hardware": "hardwareLinking",
+};
+
+const TAB_TO_ROUTE_SLUG = {
+  "quotations": "quotations",
+  "systems": "systems",
+  "series": "series",
+  "optionSets": "option-sets",
+  "baseRates": "louvers-rate",
+  "handleRules": "handle-rules",
+  "handleOptions": "handle-options",
+  "cuttingSchedule": "cutting-schedule",
+  "glassBeading": "glass-beading",
+  "mullionCoupler": "mullion-coupler",
+  "hardwareLinking": "hardware-linking",
+};
 
 const splitCsv = (value = "") =>
   value
@@ -116,9 +147,30 @@ const getCuttingLineCount = (config = {}) =>
   0;
 
 const QuotationAdminPage = () => {
+  const { subTab } = useParams();
+  const navigate = useNavigate();
+
+  const currentTabFromUrl = ROUTE_SLUG_TO_TAB[subTab] || "quotations";
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [activeTab, setActiveTab] = useState("quotations");
+  const [activeTab, setActiveTab] = useState(currentTabFromUrl);
+
+  useEffect(() => {
+    const targetTab = ROUTE_SLUG_TO_TAB[subTab] || "quotations";
+    if (activeTab !== targetTab) {
+      setActiveTab(targetTab);
+    }
+  }, [subTab]);
+
+  const handleTabClick = (tabId) => {
+    setActiveTab(tabId);
+    const slug = TAB_TO_ROUTE_SLUG[tabId];
+    if (slug && slug !== "quotations") {
+      navigate(`/dashboard/quotations/${slug}`);
+    } else {
+      navigate("/dashboard/quotations");
+    }
+  };
   const [systems, setSystems] = useState([]);
   const [series, setSeries] = useState([]);
   const [optionSets, setOptionSets] = useState([]);
@@ -2259,8 +2311,7 @@ const QuotationAdminPage = () => {
           <button
             key={tab.id}
             className={`qa-tab ${activeTab === tab.id ? "active" : ""}`}
-            onClick={() =>
-              setActiveTab(tab.id)}
+            onClick={() => handleTabClick(tab.id)}
           >
             <MDBIcon fas icon={tab.icon} className="me-2" />
             {tab.label}
@@ -5302,7 +5353,6 @@ const QuotationAdminPage = () => {
       </div>
 
       <div className="qa-shell">
-        <aside className="qa-sidenav">{renderTabs()}</aside>
         <div className="qa-body">
           <div className="qa-sections">
             {activeTab === "quotations" && renderQuotationSection()}

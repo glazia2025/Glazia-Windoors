@@ -18,12 +18,12 @@ const OrderList = ({ selectedStatus }) => {
   const [userRole, setUserRole] = useState(null);
   const [orders, setOrders] = useState([]);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit] = useState(10);
+  const [totalOrders, setTotalOrders] = useState(0);
   const [sortOrder, setSortOrder] = useState("desc");
   const [sortKey, setSortKey] = useState("createdAt");
   const [filters, setFilters] = useState({});
   const [search, setSearch] = useState("");
-  const [endReached, setEndReached] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showItemsPopup, setShowItemsPopup] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -57,7 +57,6 @@ const OrderList = ({ selectedStatus }) => {
 
   useEffect(() => {
     setPage(1);
-    setEndReached(false);
 
     setFilters((cur) => ({
       ...cur,
@@ -69,7 +68,6 @@ const OrderList = ({ selectedStatus }) => {
 
   const handleSearchChange = (val) => {
     setPage(1);
-    setEndReached(false);
     setFilters((cur) => {
       let next = { ...cur };
       if (val && val.length) {
@@ -83,22 +81,17 @@ const OrderList = ({ selectedStatus }) => {
 
   const handleSort = (key) => {
     setPage(1);
-    setEndReached(false);
     setSortKey(key.split(":")[0]);
     setSortOrder(key.split(":")[1]);
     setSortDropdownOpen(false);
   };
 
   const fetchOrders = async () => {
-    if (endReached || !filters || !sortOrder || !sortKey || !page || !limit)
+    if (!filters || !sortOrder || !sortKey || !page || !limit)
       return;
 
     try {
       setLoading(true);
-
-      if (page === 1) {
-        setOrders([]);
-      }
 
       const token = localStorage.getItem("authToken");
       let params = {
@@ -122,27 +115,23 @@ const OrderList = ({ selectedStatus }) => {
         params: params,
       });
 
-      if (response.data.length > 0) {
-        setOrders((cur) => deduplicateOrders([...cur, ...response.data]));
-        if (response.data.length < limit) {
-          setEndReached(true);
-        }
+      const data = response.data;
+      if (data.orders) {
+        setOrders(data.orders);
+        setTotalOrders(data.totalCount || 0);
       } else {
-        setEndReached(true);
+        // Fallback for old API format
+        setOrders(Array.isArray(data) ? data : []);
+        setTotalOrders(Array.isArray(data) ? data.length : 0);
       }
     } catch (error) {
-      console.error("Error fetching ongoing orders:", error);
+      console.error("Error fetching orders:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const deduplicateOrders = (list) => {
-    return list.filter(
-      (order, index, self) =>
-        index === self.findIndex((t) => t._id === order._id)
-    );
-  };
+  const totalPages = Math.max(1, Math.ceil(totalOrders / limit));
 
   const handleViewOrder = (orderId) => {
     if (userRole === "admin") {
@@ -220,21 +209,7 @@ const OrderList = ({ selectedStatus }) => {
     );
   };
 
-  const displayedOrders = orders.filter((order) => {
-    if (!search || !search.trim()) return true;
-    const q = search.toLowerCase().trim();
-    const idMatch = order._id?.toLowerCase().includes(q);
-    const userMatch =
-      order.user?.name?.toLowerCase().includes(q) ||
-      order.user?.city?.toLowerCase().includes(q) ||
-      order.user?.phoneNumber?.includes(q);
-    const prodMatch = order.products?.some(
-      (p) =>
-        p.description?.toLowerCase().includes(q) ||
-        p.name?.toLowerCase().includes(q)
-    );
-    return idMatch || userMatch || prodMatch;
-  });
+  const displayedOrders = orders;
 
   const currentSortLabel =
     SORT_KEY_OPTIONS.find((opt) => opt.value === `${sortKey}:${sortOrder}`)?.label || "Sort by";
@@ -341,7 +316,7 @@ const OrderList = ({ selectedStatus }) => {
                 <tr key={order._id}>
                   <td>
                     <span className="order-id-badge">
-                      #{order._id.slice(0, 4)}...{order._id.slice(-4)}
+                      {order.orderId != null ? `#${order.orderId}` : `#${order._id.slice(0, 4)}...${order._id.slice(-4)}`}
                     </span>
                   </td>
                   <td>
@@ -391,10 +366,10 @@ const OrderList = ({ selectedStatus }) => {
                     <span className="order-amount-cell">
                       {formatPrice(
                         order.totalAmount ||
-                          order.products.reduce(
-                            (acc, product) => acc + product.amount,
-                            0
-                          ) * 1.18
+                        order.products.reduce(
+                          (acc, product) => acc + product.amount,
+                          0
+                        ) * 1.18
                       )}
                     </span>
                   </td>
@@ -438,7 +413,7 @@ const OrderList = ({ selectedStatus }) => {
             <div key={order._id} className="order-mobile-card">
               <div className="order-mobile-header">
                 <span className="order-id-badge">
-                  #{order._id.slice(0, 4)}...{order._id.slice(-4)}
+                  {order.orderId != null ? `#${order.orderId}` : `#${order._id.slice(0, 4)}...${order._id.slice(-4)}`}
                 </span>
                 {renderStatusPill(order)}
               </div>
@@ -488,10 +463,10 @@ const OrderList = ({ selectedStatus }) => {
                   <div className="order-amount-cell">
                     {formatPrice(
                       order.totalAmount ||
-                        order.products.reduce(
-                          (acc, product) => acc + product.amount,
-                          0
-                        ) * 1.18
+                      order.products.reduce(
+                        (acc, product) => acc + product.amount,
+                        0
+                      ) * 1.18
                     )}
                   </div>
                 </div>
@@ -521,33 +496,46 @@ const OrderList = ({ selectedStatus }) => {
         )}
       </div>
 
-      {/* Pagination / Load More */}
-      {orders && orders.length > 0 && !endReached && (
-        <div className="d-flex justify-content-center py-3">
-          <button
-            type="button"
-            className="order-load-more-btn"
-            onClick={() => setPage(page + 1)}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span className="spinner-border spinner-border-sm" role="status"></span>
-                <span>Loading more...</span>
-              </>
-            ) : (
-              <>
-                <i className="fas fa-arrow-down"></i>
-                <span>Load More Orders</span>
-              </>
-            )}
-          </button>
-        </div>
-      )}
+      {/* Pagination Bar */}
+      {!loading && orders.length > 0 && (
+        <div className="order-pagination-bar">
+          <div className="order-pagination-info">
+            Showing <strong>{(page - 1) * limit + 1}</strong> to{" "}
+            <strong>
+              {Math.min(page * limit, totalOrders)}
+            </strong>{" "}
+            of <strong>{totalOrders}</strong> orders
+          </div>
 
-      {endReached && orders.length > 0 && (
-        <div className="text-center py-3">
-          <span className="small text-muted fst-italic">All orders loaded</span>
+          <div className="order-pagination-controls">
+            <button
+              type="button"
+              className="order-page-btn"
+              disabled={page === 1}
+              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+              title="Go to previous page"
+            >
+              <i className="fas fa-chevron-left"></i>
+              <span>Previous</span>
+            </button>
+
+            <div className="order-page-indicator">
+              Page <strong>{page}</strong> of <span>{totalPages || 1}</span>
+            </div>
+
+            <button
+              type="button"
+              className="order-page-btn"
+              disabled={page >= totalPages}
+              onClick={() =>
+                setPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              title="Go to next page"
+            >
+              <span>Next</span>
+              <i className="fas fa-chevron-right"></i>
+            </button>
+          </div>
         </div>
       )}
 

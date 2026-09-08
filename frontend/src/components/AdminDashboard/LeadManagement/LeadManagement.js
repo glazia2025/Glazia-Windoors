@@ -3,6 +3,7 @@ import api, { BASE_API_URL } from "../../../utils/api";
 import "./LeadManagement.css";
 
 const statusOptions = ["new", "contacted", "closed"];
+const ITEMS_PER_PAGE = 10;
 
 const formatDate = (value) => {
   if (!value) return "N/A";
@@ -20,6 +21,7 @@ const LeadManagement = () => {
   const [deletingId, setDeletingId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const token = localStorage.getItem("authToken");
 
@@ -43,6 +45,11 @@ const LeadManagement = () => {
   useEffect(() => {
     fetchLeads();
   }, []);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   const updateLeadField = (leadId, field, value) => {
     setLeads((prev) =>
@@ -126,6 +133,20 @@ const LeadManagement = () => {
       );
     });
   }, [leads, statusFilter, searchTerm]);
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(filteredLeads.length / ITEMS_PER_PAGE));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const paginatedLeads = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredLeads.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredLeads, currentPage]);
 
   return (
     <div className="lead-mgmt-container">
@@ -228,7 +249,16 @@ const LeadManagement = () => {
             )}
           </div>
           <span className="lead-count-label">
-            Showing {filteredLeads.length} of {leads.length} leads
+            {filteredLeads.length === 0
+              ? "0 leads"
+              : `Showing ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(
+                  currentPage * ITEMS_PER_PAGE,
+                  filteredLeads.length
+                )} of ${filteredLeads.length} leads${
+                  filteredLeads.length !== leads.length
+                    ? ` (filtered from ${leads.length})`
+                    : ""
+                }`}
           </span>
         </div>
 
@@ -252,7 +282,7 @@ const LeadManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredLeads.length === 0 ? (
+                {paginatedLeads.length === 0 ? (
                   <tr>
                     <td colSpan="6">
                       <div className="lead-empty-state">
@@ -269,14 +299,15 @@ const LeadManagement = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredLeads.map((lead, index) => {
+                  paginatedLeads.map((lead, index) => {
                     const isSaving = savingId === lead._id;
                     const isDeleting = deletingId === lead._id;
                     const currentStatus = (lead.status || "new").toLowerCase();
+                    const globalIndex = (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
 
                     return (
                       <tr key={lead._id}>
-                        <td className="lead-index">{index + 1}</td>
+                        <td className="lead-index">{globalIndex}</td>
                         <td>
                           <div className="lead-phone-cell">
                             <div className="lead-phone-icon">
@@ -366,6 +397,49 @@ const LeadManagement = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Bar */}
+        {!listLoading && filteredLeads.length > 0 && (
+          <div className="lead-pagination-bar">
+            <div className="lead-pagination-info">
+              Showing <strong>{(currentPage - 1) * ITEMS_PER_PAGE + 1}</strong> to{" "}
+              <strong>
+                {Math.min(currentPage * ITEMS_PER_PAGE, filteredLeads.length)}
+              </strong>{" "}
+              of <strong>{filteredLeads.length}</strong> leads
+            </div>
+
+            <div className="lead-pagination-controls">
+              <button
+                type="button"
+                className="lead-page-btn"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                title="Go to previous page"
+              >
+                <i className="fas fa-chevron-left"></i>
+                <span>Previous</span>
+              </button>
+
+              <div className="lead-page-indicator">
+                Page <strong>{currentPage}</strong> of <span>{totalPages || 1}</span>
+              </div>
+
+              <button
+                type="button"
+                className="lead-page-btn"
+                disabled={currentPage >= totalPages}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                title="Go to next page"
+              >
+                <span>Next</span>
+                <i className="fas fa-chevron-right"></i>
+              </button>
+            </div>
           </div>
         )}
       </div>
