@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import api, { BASE_API_URL } from "../../utils/api";
+import api, { BASE_API_URL, QUOTATION_BASE_API_URL } from "../../utils/api";
 import {
   setHardwareHeirarchy,
   setProfileHeirarchy,
@@ -25,8 +25,100 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
     profile: false,
     hardware: false,
     orders: false,
+    quotations: false,
   });
   const [activeFlyout, setActiveFlyout] = useState(null);
+  const [quotationCounts, setQuotationCounts] = useState({});
+
+  const quotationSubItems = [
+    { label: "Quotations", path: "/dashboard/quotations", icon: "fas fa-file-invoice-dollar", exact: true },
+    { label: "Systems", path: "/dashboard/quotations/systems", icon: "fas fa-cubes" },
+    { label: "Series", path: "/dashboard/quotations/series", icon: "fas fa-sitemap" },
+    { label: "Option Sets", path: "/dashboard/quotations/option-sets", icon: "fas fa-palette" },
+    { label: "Louvers Rate", path: "/dashboard/quotations/louvers-rate", icon: "fas fa-layer-group", altPath: "/dashboard/quotations/base-rates" },
+    { label: "Handle Rules", path: "/dashboard/quotations/handle-rules", icon: "fas fa-hand-paper" },
+    { label: "Handle Options", path: "/dashboard/quotations/handle-options", icon: "fas fa-swatchbook" },
+    { label: "Cutting Schedule", path: "/dashboard/quotations/cutting-schedule", icon: "fas fa-ruler-combined" },
+    { label: "Glass Beading", path: "/dashboard/quotations/glass-beading", icon: "fas fa-link" },
+    { label: "Mullion / Coupler", path: "/dashboard/quotations/mullion-coupler", icon: "fas fa-grip-lines-vertical" },
+    { label: "Hardware", path: "/dashboard/quotations/hardware-linking", icon: "fas fa-tools", altPath: "/dashboard/quotations/hardware" },
+  ];
+
+  const isQuotationSubItemActive = (item) => {
+    if (item.exact) {
+      return location.pathname === "/dashboard/quotations" || location.pathname === "/dashboard/quotations/all";
+    }
+    if (item.altPath && location.pathname.startsWith(item.altPath)) {
+      return true;
+    }
+    return location.pathname.startsWith(item.path);
+  };
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/dashboard/quotations")) {
+      setExpandedMenus((prev) => ({ ...prev, quotations: true }));
+      fetchQuotationCounts();
+    }
+  }, [location.pathname]);
+
+  const fetchQuotationCounts = async () => {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+    try {
+      const authConfig = { headers: { Authorization: `Bearer ${token}` } };
+      const [
+        quotesRes,
+        systemsRes,
+        seriesRes,
+        optionsRes,
+        baseRatesRes,
+        handleRulesRes,
+        handleOptionsRes,
+        cuttingConfigsRes,
+        mullionRes,
+        hardwareRes
+      ] = await Promise.allSettled([
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations?page=1&limit=1`, authConfig),
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/systems`, authConfig),
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/series`, authConfig),
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/option-sets`, authConfig),
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/base-rates`, authConfig),
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/handle-rules`, authConfig),
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/handle-options`, authConfig),
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/cutting-schedule/configs`, authConfig),
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/mullion-coupler/series`, authConfig),
+        api.get(`${QUOTATION_BASE_API_URL}/admin/quotations/hardware-linking/descriptions`, authConfig),
+      ]);
+
+      const quotesCount = quotesRes.status === "fulfilled" ? (quotesRes.value.data?.total || 0) : 0;
+      const systemsCount = systemsRes.status === "fulfilled" ? (systemsRes.value.data?.length || 0) : 0;
+      const seriesCount = seriesRes.status === "fulfilled" ? (seriesRes.value.data?.length || 0) : 0;
+      const optionsCount = optionsRes.status === "fulfilled" ? (optionsRes.value.data?.length || 0) : 0;
+      const baseRatesCount = baseRatesRes.status === "fulfilled" ? (baseRatesRes.value.data?.baseRates?.length || baseRatesRes.value.data?.length || 0) : 0;
+      const handleRulesCount = handleRulesRes.status === "fulfilled" ? (handleRulesRes.value.data?.length || 0) : 0;
+      const handleOptionsCount = handleOptionsRes.status === "fulfilled" ? (handleOptionsRes.value.data?.length || 0) : 0;
+      const cuttingCount = cuttingConfigsRes.status === "fulfilled" ? (cuttingConfigsRes.value.data?.filter(c => (c.schedules || []).reduce((sum, s) => sum + (s.lines?.length || 0), 0) > 0)?.length || 0) : 0;
+      const glassBeadingCount = cuttingConfigsRes.status === "fulfilled" ? (cuttingConfigsRes.value.data?.reduce((sum, c) => sum + (c.glassBeadingLinks?.filter(l => l.beadingSapCode)?.length || 0), 0) || 0) : 0;
+      const mullionCount = mullionRes.status === "fulfilled" ? (mullionRes.value.data?.filter(i => i.configured)?.length || 0) : 0;
+      const hardwareCount = hardwareRes.status === "fulfilled" ? (hardwareRes.value.data?.filter(i => i.configured)?.length || 0) : 0;
+
+      setQuotationCounts({
+        "/dashboard/quotations": quotesCount,
+        "/dashboard/quotations/systems": systemsCount,
+        "/dashboard/quotations/series": seriesCount,
+        "/dashboard/quotations/option-sets": optionsCount,
+        "/dashboard/quotations/louvers-rate": baseRatesCount,
+        "/dashboard/quotations/handle-rules": handleRulesCount,
+        "/dashboard/quotations/handle-options": handleOptionsCount,
+        "/dashboard/quotations/cutting-schedule": cuttingCount,
+        "/dashboard/quotations/glass-beading": glassBeadingCount,
+        "/dashboard/quotations/mullion-coupler": mullionCount,
+        "/dashboard/quotations/hardware-linking": hardwareCount,
+      });
+    } catch (e) {
+      console.error("Sidebar count fetch error", e);
+    }
+  };
 
   const { profileHeirarchy, hardwareHeirarchy } = useSelector(
     (state) => state.heirarchy
@@ -56,8 +148,7 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
     try {
       const [profileResponse, hardwareResponse] = await Promise.all([
         api.get(
-          `${BASE_API_URL}/${
-            window.location.pathname.includes("admin") ? "admin" : "user"
+          `${BASE_API_URL}/${window.location.pathname.includes("admin") ? "admin" : "user"
           }/get-profile-heirarchy`,
           {
             headers: { Authorization: `Bearer ${token}` },
@@ -85,7 +176,7 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
     dispatch(setActiveProfile(mainCategory));
     dispatch(setActiveOption(subCategory));
     dispatch(setSelectedOption("profile"));
-    navigate("/dashboard");
+    navigate("/dashboard/profile");
     setActiveFlyout(null);
   };
 
@@ -93,7 +184,7 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
     dispatch(setActiveProfile(undefined));
     dispatch(setActiveOption(hardware));
     dispatch(setSelectedOption("hardware"));
-    navigate("/dashboard");
+    navigate("/dashboard/hardware");
     setActiveFlyout(null);
   };
 
@@ -102,18 +193,19 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
     setActiveFlyout(null);
   };
 
-  const isActive = (path, queryKey, queryValue) => {
+  const isActive = (path, queryKey, queryValue, exact = false) => {
     if (queryKey && queryValue) {
       const params = new URLSearchParams(location.search);
-      return location.pathname === path && params.get(queryKey) === queryValue;
+      return (location.pathname === path || (!exact && location.pathname.startsWith(path + "/"))) && params.get(queryKey) === queryValue;
     }
-    return location.pathname === path;
+    if (exact || path === "/dashboard") {
+      return location.pathname === path || location.pathname === path + "/";
+    }
+    return location.pathname === path || location.pathname.startsWith(path + "/");
   };
 
-  const isProfileActive =
-    location.pathname === "/dashboard" && activeProfile !== null && activeProfile !== undefined;
-  const isHardwareActive =
-    location.pathname === "/dashboard" && activeProfile === undefined && activeOption !== null;
+  const isProfileActive = location.pathname.startsWith("/dashboard/profile");
+  const isHardwareActive = location.pathname.startsWith("/dashboard/hardware");
 
   return (
     <aside
@@ -136,9 +228,8 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
           aria-label="Toggle sidebar"
         >
           <i
-            className={`fas ${
-              isCollapsed ? "fa-chevron-right" : "fa-chevron-left"
-            }`}
+            className={`fas ${isCollapsed ? "fa-chevron-right" : "fa-chevron-left"
+              }`}
           />
         </button>
       </div>
@@ -150,11 +241,7 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
         {/* Dashboard */}
         {(userRole !== "admin" || hasAdminAccess("DASHBOARD")) && (
           <div
-            className={`nav-item ${
-              isActive("/dashboard") && !isProfileActive && !isHardwareActive
-                ? "active"
-                : ""
-            }`}
+            className={`nav-item ${isActive("/dashboard") ? "active" : ""}`}
             onClick={() => handleNavigation("/dashboard")}
             title="Dashboard"
           >
@@ -179,180 +266,43 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
           </div>
         )}
 
-        {/* Profile Dropdown */}
+        {/* Profile */}
         {(userRole !== "admin" || hasAdminAccess("PRODUCTS")) && (
           <div
-            className={`nav-item nav-item-has-submenu ${
-              isProfileActive ? "active-parent" : ""
-            }`}
-            onMouseEnter={() => isCollapsed && setActiveFlyout("profile")}
+            className={`nav-item ${isActive("/dashboard/profile") ? "active" : ""
+              }`}
+            onClick={() => handleNavigation("/dashboard/profile")}
+            title="Profile"
           >
-            <div
-              className="nav-item-header"
-              onClick={() => {
-                if (isCollapsed) {
-                  setActiveFlyout(activeFlyout === "profile" ? null : "profile");
-                } else {
-                  toggleSubmenu("profile");
-                }
-              }}
-              title="Profile"
-            >
-              <div className="nav-item-icon">
-                <i className="fas fa-window-restore" />
-              </div>
-              {!isCollapsed && (
-                <>
-                  <span className="nav-item-label">Profile</span>
-                  <i
-                    className={`fas fa-chevron-down submenu-arrow ${
-                      expandedMenus.profile ? "rotated" : ""
-                    }`}
-                  />
-                </>
-              )}
+            <div className="nav-item-icon">
+              <i className="fas fa-window-restore" />
             </div>
-
-            {/* Expanded Submenu in Normal Mode */}
-            {!isCollapsed && expandedMenus.profile && (
-              <div className="sidebar-submenu">
-                {profileHeirarchy && profileHeirarchy.length > 0 ? (
-                  profileHeirarchy.map((cat) => (
-                    <div key={cat.profile} className="profile-category-group">
-                      <div className="profile-category-title">{cat.profile}</div>
-                      {cat.options?.map((sub) => (
-                        <div
-                          key={sub}
-                          className={`submenu-item ${
-                            activeProfile === cat.profile && activeOption === sub
-                              ? "active"
-                              : ""
-                          }`}
-                          onClick={() => handleProfileSelect(cat.profile, sub)}
-                        >
-                          <i className="fas fa-circle submenu-bullet" />
-                          <span>{sub}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ))
-                ) : (
-                  <div className="submenu-empty">Loading profiles...</div>
-                )}
-              </div>
-            )}
-
-            {/* Floating Submenu in Collapsed Mode */}
-            {isCollapsed && activeFlyout === "profile" && (
-              <div className="sidebar-flyout-menu">
-                <div className="flyout-header">Profile Systems</div>
-                {profileHeirarchy?.map((cat) => (
-                  <div key={cat.profile} className="flyout-group">
-                    <div className="flyout-group-title">{cat.profile}</div>
-                    {cat.options?.map((sub) => (
-                      <div
-                        key={sub}
-                        className={`flyout-item ${
-                          activeProfile === cat.profile && activeOption === sub
-                            ? "active"
-                            : ""
-                        }`}
-                        onClick={() => handleProfileSelect(cat.profile, sub)}
-                      >
-                        {sub}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            )}
+            {!isCollapsed && <span className="nav-item-label">Profile</span>}
           </div>
         )}
 
-        {/* Hardware Dropdown */}
+        {/* Hardware */}
         {(userRole !== "admin" || hasAdminAccess("PRODUCTS")) && (
           <div
-            className={`nav-item nav-item-has-submenu ${
-              isHardwareActive ? "active-parent" : ""
-            }`}
-            onMouseEnter={() => isCollapsed && setActiveFlyout("hardware")}
+            className={`nav-item ${isActive("/dashboard/hardware") ? "active" : ""
+              }`}
+            onClick={() => handleNavigation("/dashboard/hardware")}
+            title="Hardware"
           >
-            <div
-              className="nav-item-header"
-              onClick={() => {
-                if (isCollapsed) {
-                  setActiveFlyout(activeFlyout === "hardware" ? null : "hardware");
-                } else {
-                  toggleSubmenu("hardware");
-                }
-              }}
-              title="Hardware"
-            >
-              <div className="nav-item-icon">
-                <i className="fas fa-tools" />
-              </div>
-              {!isCollapsed && (
-                <>
-                  <span className="nav-item-label">Hardware</span>
-                  <i
-                    className={`fas fa-chevron-down submenu-arrow ${
-                      expandedMenus.hardware ? "rotated" : ""
-                    }`}
-                  />
-                </>
-              )}
+            <div className="nav-item-icon">
+              <i className="fas fa-tools" />
             </div>
-
-            {/* Expanded Submenu */}
-            {!isCollapsed && expandedMenus.hardware && (
-              <div className="sidebar-submenu">
-                {hardwareHeirarchy && hardwareHeirarchy.length > 0 ? (
-                  hardwareHeirarchy.map((hardware) => (
-                    <div
-                      key={hardware}
-                      className={`submenu-item ${
-                        activeOption === hardware ? "active" : ""
-                      }`}
-                      onClick={() => handleHardwareSelect(hardware)}
-                    >
-                      <i className="fas fa-circle submenu-bullet" />
-                      <span>{hardware}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="submenu-empty">Loading hardware...</div>
-                )}
-              </div>
-            )}
-
-            {/* Flyout in Collapsed Mode */}
-            {isCollapsed && activeFlyout === "hardware" && (
-              <div className="sidebar-flyout-menu">
-                <div className="flyout-header">Hardware Categories</div>
-                {hardwareHeirarchy?.map((hardware) => (
-                  <div
-                    key={hardware}
-                    className={`flyout-item ${
-                      activeOption === hardware ? "active" : ""
-                    }`}
-                    onClick={() => handleHardwareSelect(hardware)}
-                  >
-                    {hardware}
-                  </div>
-                ))}
-              </div>
-            )}
+            {!isCollapsed && <span className="nav-item-label">Hardware</span>}
           </div>
         )}
 
         {/* Orders */}
         {(userRole !== "admin" || hasAdminAccess("ORDERS")) && (
           <div
-            className={`nav-item nav-item-has-submenu ${
-              location.pathname.startsWith("/dashboard/orders")
+            className={`nav-item nav-item-has-submenu ${location.pathname.startsWith("/dashboard/orders")
                 ? "active-parent"
                 : ""
-            }`}
+              }`}
             onMouseEnter={() => isCollapsed && setActiveFlyout("orders")}
           >
             <div
@@ -373,9 +323,8 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
                 <>
                   <span className="nav-item-label">Orders</span>
                   <i
-                    className={`fas fa-chevron-down submenu-arrow ${
-                      expandedMenus.orders ? "rotated" : ""
-                    }`}
+                    className={`fas fa-chevron-down submenu-arrow ${expandedMenus.orders ? "rotated" : ""
+                      }`}
                   />
                 </>
               )}
@@ -385,22 +334,20 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
             {!isCollapsed && expandedMenus.orders && (
               <div className="sidebar-submenu">
                 <div
-                  className={`submenu-item ${
-                    isActive("/dashboard/orders", "status", "ongoing")
+                  className={`submenu-item ${isActive("/dashboard/orders", "status", "ongoing")
                       ? "active"
                       : ""
-                  }`}
+                    }`}
                   onClick={() => handleNavigation("/dashboard/orders?status=ongoing")}
                 >
                   <i className="fas fa-clock submenu-bullet" />
                   <span>Ongoing Orders</span>
                 </div>
                 <div
-                  className={`submenu-item ${
-                    isActive("/dashboard/orders", "status", "completed")
+                  className={`submenu-item ${isActive("/dashboard/orders", "status", "completed")
                       ? "active"
                       : ""
-                  }`}
+                    }`}
                   onClick={() =>
                     handleNavigation("/dashboard/orders?status=completed")
                   }
@@ -409,13 +356,12 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
                   <span>Completed Orders</span>
                 </div>
                 <div
-                  className={`submenu-item ${
-                    isActive("/dashboard/orders", "status", "all") ||
-                    (location.pathname === "/dashboard/orders" &&
-                      !location.search)
+                  className={`submenu-item ${isActive("/dashboard/orders", "status", "all") ||
+                      (location.pathname === "/dashboard/orders" &&
+                        !location.search)
                       ? "active"
                       : ""
-                  }`}
+                    }`}
                   onClick={() => handleNavigation("/dashboard/orders?status=all")}
                 >
                   <i className="fas fa-list-ul submenu-bullet" />
@@ -464,17 +410,16 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
               hasAdminAccess("LEADS") ||
               hasAdminAccess("BLOGS") ||
               hasAdminAccess("ADMIN_ACCOUNTS")) && (
-              <div className="nav-group-label mt-3">
-                {!isCollapsed ? "Administration" : "•••"}
-              </div>
-            )}
+                <div className="nav-group-label mt-3">
+                  {!isCollapsed ? "Administration" : "•••"}
+                </div>
+              )}
 
             {/* Stock Approvals */}
             {hasAdminAccess("STOCK_APPROVALS") && (
               <div
-                className={`nav-item ${
-                  isActive("/dashboard/stock-approvals") ? "active" : ""
-                }`}
+                className={`nav-item ${isActive("/dashboard/stock-approvals") ? "active" : ""
+                  }`}
                 onClick={() => handleNavigation("/dashboard/stock-approvals")}
                 title="Stock Approvals"
               >
@@ -490,9 +435,8 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
             {/* Inventory */}
             {hasAdminAccess("INVENTORY") && (
               <div
-                className={`nav-item ${
-                  isActive("/dashboard/inventory") ? "active" : ""
-                }`}
+                className={`nav-item ${isActive("/dashboard/inventory") ? "active" : ""
+                  }`}
                 onClick={() => handleNavigation("/dashboard/inventory")}
                 title="Inventory"
               >
@@ -505,20 +449,81 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
               </div>
             )}
 
-            {/* Quotations */}
+            {/* Quotations Submenu */}
             {hasAdminAccess("QUOTATIONS") && (
               <div
-                className={`nav-item ${
-                  isActive("/dashboard/quotations") ? "active" : ""
-                }`}
-                onClick={() => handleNavigation("/dashboard/quotations")}
-                title="Quotations"
+                className={`nav-item nav-item-has-submenu ${location.pathname.startsWith("/dashboard/quotations")
+                    ? "active-parent"
+                    : ""
+                  }`}
+                onMouseEnter={() => isCollapsed && setActiveFlyout("quotations")}
               >
-                <div className="nav-item-icon">
-                  <i className="fas fa-file-invoice-dollar" />
+                <div
+                  className="nav-item-header"
+                  onClick={() => {
+                    if (isCollapsed) {
+                      setActiveFlyout(activeFlyout === "quotations" ? null : "quotations");
+                    } else {
+                      toggleSubmenu("quotations");
+                    }
+                  }}
+                  title="Quotations"
+                >
+                  <div className="nav-item-icon">
+                    <i className="fas fa-file-invoice-dollar" />
+                  </div>
+                  {!isCollapsed && (
+                    <>
+                      <span className="nav-item-label">Quotations</span>
+                      <i
+                        className={`fas fa-chevron-down submenu-arrow ${expandedMenus.quotations ? "rotated" : ""
+                          }`}
+                      />
+                    </>
+                  )}
                 </div>
-                {!isCollapsed && (
-                  <span className="nav-item-label">Quotations</span>
+
+                {/* Submenu List */}
+                {!isCollapsed && expandedMenus.quotations && (
+                  <div className="sidebar-submenu">
+                    {quotationSubItems.map((item) => (
+                      <div
+                        key={item.path}
+                        className={`submenu-item ${isQuotationSubItemActive(item) ? "active" : ""}`}
+                        onClick={() => handleNavigation(item.path)}
+                      >
+                        <i className={`${item.icon} me-1`} style={{ fontSize: "11px", width: "14px" }} />
+                        <span>{item.label}</span>
+                        {quotationCounts[item.path] !== undefined && (
+                          <span className="sidebar-count-badge">
+                            {quotationCounts[item.path]}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Flyout Menu in Collapsed Mode */}
+                {isCollapsed && activeFlyout === "quotations" && (
+                  <div className="sidebar-flyout-menu">
+                    <div className="flyout-header">Quotations Control</div>
+                    {quotationSubItems.map((item) => (
+                      <div
+                        key={item.path}
+                        className={`flyout-item ${isQuotationSubItemActive(item) ? "active" : ""}`}
+                        onClick={() => handleNavigation(item.path)}
+                      >
+                        <i className={`${item.icon} me-2`} style={{ fontSize: "12px", width: "16px" }} />
+                        <span>{item.label}</span>
+                        {quotationCounts[item.path] !== undefined && (
+                          <span className="sidebar-count-badge ms-auto">
+                            {quotationCounts[item.path]}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
@@ -526,9 +531,8 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
             {/* Users */}
             {hasAdminAccess("USERS") && (
               <div
-                className={`nav-item ${
-                  isActive("/dashboard/users") ? "active" : ""
-                }`}
+                className={`nav-item ${isActive("/dashboard/users") ? "active" : ""
+                  }`}
                 onClick={() => handleNavigation("/dashboard/users")}
                 title="User Management"
               >
@@ -542,9 +546,8 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
             {/* Manage User Dynamic Pricing */}
             {(hasAdminAccess("DYNAMIC_PRICING") || hasAdminAccess("USERS")) && (
               <div
-                className={`nav-item ${
-                  isActive("/dashboard/dynamic-pricing") ? "active" : ""
-                }`}
+                className={`nav-item ${isActive("/dashboard/dynamic-pricing") ? "active" : ""
+                  }`}
                 onClick={() => handleNavigation("/dashboard/dynamic-pricing")}
                 title="Manage User Dynamic Pricing"
               >
@@ -562,28 +565,26 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
               hasAdminAccess("LEAD_MANAGEMENT") ||
               hasAdminAccess("DASHBOARD") ||
               hasAdminAccess("USERS")) && (
-              <div
-                className={`nav-item ${
-                  isActive("/dashboard/leads") || isActive("/dashboard/lead-management") ? "active" : ""
-                }`}
-                onClick={() => handleNavigation("/dashboard/leads")}
-                title="Lead Management"
-              >
-                <div className="nav-item-icon">
-                  <i className="fas fa-address-book" />
+                <div
+                  className={`nav-item ${isActive("/dashboard/leads") || isActive("/dashboard/lead-management") ? "active" : ""
+                    }`}
+                  onClick={() => handleNavigation("/dashboard/leads")}
+                  title="Lead Management"
+                >
+                  <div className="nav-item-icon">
+                    <i className="fas fa-address-book" />
+                  </div>
+                  {!isCollapsed && (
+                    <span className="nav-item-label">Lead Management</span>
+                  )}
                 </div>
-                {!isCollapsed && (
-                  <span className="nav-item-label">Lead Management</span>
-                )}
-              </div>
-            )}
+              )}
 
             {/* Add Blogs */}
             {hasAdminAccess("BLOGS") && (
               <div
-                className={`nav-item ${
-                  isActive("/dashboard/blogs") ? "active" : ""
-                }`}
+                className={`nav-item ${isActive("/dashboard/blogs") ? "active" : ""
+                  }`}
                 onClick={() => handleNavigation("/dashboard/blogs")}
                 title="Add Blogs"
               >
@@ -599,9 +600,8 @@ const Sidebar = ({ isCollapsed, onToggle, onLogout }) => {
             {/* Admin Accounts */}
             {hasAdminAccess("ADMIN_ACCOUNTS") && (
               <div
-                className={`nav-item ${
-                  isActive("/dashboard/admin-accounts") ? "active" : ""
-                }`}
+                className={`nav-item ${isActive("/dashboard/admin-accounts") ? "active" : ""
+                  }`}
                 onClick={() => handleNavigation("/dashboard/admin-accounts")}
                 title="Admin Accounts"
               >

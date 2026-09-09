@@ -64,8 +64,10 @@ const OrderDetails = () => {
         },
         params: params,
       });
-      if (response.data.length > 0) {
-        setOrderDetails(response.data[0]);
+      const data = response.data;
+      const ordersList = data.orders ? data.orders : (Array.isArray(data) ? data : []);
+      if (ordersList.length > 0) {
+        setOrderDetails(ordersList[0]);
       }
     } catch (error) {
       console.error("Error fetching order details:", error);

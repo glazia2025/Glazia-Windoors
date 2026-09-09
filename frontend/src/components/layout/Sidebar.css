@@ -316,6 +316,23 @@
   color: var(--sidebar-active-color, #E31E24);
 }
 
+.sidebar-count-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background-color: var(--color-surface-muted, #f1f5f9);
+  color: var(--color-text-secondary, #64748b);
+  margin-left: auto;
+  min-width: 20px;
+  text-align: center;
+}
+
+.submenu-item.active .sidebar-count-badge {
+  background-color: rgba(227, 30, 36, 0.15);
+  color: var(--sidebar-active-color, #E31E24);
+}
+
 .submenu-empty {
   font-size: 12px;
   color: var(--color-text-muted, #94a3b8);

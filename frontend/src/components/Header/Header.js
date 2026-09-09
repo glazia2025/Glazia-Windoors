@@ -72,7 +72,13 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
     dispatch(setActiveProfile(profile));
     dispatch(setActiveOption(option));
     dispatch(setSelectedOption(mainOption));
-    navigate("/dashboard")
+    if (mainOption === "profile") {
+      navigate("/dashboard/profile");
+    } else if (mainOption === "hardware") {
+      navigate("/dashboard/hardware");
+    } else {
+      navigate("/dashboard");
+    }
   };
 
   useEffect(() => {
@@ -119,70 +125,20 @@ const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
                   </MDBNavbarLink>
                 </MDBNavbarItem>}
                 {hasAdminAccess("PRODUCTS") && <MDBNavbarItem>
-                  <MDBDropdown>
-                    <MDBDropdownToggle
-                      tag="a"
-                      className="nav-link cursor-pointer fw-semibold text-dark"
-                    >
-                      Profile
-                    </MDBDropdownToggle>
-                    <MDBDropdownMenu>
-                      {profileHeirarchy?.map((item) => (
-                        <MDBDropdownItem key={item?.profile}>
-                          <a
-                            href="#"
-                            className="dropdown-item d-flex justify-content-between align-items-center"
-                          >
-                            {item?.profile}
-                            <MDBIcon fas icon="angle-right" />
-                          </a>
-                          <ul className="dropdown-menu dropdown-submenu">
-                            {item?.options.map((subCategory) => (
-                              <MDBDropdownItem key={subCategory}>
-                                <a
-                                  className="dropdown-item cursor-pointer"
-                                  onClick={() =>
-                                    setActiveState(
-                                      "profile",
-                                      subCategory,
-                                      item?.profile
-                                    )
-                                  }
-                                >
-                                  {subCategory}
-                                </a>
-                              </MDBDropdownItem>
-                            ))}
-                          </ul>
-                        </MDBDropdownItem>
-                      ))}
-                    </MDBDropdownMenu>
-                  </MDBDropdown>
+                  <MDBNavbarLink
+                    onClick={() => navigate("/dashboard/profile")}
+                    className="fw-semibold text-dark cursor-pointer"
+                  >
+                    Profile
+                  </MDBNavbarLink>
                 </MDBNavbarItem>}
                 {hasAdminAccess("PRODUCTS") && <MDBNavbarItem>
-                  <MDBDropdown>
-                    <MDBDropdownToggle
-                      tag="a"
-                      className="nav-link cursor-pointer fw-semibold text-dark"
-                    >
-                      Hardware
-                    </MDBDropdownToggle>
-                    <MDBDropdownMenu>
-                      {hardwareHeirarchy?.map((hardware) => (
-                        <MDBDropdownItem key={hardware}>
-                          <a
-                            href="#"
-                            className="dropdown-item"
-                            onClick={() =>
-                              setActiveState("hardware", hardware, undefined)
-                            }
-                          >
-                            {hardware}
-                          </a>
-                        </MDBDropdownItem>
-                      ))}
-                    </MDBDropdownMenu>
-                  </MDBDropdown>
+                  <MDBNavbarLink
+                    onClick={() => navigate("/dashboard/hardware")}
+                    className="fw-semibold text-dark cursor-pointer"
+                  >
+                    Hardware
+                  </MDBNavbarLink>
                 </MDBNavbarItem>}
 
                 {hasAdminAccess("ORDERS") && <MDBNavbarItem>

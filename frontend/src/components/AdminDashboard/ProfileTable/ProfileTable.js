@@ -852,34 +852,74 @@ const ProfileTable = () => {
 
       {/* Create Category Modal */}
       <MDBModal open={showCategoryModal} onClose={() => setShowCategoryModal(false)} tabIndex="-1">
-        <MDBModalDialog>
-          <MDBModalContent>
-            <MDBModalHeader>
-              <MDBModalTitle>Create New Category</MDBModalTitle>
-              <MDBBtn className="btn-close" color="none" onClick={() => setShowCategoryModal(false)}></MDBBtn>
+        <MDBModalDialog className="glazia-modal-dialog">
+          <MDBModalContent className="glazia-modal-content">
+            <MDBModalHeader className="glazia-modal-header">
+              <div className="glazia-modal-header-content">
+                <div className="glazia-modal-icon-badge">
+                  <i className="fas fa-folder-plus"></i>
+                </div>
+                <div>
+                  <MDBModalTitle className="glazia-modal-title">Create New Category</MDBModalTitle>
+                  <p className="glazia-modal-subtitle">Add a new profile system category</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="glazia-modal-close-btn"
+                onClick={() => setShowCategoryModal(false)}
+                aria-label="Close"
+              >
+                <i className="fas fa-times"></i>
+              </button>
             </MDBModalHeader>
-            <MDBModalBody>
-              <MDBInput
-                label="Category Name"
-                className="mb-3"
-                value={newCategory.name}
-                onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-              />
-              <MDBInput
-                label="Description"
-                className="mb-3"
-                value={newCategory.description}
-                onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-              />
-              <MDBSwitch
-                label="Enabled"
-                checked={newCategory.enabled}
-                onChange={(e) => setNewCategory({ ...newCategory, enabled: e.target.checked })}
-              />
+            <MDBModalBody className="glazia-modal-body">
+              <div className="glazia-form-group">
+                <label className="glazia-form-label">
+                  Category Name <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="glazia-form-control"
+                  placeholder="e.g. Casement, Sliding, Railings..."
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                />
+              </div>
+
+              <div className="glazia-form-group">
+                <label className="glazia-form-label">Description</label>
+                <textarea
+                  className="glazia-form-control glazia-textarea"
+                  placeholder="Brief description of this window/door category..."
+                  rows="3"
+                  value={newCategory.description}
+                  onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                />
+              </div>
+
+              <div className="glazia-switch-group">
+                <div className="glazia-switch-info">
+                  <span className="glazia-switch-title">Category Status</span>
+                  <span className="glazia-switch-desc">Enable category for selection in quotations</span>
+                </div>
+                <label className="glazia-toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={newCategory.enabled}
+                    onChange={(e) => setNewCategory({ ...newCategory, enabled: e.target.checked })}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
             </MDBModalBody>
-            <MDBModalFooter>
-              <MDBBtn color="secondary" onClick={() => setShowCategoryModal(false)}>Cancel</MDBBtn>
-              <MDBBtn color="primary" onClick={handleCreateCategory}>Create Category</MDBBtn>
+            <MDBModalFooter className="glazia-modal-footer">
+              <button type="button" className="btn-modal-cancel" onClick={() => setShowCategoryModal(false)}>
+                Cancel
+              </button>
+              <button type="button" className="btn-modal-submit" onClick={handleCreateCategory}>
+                <i className="fas fa-plus me-1"></i> Create Category
+              </button>
             </MDBModalFooter>
           </MDBModalContent>
         </MDBModalDialog>
@@ -887,29 +927,57 @@ const ProfileTable = () => {
 
       {/* Edit Category Modal */}
       <MDBModal open={showEditCategoryModal} onClose={() => setShowEditCategoryModal(false)} tabIndex="-1">
-        <MDBModalDialog>
-          <MDBModalContent>
-            <MDBModalHeader>
-              <MDBModalTitle>Edit Category</MDBModalTitle>
-              <MDBBtn className="btn-close" color="none" onClick={() => setShowEditCategoryModal(false)}></MDBBtn>
+        <MDBModalDialog className="glazia-modal-dialog">
+          <MDBModalContent className="glazia-modal-content">
+            <MDBModalHeader className="glazia-modal-header">
+              <div className="glazia-modal-header-content">
+                <div className="glazia-modal-icon-badge navy-badge">
+                  <i className="fas fa-edit"></i>
+                </div>
+                <div>
+                  <MDBModalTitle className="glazia-modal-title">Edit Category</MDBModalTitle>
+                  <p className="glazia-modal-subtitle">Update profile category information</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="glazia-modal-close-btn"
+                onClick={() => setShowEditCategoryModal(false)}
+                aria-label="Close"
+              >
+                <i className="fas fa-times"></i>
+              </button>
             </MDBModalHeader>
-            <MDBModalBody>
-              <MDBInput
-                label="Category Name"
-                className="mb-3"
-                value={editableCategory.name}
-                onChange={(e) => setEditableCategory({ ...editableCategory, name: e.target.value })}
-              />
-              <MDBInput
-                label="Description"
-                className="mb-3"
-                value={editableCategory.description}
-                onChange={(e) => setEditableCategory({ ...editableCategory, description: e.target.value })}
-              />
+            <MDBModalBody className="glazia-modal-body">
+              <div className="glazia-form-group">
+                <label className="glazia-form-label">
+                  Category Name <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="glazia-form-control"
+                  value={editableCategory.name}
+                  onChange={(e) => setEditableCategory({ ...editableCategory, name: e.target.value })}
+                />
+              </div>
+
+              <div className="glazia-form-group">
+                <label className="glazia-form-label">Description</label>
+                <textarea
+                  className="glazia-form-control glazia-textarea"
+                  rows="3"
+                  value={editableCategory.description}
+                  onChange={(e) => setEditableCategory({ ...editableCategory, description: e.target.value })}
+                />
+              </div>
             </MDBModalBody>
-            <MDBModalFooter>
-              <MDBBtn color="secondary" onClick={() => setShowEditCategoryModal(false)}>Cancel</MDBBtn>
-              <MDBBtn color="primary" onClick={handleUpdateCategory}>Save Changes</MDBBtn>
+            <MDBModalFooter className="glazia-modal-footer">
+              <button type="button" className="btn-modal-cancel" onClick={() => setShowEditCategoryModal(false)}>
+                Cancel
+              </button>
+              <button type="button" className="btn-modal-submit navy" onClick={handleUpdateCategory}>
+                <i className="fas fa-save me-1"></i> Save Changes
+              </button>
             </MDBModalFooter>
           </MDBModalContent>
         </MDBModalDialog>
@@ -917,35 +985,72 @@ const ProfileTable = () => {
 
       {/* Create Size Modal */}
       <MDBModal open={showSizeModal} onClose={() => setShowSizeModal(false)} tabIndex="-1">
-        <MDBModalDialog>
-          <MDBModalContent>
-            <MDBModalHeader>
-              <MDBModalTitle>Create New Size</MDBModalTitle>
-              <MDBBtn className="btn-close" color="none" onClick={() => setShowSizeModal(false)}></MDBBtn>
+        <MDBModalDialog className="glazia-modal-dialog">
+          <MDBModalContent className="glazia-modal-content">
+            <MDBModalHeader className="glazia-modal-header">
+              <div className="glazia-modal-header-content">
+                <div className="glazia-modal-icon-badge">
+                  <i className="fas fa-ruler-combined"></i>
+                </div>
+                <div>
+                  <MDBModalTitle className="glazia-modal-title">Create New Size</MDBModalTitle>
+                  <p className="glazia-modal-subtitle">Add a size series to the category</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="glazia-modal-close-btn"
+                onClick={() => setShowSizeModal(false)}
+                aria-label="Close"
+              >
+                <i className="fas fa-times"></i>
+              </button>
             </MDBModalHeader>
-            <MDBModalBody>
-              <MDBInput
-                label="Size Label"
-                className="mb-3"
-                value={newSize.label}
-                onChange={(e) => setNewSize({ ...newSize, label: e.target.value })}
-              />
-              <MDBInput
-                label="Rate"
-                type="number"
-                className="mb-3"
-                value={newSize.rate}
-                onChange={(e) => setNewSize({ ...newSize, rate: parseFloat(e.target.value) || 0 })}
-              />
-              <MDBSwitch
-                label="Enabled"
-                checked={newSize.enabled}
-                onChange={(e) => setNewSize({ ...newSize, enabled: e.target.checked })}
-              />
+            <MDBModalBody className="glazia-modal-body">
+              <div className="glazia-form-group">
+                <label className="glazia-form-label">
+                  Size Label <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="glazia-form-control"
+                  placeholder="e.g. 1.2 mm, 1.4 mm, Eco Lite..."
+                  value={newSize.label}
+                  onChange={(e) => setNewSize({ ...newSize, label: e.target.value })}
+                />
+              </div>
+              <div className="glazia-form-group">
+                <label className="glazia-form-label">Rate (₹)</label>
+                <input
+                  type="number"
+                  className="glazia-form-control"
+                  placeholder="0.00"
+                  value={newSize.rate}
+                  onChange={(e) => setNewSize({ ...newSize, rate: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="glazia-switch-group">
+                <div className="glazia-switch-info">
+                  <span className="glazia-switch-title">Size Status</span>
+                  <span className="glazia-switch-desc">Enable size series for selection</span>
+                </div>
+                <label className="glazia-toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={newSize.enabled}
+                    onChange={(e) => setNewSize({ ...newSize, enabled: e.target.checked })}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
             </MDBModalBody>
-            <MDBModalFooter>
-              <MDBBtn color="secondary" onClick={() => setShowSizeModal(false)}>Cancel</MDBBtn>
-              <MDBBtn color="primary" onClick={handleCreateSize}>Create Size</MDBBtn>
+            <MDBModalFooter className="glazia-modal-footer">
+              <button type="button" className="btn-modal-cancel" onClick={() => setShowSizeModal(false)}>
+                Cancel
+              </button>
+              <button type="button" className="btn-modal-submit" onClick={handleCreateSize}>
+                <i className="fas fa-plus me-1"></i> Create Size
+              </button>
             </MDBModalFooter>
           </MDBModalContent>
         </MDBModalDialog>
@@ -953,23 +1058,47 @@ const ProfileTable = () => {
 
       {/* Edit Size Modal */}
       <MDBModal open={showEditSizeModal} onClose={() => setShowEditSizeModal(false)} tabIndex="-1">
-        <MDBModalDialog>
-          <MDBModalContent>
-            <MDBModalHeader>
-              <MDBModalTitle>Edit Size</MDBModalTitle>
-              <MDBBtn className="btn-close" color="none" onClick={() => setShowEditSizeModal(false)}></MDBBtn>
+        <MDBModalDialog className="glazia-modal-dialog">
+          <MDBModalContent className="glazia-modal-content">
+            <MDBModalHeader className="glazia-modal-header">
+              <div className="glazia-modal-header-content">
+                <div className="glazia-modal-icon-badge navy-badge">
+                  <i className="fas fa-edit"></i>
+                </div>
+                <div>
+                  <MDBModalTitle className="glazia-modal-title">Edit Size</MDBModalTitle>
+                  <p className="glazia-modal-subtitle">Update size series label</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="glazia-modal-close-btn"
+                onClick={() => setShowEditSizeModal(false)}
+                aria-label="Close"
+              >
+                <i className="fas fa-times"></i>
+              </button>
             </MDBModalHeader>
-            <MDBModalBody>
-              <MDBInput
-                label="Size Label"
-                className="mb-3"
-                value={editableSize.label}
-                onChange={(e) => setEditableSize({ ...editableSize, label: e.target.value })}
-              />
+            <MDBModalBody className="glazia-modal-body">
+              <div className="glazia-form-group">
+                <label className="glazia-form-label">
+                  Size Label <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="glazia-form-control"
+                  value={editableSize.label}
+                  onChange={(e) => setEditableSize({ ...editableSize, label: e.target.value })}
+                />
+              </div>
             </MDBModalBody>
-            <MDBModalFooter>
-              <MDBBtn color="secondary" onClick={() => setShowEditSizeModal(false)}>Cancel</MDBBtn>
-              <MDBBtn color="primary" onClick={handleUpdateSize}>Save Changes</MDBBtn>
+            <MDBModalFooter className="glazia-modal-footer">
+              <button type="button" className="btn-modal-cancel" onClick={() => setShowEditSizeModal(false)}>
+                Cancel
+              </button>
+              <button type="button" className="btn-modal-submit navy" onClick={handleUpdateSize}>
+                <i className="fas fa-save me-1"></i> Save Changes
+              </button>
             </MDBModalFooter>
           </MDBModalContent>
         </MDBModalDialog>
@@ -977,85 +1106,153 @@ const ProfileTable = () => {
 
       {/* Create Product Modal */}
       <MDBModal open={showProductModal} onClose={() => setShowProductModal(false)} tabIndex="-1">
-        <MDBModalDialog size="lg">
-          <MDBModalContent>
-            <MDBModalHeader>
-              <MDBModalTitle>Create New Product</MDBModalTitle>
-              <MDBBtn className="btn-close" color="none" onClick={() => setShowProductModal(false)}></MDBBtn>
+        <MDBModalDialog className="glazia-modal-dialog modal-lg-custom">
+          <MDBModalContent className="glazia-modal-content">
+            <MDBModalHeader className="glazia-modal-header">
+              <div className="glazia-modal-header-content">
+                <div className="glazia-modal-icon-badge">
+                  <i className="fas fa-box-open"></i>
+                </div>
+                <div>
+                  <MDBModalTitle className="glazia-modal-title">Create New Product</MDBModalTitle>
+                  <p className="glazia-modal-subtitle">Add a profile item to this size series</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="glazia-modal-close-btn"
+                onClick={() => setShowProductModal(false)}
+                aria-label="Close"
+              >
+                <i className="fas fa-times"></i>
+              </button>
             </MDBModalHeader>
-            <MDBModalBody>
-              <div className="row">
-                <div className="col-md-6 mb-3">
-                  <MDBInput
-                    label="SAP Code"
-                    value={newProduct.sapCode}
-                    onChange={(e) => setNewProduct({ ...newProduct, sapCode: e.target.value })}
-                  />
+            <MDBModalBody className="glazia-modal-body">
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <div className="glazia-form-group">
+                    <label className="glazia-form-label">
+                      SAP Code <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="glazia-form-control"
+                      placeholder="e.g. SAP10293"
+                      value={newProduct.sapCode}
+                      onChange={(e) => setNewProduct({ ...newProduct, sapCode: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div className="col-md-6 mb-3">
-                  <MDBInput
-                    label="Part"
-                    value={newProduct.part}
-                    onChange={(e) => setNewProduct({ ...newProduct, part: e.target.value })}
-                  />
-                </div>
-                <div className="col-md-12 mb-3">
-                  <MDBInput
-                    label="Description"
-                    value={newProduct.description}
-                    onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                  />
-                </div>
-                <div className="col-md-6 mb-3">
-                  <MDBInput
-                    label="Degree (90°/45°)"
-                    value={newProduct.degree}
-                    onChange={(e) => setNewProduct({ ...newProduct, degree: e.target.value })}
-                  />
-                </div>
-                <div className="col-md-6 mb-3">
-                  <MDBInput
-                    label="Per"
-                    value={newProduct.per}
-                    onChange={(e) => setNewProduct({ ...newProduct, per: e.target.value })}
-                  />
-                </div>
-                <div className="col-md-6 mb-3">
-                  <MDBInput
-                    label="Kg/m"
-                    type="number"
-                    step="0.01"
-                    value={newProduct.kgm}
-                    onChange={(e) => setNewProduct({ ...newProduct, kgm: parseFloat(e.target.value) || 0 })}
-                  />
-                </div>
-                <div className="col-md-6 mb-3">
-                  <MDBInput
-                    label="Length"
-                    type="number"
-                    value={newProduct.length}
-                    onChange={(e) => setNewProduct({ ...newProduct, length: parseFloat(e.target.value) || 0 })}
-                  />
-                </div>
-                <div className="col-md-12 mb-3">
-                  <MDBFile
-                    label="Product Image"
-                    name="image"
-                    onChange={handleNewProductInputChange}
-                  />
+                <div className="col-md-6">
+                  <div className="glazia-form-group">
+                    <label className="glazia-form-label">Part Name</label>
+                    <input
+                      type="text"
+                      className="glazia-form-control"
+                      placeholder="e.g. Outer Frame"
+                      value={newProduct.part}
+                      onChange={(e) => setNewProduct({ ...newProduct, part: e.target.value })}
+                    />
+                  </div>
                 </div>
                 <div className="col-md-12">
-                  <MDBSwitch
-                    label="Enabled"
-                    checked={newProduct.enabled}
-                    onChange={(e) => setNewProduct({ ...newProduct, enabled: e.target.checked })}
-                  />
+                  <div className="glazia-form-group">
+                    <label className="glazia-form-label">Description</label>
+                    <input
+                      type="text"
+                      className="glazia-form-control"
+                      placeholder="Enter profile description..."
+                      value={newProduct.description}
+                      onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="glazia-form-group">
+                    <label className="glazia-form-label">Degree (90° / 45°)</label>
+                    <input
+                      type="text"
+                      className="glazia-form-control"
+                      placeholder="e.g. 90°"
+                      value={newProduct.degree}
+                      onChange={(e) => setNewProduct({ ...newProduct, degree: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="glazia-form-group">
+                    <label className="glazia-form-label">Per Unit</label>
+                    <input
+                      type="text"
+                      className="glazia-form-control"
+                      placeholder="e.g. Mtr / Pc"
+                      value={newProduct.per}
+                      onChange={(e) => setNewProduct({ ...newProduct, per: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="glazia-form-group">
+                    <label className="glazia-form-label">Kg/m Weight</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="glazia-form-control"
+                      placeholder="0.00"
+                      value={newProduct.kgm}
+                      onChange={(e) => setNewProduct({ ...newProduct, kgm: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="glazia-form-group">
+                    <label className="glazia-form-label">Standard Length (mm)</label>
+                    <input
+                      type="number"
+                      className="glazia-form-control"
+                      placeholder="0"
+                      value={newProduct.length}
+                      onChange={(e) => setNewProduct({ ...newProduct, length: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+                <div className="col-md-12">
+                  <div className="glazia-form-group">
+                    <label className="glazia-form-label">Product Image</label>
+                    <input
+                      type="file"
+                      className="glazia-form-control"
+                      name="image"
+                      accept="image/*"
+                      onChange={handleNewProductInputChange}
+                    />
+                  </div>
+                </div>
+                <div className="col-md-12">
+                  <div className="glazia-switch-group">
+                    <div className="glazia-switch-info">
+                      <span className="glazia-switch-title">Product Status</span>
+                      <span className="glazia-switch-desc">Enable or disable product item in size series</span>
+                    </div>
+                    <label className="glazia-toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={newProduct.enabled}
+                        onChange={(e) => setNewProduct({ ...newProduct, enabled: e.target.checked })}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
                 </div>
               </div>
             </MDBModalBody>
-            <MDBModalFooter>
-              <MDBBtn color="secondary" onClick={() => setShowProductModal(false)}>Cancel</MDBBtn>
-              <MDBBtn color="primary" onClick={handleCreateProduct}>Create Product</MDBBtn>
+            <MDBModalFooter className="glazia-modal-footer">
+              <button type="button" className="btn-modal-cancel" onClick={() => setShowProductModal(false)}>
+                Cancel
+              </button>
+              <button type="button" className="btn-modal-submit" onClick={handleCreateProduct}>
+                <i className="fas fa-plus me-1"></i> Create Product
+              </button>
             </MDBModalFooter>
           </MDBModalContent>
         </MDBModalDialog>

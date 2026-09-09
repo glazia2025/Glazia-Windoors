@@ -562,3 +562,373 @@
   color: #64748b;
   margin: 0;
 }
+
+/* --------------------------------------------------------------------------
+   Hardware Table Pagination Bar
+   -------------------------------------------------------------------------- */
+.hw-pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-surface, #ffffff);
+  border-bottom-left-radius: var(--radius-xl, 14px);
+  border-bottom-right-radius: var(--radius-xl, 14px);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hw-pagination-info {
+  font-size: 13.5px;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.hw-pagination-info strong {
+  color: var(--color-heading, #1e293b);
+  font-weight: 600;
+}
+
+.hw-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hw-items-per-page-select {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border, #cbd5e1);
+  font-size: 13px;
+  color: #1e293b;
+  background-color: #fff;
+  cursor: pointer;
+  outline: none;
+}
+
+.hw-items-per-page-select:focus {
+  border-color: #1e293b;
+}
+
+.hw-page-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 15px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.hw-page-btn i {
+  font-size: 11px;
+  color: #64748b;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.hw-page-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #e31e24;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+
+.hw-page-btn:hover:not(:disabled) i {
+  color: #e31e24;
+}
+
+.hw-page-btn:hover:not(:disabled) .fa-chevron-left {
+  transform: translateX(-2px);
+}
+
+.hw-page-btn:hover:not(:disabled) .fa-chevron-right {
+  transform: translateX(2px);
+}
+
+.hw-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.hw-page-indicator {
+  font-size: 13px;
+  color: var(--color-text-secondary, #64748b);
+  padding: 0 4px;
+}
+
+.hw-page-indicator strong {
+  color: var(--color-heading, #1e293b);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   Glazia Custom Modal Styling for Hardware Category
+   ========================================================================== */
+
+.glazia-modal-dialog {
+  max-width: 500px;
+  margin: 1.75rem auto;
+}
+
+.glazia-modal-content {
+  border-radius: 16px !important;
+  border: 1px solid var(--color-border, #e2e8f0) !important;
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1) !important;
+  background-color: #ffffff !important;
+  overflow: hidden;
+}
+
+.glazia-modal-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 20px 24px !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid var(--color-border-light, #eef2f6) !important;
+}
+
+.glazia-modal-header-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.glazia-modal-icon-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background-color: #fef2f2;
+  color: #e31e24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.glazia-modal-title {
+  margin: 0 !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--color-heading, #1e293b) !important;
+  line-height: 1.2;
+}
+
+.glazia-modal-subtitle {
+  margin: 3px 0 0 0;
+  font-size: 13px;
+  color: var(--color-text-secondary, #64748b);
+  font-weight: 400;
+}
+
+.glazia-modal-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: var(--color-text-secondary, #64748b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.glazia-modal-close-btn:hover {
+  background-color: var(--color-surface-muted, #f1f5f9);
+  border-color: #e2e8f0;
+  color: var(--color-heading, #1e293b);
+}
+
+.glazia-modal-body {
+  padding: 24px !important;
+  background-color: #ffffff;
+}
+
+.glazia-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.glazia-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.glazia-form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-heading, #1e293b);
+}
+
+.glazia-form-control {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-heading, #1e293b);
+  background-color: #ffffff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 10px;
+  outline: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.glazia-form-control::placeholder {
+  color: #94a3b8;
+}
+
+.glazia-form-control:hover {
+  border-color: #cbd5e1;
+}
+
+.glazia-form-control:focus {
+  border-color: #e31e24;
+  box-shadow: 0 0 0 3px rgba(227, 30, 36, 0.12);
+}
+
+.glazia-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Switch Container in Modals */
+.glazia-switch-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background-color: var(--color-surface-muted, #f8fafc);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 10px;
+  margin-top: 4px;
+}
+
+.glazia-switch-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.glazia-switch-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-heading, #1e293b);
+}
+
+.glazia-switch-desc {
+  font-size: 12px;
+  color: var(--color-text-secondary, #64748b);
+}
+
+/* Glazia Sleek Toggle Switch */
+.glazia-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.glazia-toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.glazia-toggle-switch .toggle-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  border-radius: 24px;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glazia-toggle-switch .toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.glazia-toggle-switch input:checked + .toggle-slider {
+  background-color: var(--color-primary, #1e293b);
+}
+
+.glazia-toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(18px);
+}
+
+.glazia-modal-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  padding: 16px 24px !important;
+  background-color: var(--color-surface-muted, #f8fafc) !important;
+  border-top: 1px solid var(--color-border, #e2e8f0) !important;
+}
+
+.btn-modal-cancel {
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text, #475569);
+  background-color: #ffffff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+.btn-modal-cancel:hover {
+  background-color: var(--color-surface-muted, #f1f5f9);
+  border-color: #cbd5e1;
+  color: var(--color-heading, #1e293b);
+}
+
+.btn-modal-submit {
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #e31e24;
+  border: 1px solid #e31e24;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(227, 30, 36, 0.25);
+}
+
+.btn-modal-submit:hover {
+  background-color: #c8191e;
+  border-color: #c8191e;
+  box-shadow: 0 4px 10px rgba(227, 30, 36, 0.35);
+  transform: translateY(-1px);
+}

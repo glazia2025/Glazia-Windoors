@@ -31,12 +31,15 @@ const getInitials = (name = "") => {
   return name.slice(0, 2).toUpperCase() || "US";
 };
 
+const ITEMS_PER_PAGE = 10;
+
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [listLoading, setListLoading] = useState(false);
   const [sortBy, setSortBy] = useState("name");
   const [order, setOrder] = useState("asc");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -71,6 +74,11 @@ const UserManagement = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  // Reset page when filtering or sorting
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortBy, order]);
 
   const filteredAndSortedUsers = useMemo(() => {
     let result = [...users];
@@ -109,6 +117,20 @@ const UserManagement = () => {
 
     return result;
   }, [users, searchQuery, sortBy, order]);
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedUsers.length / ITEMS_PER_PAGE));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredAndSortedUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredAndSortedUsers, currentPage]);
 
   const handleChange = (field) => (event) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
@@ -534,7 +556,16 @@ const UserManagement = () => {
             <div>
               <h4 className="user-card-title">Registered Clients & Partners</h4>
               <p className="user-card-subtitle">
-                {users.length} authorized user accounts in database
+                {filteredAndSortedUsers.length === 0
+                  ? "0 authorized user accounts in database"
+                  : `Showing ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(
+                      currentPage * ITEMS_PER_PAGE,
+                      filteredAndSortedUsers.length
+                    )} of ${filteredAndSortedUsers.length} authorized user accounts${
+                      filteredAndSortedUsers.length !== users.length
+                        ? ` (filtered from ${users.length})`
+                        : ""
+                    }`}
               </p>
             </div>
           </div>
@@ -617,98 +648,144 @@ const UserManagement = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredAndSortedUsers.map((user, idx) => (
-                    <tr key={user._id || idx}>
-                      <td>
-                        <span className="text-muted fw-semibold">{idx + 1}</span>
-                      </td>
-                      <td>
-                        <div className="user-avatar-cell">
-                          <div className="user-avatar-circle">
-                            {getInitials(user.name)}
+                  paginatedUsers.map((user, idx) => {
+                    const globalIdx = (currentPage - 1) * ITEMS_PER_PAGE + idx + 1;
+                    return (
+                      <tr key={user._id || idx}>
+                        <td>
+                          <span className="text-muted fw-semibold">{globalIdx}</span>
+                        </td>
+                        <td>
+                          <div className="user-avatar-cell">
+                            <div className="user-avatar-circle">
+                              {getInitials(user.name)}
+                            </div>
+                            <div>
+                              <div className="fw-bold text-dark">{user.name}</div>
+                              {user.authorizedPerson && (
+                                <div className="small text-muted">
+                                  {user.authorizedPerson}
+                                  {user.authorizedPersonDesignation ? ` • ${user.authorizedPersonDesignation}` : ""}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <div className="fw-bold text-dark">{user.name}</div>
-                            {user.authorizedPerson && (
-                              <div className="small text-muted">
-                                {user.authorizedPerson}
-                                {user.authorizedPersonDesignation ? ` • ${user.authorizedPersonDesignation}` : ""}
-                              </div>
-                            )}
+                        </td>
+                        <td>
+                          <a href={`mailto:${user.email}`} className="text-dark text-decoration-none hover:text-primary">
+                            {user.email}
+                          </a>
+                        </td>
+                        <td>
+                          <a href={`tel:${user.phoneNumber}`} className="text-muted text-decoration-none">
+                            {user.phoneNumber}
+                          </a>
+                          {user.phoneNumbers?.length > 1 && (
+                            <div className="small text-muted">
+                              +{user.phoneNumbers.length - 1} more
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          {user.gstNumber ? (
+                            <span className="user-gst-badge">{user.gstNumber}</span>
+                          ) : (
+                            <span className="text-muted small">-</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="fw-semibold text-dark">{user.city || "-"}</div>
+                          <div className="small text-muted">{user.state || ""}</div>
+                        </td>
+                        <td>
+                          <div className="text-muted small">
+                            {user.createdAt
+                              ? new Date(user.createdAt).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })
+                              : "-"}
                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <a href={`mailto:${user.email}`} className="text-dark text-decoration-none hover:text-primary">
-                          {user.email}
-                        </a>
-                      </td>
-                      <td>
-                        <a href={`tel:${user.phoneNumber}`} className="text-muted text-decoration-none">
-                          {user.phoneNumber}
-                        </a>
-                        {user.phoneNumbers?.length > 1 && (
-                          <div className="small text-muted">
-                            +{user.phoneNumbers.length - 1} more
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        {user.gstNumber ? (
-                          <span className="user-gst-badge">{user.gstNumber}</span>
-                        ) : (
-                          <span className="text-muted small">-</span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="fw-semibold text-dark">{user.city || "-"}</div>
-                        <div className="small text-muted">{user.state || ""}</div>
-                      </td>
-                      <td>
-                        <div className="text-muted small">
-                          {user.createdAt
-                            ? new Date(user.createdAt).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                              })
-                            : "-"}
-                        </div>
-                      </td>
-                      <td>
-                        <span
-                          className={`badge ${
-                            user.accountType === "DEALERSHIP" ? "bg-success" : "bg-secondary"
-                          }`}
-                        >
-                          {user.accountType || "FABRICATOR"}
-                        </span>
-                      </td>
-                      <td>
-                        {user.accountType === "FABRICATOR" ? (
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-secondary"
-                            style={{ fontSize: "11.5px", padding: "4px 8px", whiteSpace: "nowrap" }}
-                            onClick={() => {
-                              setPromotionUser(user);
-                              setPromotionBlob(null);
-                              setPromotionAccepted(false);
-                            }}
+                        </td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              user.accountType === "DEALERSHIP" ? "bg-success" : "bg-secondary"
+                            }`}
                           >
-                            Promote to dealership
-                          </button>
-                        ) : (
-                          <span className="text-muted small">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                            {user.accountType || "FABRICATOR"}
+                          </span>
+                        </td>
+                        <td>
+                          {user.accountType === "FABRICATOR" ? (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary"
+                              style={{ fontSize: "11.5px", padding: "4px 8px", whiteSpace: "nowrap" }}
+                              onClick={() => {
+                                setPromotionUser(user);
+                                setPromotionBlob(null);
+                                setPromotionAccepted(false);
+                              }}
+                            >
+                              Promote to dealership
+                            </button>
+                          ) : (
+                            <span className="text-muted small">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           )}
         </div>
+
+        {/* Pagination Bar */}
+        {!listLoading && filteredAndSortedUsers.length > 0 && (
+          <div className="user-pagination-bar">
+            <div className="user-pagination-info">
+              Showing <strong>{(currentPage - 1) * ITEMS_PER_PAGE + 1}</strong> to{" "}
+              <strong>
+                {Math.min(currentPage * ITEMS_PER_PAGE, filteredAndSortedUsers.length)}
+              </strong>{" "}
+              of <strong>{filteredAndSortedUsers.length}</strong> users
+            </div>
+
+            <div className="user-pagination-controls">
+              <button
+                type="button"
+                className="user-page-btn"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                title="Go to previous page"
+              >
+                <i className="fas fa-chevron-left"></i>
+                <span>Previous</span>
+              </button>
+
+              <div className="user-page-indicator">
+                Page <strong>{currentPage}</strong> of <span>{totalPages || 1}</span>
+              </div>
+
+              <button
+                type="button"
+                className="user-page-btn"
+                disabled={currentPage >= totalPages}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                title="Go to next page"
+              >
+                <span>Next</span>
+                <i className="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {promotionUser && (
