@@ -655,7 +655,15 @@ const ParterAgreement = ({userName, completeAddress, gstNumber, pincode, city, s
                 .replace('<h1>AGREEMENT</h1>', '<h1>GLAZIA–DEALERSHIP PARTNER AGREEMENT</h1>')
                 .replaceAll('Fabricator/Dealer', 'Dealership')
                 .replaceAll('Fabricator', 'Dealership')
-                .replaceAll('dealer/Dealership', 'Dealership');
+                .replaceAll('dealer/Dealership', 'Dealership')
+                .replace(
+                    '<div class="section" style="margin-top: 2em;">',
+                    `<div class="section">
+                        <p><b>PAYMENT COLLECTION, WALLET CREDIT NOTE AND RECONCILIATION</b></p>
+                        <p>Payments received by Glazia against orders placed by Fabricators registered under the Dealership shall be collected by Glazia and recorded as a credit note in the Dealership's wallet. The wallet credit may be applied toward amounts payable by the Dealership for orders that it places with Glazia. The Parties shall reconcile Fabricator collections, credit notes, wallet utilization, invoices, taxes, returns, cancellations and other agreed adjustments at the end of each calendar month or on an interim date mutually selected by the Parties. Following reconciliation, the resulting net balance shall be confirmed and settled between Glazia and the Dealership within the mutually agreed period.</p>
+                    </div>
+                    <div class="section" style="margin-top: 2em;">`
+                );
         }
 
          const opt = {
