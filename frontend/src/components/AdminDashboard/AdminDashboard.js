@@ -16,6 +16,7 @@ import { Line, Bar, Doughnut, Pie } from "react-chartjs-2";
 import { MDBIcon } from "mdb-react-ui-kit";
 import api from "../../utils/api";
 import "./AdminDashboard.css";
+import NalcoBroadcast from "./NalcoBroadcast";
 
 // Register Chart.js components
 ChartJS.register(
@@ -511,6 +512,8 @@ const AdminDashboard = () => {
           </button>
         </div>
       </div>
+
+      <NalcoBroadcast />
 
       {/* 2. Operational Alert Banner */}
       {alerts &&
