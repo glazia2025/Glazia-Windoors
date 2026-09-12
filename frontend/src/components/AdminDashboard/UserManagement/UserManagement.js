@@ -51,6 +51,11 @@ const UserManagement = () => {
   const [promotionBlob, setPromotionBlob] = useState(null);
   const [promotionAccepted, setPromotionAccepted] = useState(false);
   const [promotionLoading, setPromotionLoading] = useState(false);
+  const [deletionUser, setDeletionUser] = useState(null);
+  const [deletionLoading, setDeletionLoading] = useState(false);
+  const [accessUser, setAccessUser] = useState(null);
+  const [disabledModules, setDisabledModules] = useState([]);
+  const [accessLoading, setAccessLoading] = useState(false);
 
   const token = localStorage.getItem("authToken");
 
@@ -244,6 +249,59 @@ const UserManagement = () => {
       setError(err.response?.data?.message || "Failed to promote fabricator");
     } finally {
       setPromotionLoading(false);
+    }
+  };
+
+  const deleteUser = async () => {
+    if (!deletionUser) return;
+    setDeletionLoading(true);
+    setError("");
+    setSuccessMsg("");
+    try {
+      const response = await api.delete(`${BASE_API_URL}/admin/users/${deletionUser._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDeletionUser(null);
+      setSuccessMsg(response.data?.message || "User and partner agreement deleted successfully.");
+      await fetchUsers();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete user");
+    } finally {
+      setDeletionLoading(false);
+    }
+  };
+
+  const openAccessModal = (user) => {
+    setAccessUser(user);
+    setDisabledModules(user.disabledModules || []);
+  };
+
+  const toggleDisabledModule = (moduleName) => {
+    setDisabledModules((current) => current.includes(moduleName)
+      ? current.filter((value) => value !== moduleName)
+      : [...current, moduleName]);
+  };
+
+  const saveModuleAccess = async () => {
+    if (!accessUser) return;
+    setAccessLoading(true);
+    setError("");
+    setSuccessMsg("");
+    try {
+      const response = await api.patch(
+        `${BASE_API_URL}/admin/users/${accessUser._id}/module-access`,
+        { disabledModules },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setUsers((current) => current.map((user) => user._id === accessUser._id
+        ? { ...user, disabledModules: response.data.user?.disabledModules || disabledModules }
+        : user));
+      setAccessUser(null);
+      setSuccessMsg(response.data?.message || "Module access updated successfully.");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update module access");
+    } finally {
+      setAccessLoading(false);
     }
   };
 
@@ -634,7 +692,7 @@ const UserManagement = () => {
                   <th style={{ width: "12%" }}>City / State</th>
                   <th style={{ width: "10%" }}>Registered Date</th>
                   <th style={{ width: "7%" }}>Account</th>
-                  <th style={{ width: "7%" }}>Action</th>
+                  <th style={{ width: "13%" }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -716,9 +774,33 @@ const UserManagement = () => {
                           >
                             {user.accountType || "FABRICATOR"}
                           </span>
+                          {!!user.disabledModules?.length && (
+                            <div className="user-disabled-summary">
+                              {user.disabledModules.length} module{user.disabledModules.length > 1 ? "s" : ""} disabled
+                            </div>
+                          )}
                         </td>
                         <td>
-                          {user.accountType === "FABRICATOR" ? (
+                          <div className="user-row-actions">
+                            <button
+                              type="button"
+                              className="btn btn-sm user-delete-action"
+                              onClick={() => setDeletionUser(user)}
+                              title={`Delete ${user.name}`}
+                            >
+                              <i className="far fa-trash-alt" aria-hidden="true"></i>
+                              Delete
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => openAccessModal(user)}
+                              title={`Manage module access for ${user.name}`}
+                            >
+                              <i className="fas fa-user-lock"></i>
+                              Access
+                            </button>
+                          {user.accountType === "FABRICATOR" && (
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-secondary"
@@ -731,9 +813,8 @@ const UserManagement = () => {
                             >
                               Promote to dealership
                             </button>
-                          ) : (
-                            <span className="text-muted small">—</span>
                           )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -845,6 +926,64 @@ const UserManagement = () => {
                 onClick={promoteToDealership}
               >
                 {promotionLoading ? "Promoting…" : "Promote dealership"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deletionUser && (
+        <div className="promotion-backdrop">
+          <div className="promotion-modal user-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-user-title">
+            <div className="user-delete-icon"><i className="far fa-trash-alt"></i></div>
+            <h4 id="delete-user-title">Delete user?</h4>
+            <p className="text-muted">
+              <strong>{deletionUser.name}</strong> will be permanently removed from MongoDB. Their partner agreement PDF will also be permanently deleted from S3.
+            </p>
+            <div className="alert alert-danger small mb-0">
+              This action cannot be undone.
+            </div>
+            <div className="d-flex justify-content-end gap-2 mt-4">
+              <button type="button" className="btn btn-light" onClick={() => setDeletionUser(null)} disabled={deletionLoading}>Cancel</button>
+              <button type="button" className="btn btn-danger" onClick={deleteUser} disabled={deletionLoading}>
+                {deletionLoading ? <><span className="spinner-border spinner-border-sm me-2" role="status"></span>Deleting…</> : <><i className="far fa-trash-alt me-2"></i>Delete user</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {accessUser && (
+        <div className="promotion-backdrop">
+          <div className="promotion-modal user-access-modal" role="dialog" aria-modal="true" aria-labelledby="module-access-title">
+            <div className="d-flex justify-content-between align-items-start gap-3">
+              <div>
+                <h4 id="module-access-title">Manage module access</h4>
+                <p className="text-muted mb-0">{accessUser.name} · {accessUser.phoneNumber}</p>
+              </div>
+              <button type="button" className="promotion-close" onClick={() => setAccessUser(null)} disabled={accessLoading}>×</button>
+            </div>
+            <p className="small text-muted mt-3 mb-2">Select every module this user should be prevented from accessing.</p>
+            <div className="user-module-options">
+              {[
+                { value: "MAIN_SITE", title: "Main Site", description: "Website account, ordering, dealership and stock modules", icon: "fa-globe" },
+                { value: "QUOTATION_ERP", title: "Quotation ERP", description: "Quotation creation, CRM and ERP tools", icon: "fa-file-invoice-dollar" },
+              ].map((moduleOption) => {
+                const disabled = disabledModules.includes(moduleOption.value);
+                return (
+                  <label key={moduleOption.value} className={`user-module-option ${disabled ? "disabled-selected" : ""}`}>
+                    <input type="checkbox" checked={disabled} onChange={() => toggleDisabledModule(moduleOption.value)} />
+                    <span className="user-module-icon"><i className={`fas ${moduleOption.icon}`}></i></span>
+                    <span className="flex-grow-1"><strong>{moduleOption.title}</strong><small>{moduleOption.description}</small></span>
+                    <span className={`user-module-state ${disabled ? "off" : "on"}`}>{disabled ? "Disabled" : "Enabled"}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="d-flex justify-content-end gap-2 mt-4">
+              <button type="button" className="btn btn-light" onClick={() => setAccessUser(null)} disabled={accessLoading}>Cancel</button>
+              <button type="button" className="btn btn-primary" onClick={saveModuleAccess} disabled={accessLoading}>
+                {accessLoading ? <><span className="spinner-border spinner-border-sm me-2" role="status"></span>Saving…</> : "Save access"}
               </button>
             </div>
           </div>

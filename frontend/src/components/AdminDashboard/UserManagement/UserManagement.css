@@ -335,6 +335,7 @@
 
 .user-main-table {
   width: 100%;
+  min-width: 1280px;
   border-collapse: collapse;
   text-align: left;
   font-size: 13px;
@@ -363,9 +364,65 @@
   background-color: #fafbfc;
 }
 
+/* Keep account actions visible instead of hiding them beyond horizontal scroll. */
+.user-main-table th:last-child,
+.user-main-table td:last-child {
+  position: sticky;
+  right: 0;
+  min-width: 230px;
+  background: #ffffff;
+  border-left: 1px solid #eef2f7;
+  box-shadow: -8px 0 14px -14px rgba(15, 23, 42, 0.45);
+}
+
+.user-main-table th:last-child {
+  z-index: 3;
+  background: #f8fafc;
+}
+
+.user-main-table td:last-child {
+  z-index: 2;
+}
+
+.user-main-table tbody tr:hover td:last-child {
+  background-color: #fafbfc;
+}
+
 .user-main-table tbody tr:last-child td {
   border-bottom: none;
 }
+
+.user-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 150px;
+}
+
+.user-row-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 11.5px;
+  padding: 4px 8px;
+}
+
+.user-row-actions .user-delete-action {
+  border: 1px solid #dc2626;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.user-row-actions .user-delete-action:hover,
+.user-row-actions .user-delete-action:focus-visible {
+  border-color: #b91c1c;
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+.user-disabled-summary{margin-top:5px;color:#b91c1c;font-size:10.5px;font-weight:600;white-space:nowrap}
 
 .user-avatar-cell {
   display: flex;
@@ -402,6 +459,20 @@
 .promotion-modal{width:min(580px,100%);border-radius:14px;background:#fff;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
 .promotion-close{display:flex;width:34px;height:34px;align-items:center;justify-content:center;border:0;border-radius:8px;background:#f1f3f4;font-size:24px;line-height:1}
 .promotion-agreement{border:1px solid #dce3e5;border-radius:9px;background:#f8fafb;padding:13px}
+.user-delete-modal{width:min(460px,100%)}
+.user-delete-icon{display:flex;align-items:center;justify-content:center;width:46px;height:46px;margin-bottom:16px;border-radius:12px;background:#fee2e2;color:#b91c1c;font-size:20px}
+.user-access-modal{width:min(560px,100%)}
+.user-module-options{display:grid;gap:10px}
+.user-module-option{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid #dbe2ea;border-radius:11px;cursor:pointer;transition:.15s ease;background:#fff}
+.user-module-option:hover{border-color:#94a3b8;background:#f8fafc}
+.user-module-option.disabled-selected{border-color:#fca5a5;background:#fff7f7}
+.user-module-option input{width:17px;height:17px;accent-color:#dc2626}
+.user-module-icon{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;background:#eef2f6;color:#334155}
+.user-module-option strong,.user-module-option small{display:block}
+.user-module-option small{margin-top:2px;color:#64748b;font-size:11.5px}
+.user-module-state{border-radius:999px;padding:4px 8px;font-size:10.5px;font-weight:700}
+.user-module-state.on{background:#dcfce7;color:#166534}
+.user-module-state.off{background:#fee2e2;color:#991b1b}
 
 /* ==========================================================================
    User Management Pagination Bar
@@ -532,4 +603,3 @@
     flex-wrap: wrap;
   }
 }
-
