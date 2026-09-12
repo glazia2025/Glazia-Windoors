@@ -1,0 +1,430 @@
+/* ==========================================================================
+   Glazia Admin Accounts Styles
+   Modern Design System matching DashboardLayout and UserManagement
+   ========================================================================== */
+
+.accounts-container {
+  width: 100%;
+  margin-top: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+/* Header Card */
+.accounts-card {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-xl, 14px);
+  box-shadow: var(--shadow-sm, 0 2px 6px rgba(15, 23, 42, 0.04));
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.accounts-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  background: #ffffff;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.accounts-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.accounts-header-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1e293b;
+  font-size: 19px;
+  flex-shrink: 0;
+  border: 1px solid #e2e8f0;
+}
+
+.accounts-card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-heading, #1e293b);
+  letter-spacing: -0.01em;
+}
+
+.accounts-card-subtitle {
+  margin: 3px 0 0 0;
+  font-size: 13px;
+  color: var(--color-text-secondary, #64748b);
+  font-weight: 400;
+}
+
+.accounts-btn-add {
+  background-color: #e31e24;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(227, 30, 36, 0.2);
+}
+
+.accounts-btn-add:hover {
+  background-color: #c8191e;
+  box-shadow: 0 4px 10px rgba(227, 30, 36, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Accounts List */
+.accounts-list-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.account-item-card {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 20px;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.03);
+  transition: all 0.2s ease;
+}
+
+.account-item-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.account-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #1e293b;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.account-info h4 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.account-contact-line {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.account-contact-line a {
+  color: #64748b;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.account-contact-line a:hover {
+  color: #1e293b;
+}
+
+.account-perms-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.account-perm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.account-perm-chip i {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.account-perm-none {
+  font-size: 12px;
+  color: #b45309;
+  font-style: italic;
+}
+
+/* Status Pill */
+.account-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.account-status-pill.active {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.account-status-pill.disabled {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+/* Edit Button */
+.account-btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.account-btn-edit:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+/* Modal */
+.account-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.account-modal {
+  width: min(640px, 100%);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+}
+
+.account-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.account-modal-title {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.account-modal-sub {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Dedicated Close Button */
+.account-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.account-modal-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.account-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.account-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+/* Permission Checkboxes Grid */
+.account-perm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.account-perm-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: #ffffff;
+  user-select: none;
+}
+
+.account-perm-label:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.account-perm-label.selected {
+  border-color: #1e293b;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.account-perm-checkbox {
+  width: 17px;
+  height: 17px;
+  accent-color: #1e293b;
+  cursor: pointer;
+}
+
+/* Custom Reliable iOS Toggle Switch */
+.admin-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.admin-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.admin-toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.admin-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 999px;
+}
+
+.admin-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+}
+
+.admin-toggle-switch input:checked + .admin-toggle-slider {
+  background-color: #15803d;
+}
+
+.admin-toggle-switch input:checked + .admin-toggle-slider:before {
+  transform: translateX(22px);
+}
+
+@media (max-width: 768px) {
+  .account-item-card {
+    grid-template-columns: 50px 1fr;
+  }
+  .account-status-pill,
+  .account-btn-edit {
+    grid-column: 2;
+  }
+  .account-perm-grid {
+    grid-template-columns: 1fr;
+  }
+}

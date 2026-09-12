@@ -1,0 +1,80 @@
+:root {
+  /* PRIMARY & ACCENTS (FROM DESIGN SYSTEM & REFERENCE IMAGE) */
+  --color-primary: #1E293B;
+  --color-primary-hover: #0F172A;
+  --color-primary-light: #334155;
+  --color-primary-muted: rgba(30, 41, 59, 0.08);
+
+  /* BRAND ACCENT RED & SIDEBAR ACTIVE (#E31E24 & #FDECEC) */
+  --color-brand-red: #E31E24;
+  --color-brand-red-hover: #C8191E;
+  --color-brand-red-light: #FDECEC;
+  --color-accent-red: #E31E24;
+  --color-accent-red-hover: #C8191E;
+  --color-accent-red-light: #FDECEC;
+
+  /* SIDEBAR ACTIVE ITEM */
+  --sidebar-active-bg: #FDECEC;
+  --sidebar-active-color: #E31E24;
+
+  /* ADD BUTTONS */
+  --btn-add-bg: #E31E24;
+  --btn-add-hover: #C8191E;
+  --btn-add-color: #FFFFFF;
+
+  /* TEXT HIERARCHY */
+  --color-heading: #1E293B;
+  --color-text: #475569;
+  --color-text-secondary: #64748B;
+  --color-text-muted: #94A3B8;
+
+  /* BACKGROUNDS & SURFACES */
+  --color-page-bg: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F1F5F9;
+  --color-surface-hover: #F8FAFC;
+
+  /* BORDERS */
+  --color-border: #E2E8F0;
+  --color-border-light: #EEF2F6;
+  --color-border-dark: #CBD5E1;
+
+  /* STATUS */
+  --color-success: #15803D;
+  --color-success-bg: #DCFCE7;
+  --color-danger: #DC2626;
+  --color-danger-hover: #B91C1C;
+  --color-danger-bg: #FEE2E2;
+  --color-warning: #B45309;
+  --color-warning-bg: #FEF3C7;
+  --color-info: #0369A1;
+  --color-info-bg: #E0F2FE;
+
+  /* SHADOWS */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.03);
+  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 10px 25px rgba(15, 23, 42, 0.08);
+
+  /* SPACING */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* BORDER RADIUS */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-pill: 9999px;
+
+  /* SIDEBAR DIMENSIONS */
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 76px;
+  --topbar-height: 62px;
+}

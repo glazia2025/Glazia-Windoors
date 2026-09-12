@@ -5,6 +5,7 @@ const axios = require("axios");
 const path = require("path");
 const pdfParse = require("pdf-parse");
 const os = require("os");
+const { cleanupStalePdfTempDirs } = require("./pdfBrowser");
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -34,6 +35,8 @@ const parsePdf = async (filePath) => {
 };
 
 const downloadPdf = async () => {
+  cleanupStalePdfTempDirs();
+
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chrome-user-data-'));
 
   const options = new chrome.Options()
@@ -71,22 +74,26 @@ const downloadPdf = async () => {
     console.log("PDF URL:", pdfUrl);
 
     const pdfPath = path.join(os.tmpdir(), `nalco_price_${Date.now()}.pdf`);
-    const response = await axios.get(pdfUrl, { responseType: "arraybuffer" });
-    fs.writeFileSync(pdfPath, response.data);
-    console.log("pdfPath", pdfPath);
+    try {
+      const response = await axios.get(pdfUrl, { responseType: "arraybuffer" });
+      fs.writeFileSync(pdfPath, response.data);
+      console.log("pdfPath", pdfPath);
 
-    const price = await parsePdf(pdfPath);
-
-    if (fs.existsSync(pdfPath)) {
-      fs.unlinkSync(pdfPath);
-      console.log("Temporary PDF file deleted");
+      return await parsePdf(pdfPath);
+    } finally {
+      if (fs.existsSync(pdfPath)) {
+        fs.unlinkSync(pdfPath);
+        console.log("Temporary PDF file deleted");
+      }
     }
-
-    return price;
   } catch (error) {
     console.error("Error in downloadPdf:", error);
   } finally {
-    await driver.quit();
+    try {
+      await driver.quit();
+    } catch (error) {
+      console.warn("Failed to quit Chrome driver:", error.message);
+    }
 
     // Wait briefly to let Chrome release files
     await sleep(1000);

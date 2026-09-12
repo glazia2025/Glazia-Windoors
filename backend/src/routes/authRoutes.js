@@ -1,11 +1,12 @@
 const express = require('express');
-const { sendWhatsAppOTP, verifyOTP, adminLogin } = require('../controllers/authcontroller');
+const { sendWhatsAppOTP, verifyOTP, adminLogin, logout } = require('../controllers/authcontroller');
 const isAdmin = require('../middleware/adminMiddleware');
 
 const router = express.Router();
 
 router.post('/send-otp', sendWhatsAppOTP);
 router.post('/verify-otp', verifyOTP);
+router.post('/logout', logout);
 
 // admin routes ------------------------------------------
 router.post('/admin/login', adminLogin);

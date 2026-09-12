@@ -5,7 +5,7 @@ const optionSetSchema = new mongoose.Schema(
     type: {
       type: String,
       required: true,
-      enum: ["colorFinish", "glassSpec", "meshType", "handle", "generic"],
+      enum: ["colorFinish", "glassSpec", "meshType", "generic"],
     },
     // Map of option label -> rate (number)
     values: {
