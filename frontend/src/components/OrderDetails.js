@@ -1,3 +1,4 @@
+import PaysharpPayments from './PaysharpPayments';
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../utils/api";
@@ -123,6 +124,7 @@ const OrderDetails = () => {
   };
 
   const checkOrderDispatchPending = () => {
+    if (orderDetails?.paymentProvider === 'PAYSHARP') return orderDetails.paymentStatus === 'PAID' && !orderDetails.isComplete;
     return (
       orderDetails &&
       orderDetails.payments &&
@@ -135,6 +137,7 @@ const OrderDetails = () => {
 
   const getOrderStatusKey = () => {
     if (!orderDetails) return ORDER_STATUS.LOADING;
+    if (orderDetails.paymentProvider === 'PAYSHARP') return orderDetails.isComplete ? ORDER_STATUS.COMPLETED : orderDetails.paymentStatus === 'PAID' ? ORDER_STATUS.DISPATCH_PENDING : ORDER_STATUS.AWAITING_PAYMENT;
     if (checkOrderFirstApprovalPending()) return ORDER_STATUS.FIRST_APPROVAL_PENDING;
     if (checkOrderSecondPaymentPending()) return ORDER_STATUS.SECOND_PAYMENT_PENDING;
     if (checkOrderSecondPaymentOverdue()) return ORDER_STATUS.SECOND_PAYMENT_OVERDUE;
@@ -776,7 +779,8 @@ const OrderDetails = () => {
         )}
 
         {/* Tab 2: Payments */}
-        {activeTab === "payments" && orderDetails && (
+        {activeTab === "payments" && orderDetails?.paymentProvider === 'PAYSHARP' && <PaysharpPayments order={orderDetails} onRefresh={fetchOrderDetails} />}
+        {activeTab === "payments" && orderDetails && orderDetails.paymentProvider !== 'PAYSHARP' && (
           <div className="order-details-body">
             {/* Status Highlight Banner */}
             <div
