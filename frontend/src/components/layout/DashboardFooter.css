@@ -1,0 +1,45 @@
+.glazia-dashboard-footer {
+  height: 52px;
+  background-color: var(--color-surface, #ffffff);
+  border-top: 1px solid var(--color-border, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  font-size: 13px;
+  color: var(--color-text-secondary, #64748b);
+  margin-top: auto;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-right a {
+  color: var(--color-text-secondary, #64748b);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.footer-right a:hover {
+  color: var(--color-heading, #1e293b);
+  text-decoration: underline;
+}
+
+.footer-dot {
+  color: var(--color-border-dark, #cbd5e1);
+}
+
+@media (max-width: 768px) {
+  .glazia-dashboard-footer {
+    flex-direction: column;
+    height: auto;
+    padding: 12px 16px;
+    gap: 6px;
+    text-align: center;
+  }
+}

@@ -5,12 +5,13 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const TrackPhone = require('../models/TrackPhone');
+const { AUTH_COOKIE_MAX_AGE_MS, clearAuthCookie, setAuthCookie } = require('../utils/authCookies');
 require('dotenv').config();
 
 const otpStore = {};
 
-const META_TOKEN=process.env.META_TOKEN;
-const META_NUMID=process.env.META_NUMID;
+const META_TOKEN = process.env.META_TOKEN;
+const META_NUMID = process.env.META_NUMID;
 
 const staticAdmin = {
   username: 'admin',
@@ -37,59 +38,59 @@ const sendLoginOtp = async (otp, number) => {
   try {
     // Logic to send message to users
     console.log("Sending Otp to user:", otp, number);
-          let data = JSON.stringify({
-            "messaging_product": "whatsapp",
-            "to": `91${number}`,
-            "type": "template",
-            "template": {
-              "name": "login_otp",
-              "language": {
-                "code": "en"
-              },
-              "components": [
-                {
-                  "type": "body",
-                  "parameters": [
-                    {
-                      "type": "text",
-                      "text": otp
-                    }
-                  ]
-                },
-                {
-                  "type": "button",
-                  "sub_type": "url",
-                  "index": "0",
-                  "parameters": [
-                    {
-                      "type": "text",
-                      "text": otp
-                    }
-                  ]
-                }
-              ]
-            }
-          });
+    let data = JSON.stringify({
+      "messaging_product": "whatsapp",
+      "to": `91${number}`,
+      "type": "template",
+      "template": {
+        "name": "login_otp",
+        "language": {
+          "code": "en"
+        },
+        "components": [
+          {
+            "type": "body",
+            "parameters": [
+              {
+                "type": "text",
+                "text": otp
+              }
+            ]
+          },
+          {
+            "type": "button",
+            "sub_type": "url",
+            "index": "0",
+            "parameters": [
+              {
+                "type": "text",
+                "text": otp
+              }
+            ]
+          }
+        ]
+      }
+    });
 
-          let config = {
-            method: 'post',
-            maxBodyLength: Infinity,
-            url: `https://graph.facebook.com/v22.0/${META_NUMID}/messages`,
-            headers: { 
-              'Authorization': `Bearer ${META_TOKEN}`, 
-              'Content-Type': 'application/json'
-            },
-            data : data
-          };
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `https://graph.facebook.com/v22.0/${META_NUMID}/messages`,
+      headers: {
+        'Authorization': `Bearer ${META_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      data: data
+    };
 
-          axios.request(config)
-          .then((response) => {
-            console.log(JSON.stringify(response.data));
-          })
-          .catch((error) => {
-            console.log(error);
+    axios.request(config)
+      .then((response) => {
+        console.log(JSON.stringify(response.data));
+      })
+      .catch((error) => {
+        console.log(error);
       });
-    
+
   } catch (error) {
     console.error('Error sending SMS message:', error.data.error);
   }
@@ -137,6 +138,8 @@ const verifyOTP = async (req, res) => {
           process.env.JWT_SECRET || 'secret',
           { expiresIn: '120d' }
         );
+
+        setAuthCookie(req, res, token, AUTH_COOKIE_MAX_AGE_MS);
 
         return res.status(200).json({
           message: 'OTP verified successfully',
@@ -261,6 +264,10 @@ module.exports = {
   sendWhatsAppOTP,
   verifyOTP,
   adminLogin,
+  logout: (req, res) => {
+    clearAuthCookie(req, res);
+    return res.status(200).json({ message: 'Logged out successfully' });
+  },
   trackPhone,
   listLeads,
   updateLead,

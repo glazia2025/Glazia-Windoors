@@ -13,6 +13,7 @@ const HardwareOptions = require('../models/Hardware');
 const Category = require('../models/Profiles/Category');
 const Size = require('../models/Profiles/Size');
 const { Nalco } = require('../models/Order');
+const { AUTH_COOKIE_MAX_AGE_MS, extractAuthToken, setAuthCookie } = require('../utils/authCookies');
 require('dotenv').config();
 
 // Secret for JWT (you should store this in your .env file)
@@ -224,9 +225,9 @@ const createUser = async (req, res) => {
       paUrl = buildS3PublicUrl(bucket, region, objectKey);
     }
 
-    const { hardwareLabels, profileLabels } = await getDynamicPricingLabels();
+    const { profileLabels } = await getDynamicPricingLabels();
     const dynamicPricing = {
-      hardware: mergePricing(hardwareLabels),
+      hardware: {},
       profiles: mergePricing(profileLabels),
     };
 
@@ -254,8 +255,10 @@ const createUser = async (req, res) => {
     const token = jwt.sign(
       { userId: newUser._id, phoneNumber: primaryPhoneNumber, role: 'user' }, // Include relevant data like userId and role
       JWT_SECRET,
-      { expiresIn: '1h' } // Token expiration (optional, 1 hour in this case)
+      { expiresIn: '120d' }
     );
+
+    setAuthCookie(req, res, token, AUTH_COOKIE_MAX_AGE_MS);
 
     // Send the response with the token
     res.status(201).json({
@@ -271,14 +274,10 @@ const createUser = async (req, res) => {
 
 // Get User API
 const getUser = async (req, res) => {
-  const authHeader = req.headers.authorization;
-
-  // Check if the Authorization header is provided
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const token = extractAuthToken(req);
+  if (!token) {
     return res.status(401).json({ message: 'Authorization token is missing or invalid' });
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     // Verify the JWT token
@@ -294,9 +293,9 @@ const getUser = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const { hardwareLabels, profileLabels } = await getDynamicPricingLabels();
+    const { profileLabels } = await getDynamicPricingLabels();
     const dynamicPricing = {
-      hardware: mergePricing(hardwareLabels, user.dynamicPricing?.hardware),
+      hardware: {},
       profiles: mergePricing(profileLabels, user.dynamicPricing?.profiles),
     };
 
@@ -315,8 +314,7 @@ const getUser = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1]; // Extract token from Authorization header
-
+  const token = extractAuthToken(req);
   if (!token) {
     return res.status(401).json({ message: 'Authorization token is required' });
   }
@@ -411,14 +409,14 @@ const getNalcoGraph = async (req, res) => {
 // Update dynamic pricing for a user (Admin only)
 const updateDynamicPricing = async (req, res) => {
   const { userId } = req.params;
-  const { hardware, profiles } = req.body;
+  const { profiles } = req.body;
 
   if (!userId) {
     return res.status(400).json({ message: 'User ID is required' });
   }
 
-  if (!hardware && !profiles) {
-    return res.status(400).json({ message: 'At least one of hardware or profiles pricing data is required' });
+  if (!profiles) {
+    return res.status(400).json({ message: 'Profile pricing data is required' });
   }
 
   try {
@@ -428,7 +426,7 @@ const updateDynamicPricing = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const { hardwareLabels, profileLabels } = await getDynamicPricingLabels();
+    const { profileLabels } = await getDynamicPricingLabels();
 
     // Initialize dynamicPricing if it doesn't exist
     if (!user.dynamicPricing) {
@@ -438,22 +436,7 @@ const updateDynamicPricing = async (req, res) => {
       };
     }
 
-    // Update hardware pricing
-    if (hardware) {
-      if (typeof hardware !== 'object') {
-        return res.status(400).json({ message: 'Hardware pricing must be an object' });
-      }
-      user.dynamicPricing.hardware = mergePricing(
-        hardwareLabels,
-        user.dynamicPricing.hardware,
-        hardware
-      );
-    } else {
-      user.dynamicPricing.hardware = mergePricing(
-        hardwareLabels,
-        user.dynamicPricing.hardware
-      );
-    }
+    // Legacy hardware adjustments are retained in storage but never applied or updated.
 
     // Update profiles pricing
     if (profiles) {
@@ -476,7 +459,7 @@ const updateDynamicPricing = async (req, res) => {
 
     res.status(200).json({
       message: 'Dynamic pricing updated successfully',
-      dynamicPricing: user.dynamicPricing
+      dynamicPricing: { hardware: {}, profiles: user.dynamicPricing.profiles }
     });
   } catch (error) {
     console.error('Error updating dynamic pricing:', error);
@@ -499,9 +482,9 @@ const getDynamicPricing = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const { hardwareLabels, profileLabels } = await getDynamicPricingLabels();
+    const { profileLabels } = await getDynamicPricingLabels();
     const dynamicPricing = {
-      hardware: mergePricing(hardwareLabels, user.dynamicPricing?.hardware),
+      hardware: {},
       profiles: mergePricing(profileLabels, user.dynamicPricing?.profiles),
     };
 
@@ -528,6 +511,7 @@ const listUsers = async (req, res) => {
       state: 1,
       gstNumber: 1,
       dynamicPricing: 1,
+      createdAt: 1,
     }).sort({ name: 1 });
 
     res.status(200).json({ users });
