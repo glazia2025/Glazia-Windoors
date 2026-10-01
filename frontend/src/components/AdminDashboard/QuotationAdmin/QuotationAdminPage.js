@@ -784,6 +784,9 @@ const QuotationAdminPage = () => {
           .map((item) => [item.label.trim(), Number(item.rate) || 0])
           .filter(([label]) => label)
       ),
+      sortOrder: optionForm.items
+      .map((item)=> item.label.trim())
+      .filter(Boolean),
       colors: optionForm.type === "colorFinish"
         ? Object.fromEntries(
           optionForm.items
@@ -820,13 +823,23 @@ const QuotationAdminPage = () => {
   const handleOptionEdit = (optionSet) => {
     const values = entriesFromMap(optionSet.values);
     const colors = toPlainObject(optionSet.colors);
+    const orderedValues = optionSet.sortOrder?.length
+  ? optionSet.sortOrder
+      .map((label) => {
+        const value = optionSet.values?.[label];
+        return value !== undefined ? [label, value] : null;
+      })
+      .filter(Boolean)
+  : values;
     setEditingOptionId(optionSet._id);
     setOptionForm({
       type: optionSet.type,
       systemId: optionSet.system?._id || "",
-      items: values.length
-        ? values.map(([label, rate]) => createOptionRow(label, rate, colors[label] || "#C0C0C0"))
-        : [createOptionRow()],
+      items: orderedValues.length
+  ? orderedValues.map(([label, rate]) =>
+      createOptionRow(label, rate, colors[label] || "#C0C0C0")
+    )
+  : [createOptionRow()],
     });
     setIsOptionModalOpen(true);
   };
@@ -837,6 +850,18 @@ const QuotationAdminPage = () => {
       items: prev.items.map((item) => item.id === id ? { ...item, [field]: value } : item),
     }));
   };
+
+  const moveOptionRow = (fromIndex, toIndex)=> {
+    setOptionForm((prev)=> {
+      const items = [...prev.items];
+      const [movedItem] =items.splice(fromIndex, 1);
+      items.splice(toIndex,0,movedItem);
+      return {
+        ...prev,
+        items,
+      };
+    });
+  }
 
   const removeOptionRow = (id) => {
     setOptionForm((prev) => ({
@@ -2931,8 +2956,38 @@ const QuotationAdminPage = () => {
                   </div>
 
                   <div className="qa-option-editor-rows">
-                    {optionForm.items.map((item) => (
-                      <div className={`qa-option-editor-row ${optionForm.type === "colorFinish" ? "has-color" : ""}`} key={item.id}>
+                      {optionForm.items.map((item, index) => (
+  <div
+    className={`qa-option-editor-row ${
+      optionForm.type === "colorFinish" ? "has-color" : ""
+    }`}
+    key={item.id}
+    draggable
+    onDragStart={(e) => {
+      e.dataTransfer.setData("optionIndex", index.toString());
+    }}
+     onDragOver={(e) => {
+    e.preventDefault();
+  }}
+  onDrop={(e) => {
+    e.preventDefault();
+
+    const fromIndex = Number(
+      e.dataTransfer.getData("optionIndex")
+    );
+
+    if (fromIndex === index) return;
+
+    moveOptionRow(fromIndex, index);
+  }}
+  >
+    <span 
+    className="qa-option-drag-handle"
+    title="Drag to recorder"
+    >
+      ::
+    </span>
+                          
                         <input
                           type="text"
                           aria-label="Option name"
