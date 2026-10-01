@@ -92,6 +92,7 @@ const createCuttingLine = () => ({
   sapCode: "",
   description: "",
   glassRef: "",
+  placement: "",
   quantityFormula: "1",
   dimensionFormula: "",
   cutAngle: "",
@@ -1483,6 +1484,11 @@ const QuotationAdminPage = () => {
           return sanitized;
         }),
     }));
+
+    if (schedules.some(schedule => schedule.lines.some(line => line.itemType === "profile" && !line.placement))) {
+      alert("Select a frame placement for every profile line. Use Inner for profiles that must stay unchanged at mullions. Split paired frame sides into separate lines with the same SAP code.");
+      return;
+    }
 
     const hasBlankSapCode = schedules.some((schedule) =>
       schedule.lines.some((line) => line.itemType !== "glass" && !line.sapCode)
@@ -4952,7 +4958,7 @@ const QuotationAdminPage = () => {
                       <div className="qa-title">Required Items</div>
                       <div className="qa-meta">
                         Editing H {activeCuttingSchedule.horizontalAngle}° / V {activeCuttingSchedule.verticalAngle}°.
-                        Hardware rows only need SAP code and quantity. Profile rows use dimensions and cut angle. Each glass needs two rows with the same reference: one W formula and one H formula.
+                        Hardware rows only need SAP code and quantity. Profile rows use dimensions, cut angle and frame placement. Mullions remove only the touching outer-frame sides; Inner profiles remain unchanged. Use a separate line per outer side (same SAP code), rather than one quantity for both sides. Existing unmapped lines keep their quantities until a placement is selected. Each glass needs two rows with the same reference: one W formula and one H formula.
                       </div>
                     </div>
                     {/* cutting schedule */}
@@ -4979,6 +4985,7 @@ const QuotationAdminPage = () => {
                           <th>Qty</th>
                           <th>Dimension</th>
                           <th>Cut Angle</th>
+                          <th>Frame placement</th>
                           <th>Position</th>
                           <th></th>
                         </tr>
@@ -5084,6 +5091,18 @@ const QuotationAdminPage = () => {
                                 onChange={(e) => updateCuttingLine(index, "cutAngle", e.target.value)}
                                 placeholder="45°, 90°"
                               />
+                            </td>
+                            <td>
+                              {line.itemType === "profile" ? (
+                                <select aria-label="Frame placement" value={line.placement || ""} onChange={(e) => updateCuttingLine(index, "placement", e.target.value)} required>
+                                  <option value="">Select placement</option>
+                                  <option value="outer-left">Outer left</option>
+                                  <option value="outer-right">Outer right</option>
+                                  <option value="outer-top">Outer top</option>
+                                  <option value="outer-bottom">Outer bottom</option>
+                                  <option value="inner">Inner</option>
+                                </select>
+                              ) : "—"}
                             </td>
                             <td>
                               <input value={line.position || ""} onChange={(e) => updateCuttingLine(index, "position", e.target.value)} placeholder="W, H, S1" />
