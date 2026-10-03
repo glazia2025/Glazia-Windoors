@@ -1,18 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  MDBCard,
-  MDBCardBody,
-  MDBCardHeader,
-  MDBCol,
-  MDBRow,
-  MDBTable,
-  MDBTableBody,
-  MDBTableHead,
-  MDBInput,
-  MDBBtn,
-  MDBSpinner,
-  MDBTypography,
-} from "mdb-react-ui-kit";
 import api, { BASE_API_URL } from "../../../utils/api";
 import ParterAgreement from "../../UserDetailsForm/PartnerAgreement/PartnerAgreement";
 import "./UserManagement.css";
@@ -39,14 +25,37 @@ const parseExtraNumbers = (raw) => {
     .filter((value) => value.length > 0);
 };
 
+const getInitials = (name = "") => {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase() || "US";
+};
+
+const ITEMS_PER_PAGE = 10;
+
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [listLoading, setListLoading] = useState(false);
+  const [sortBy, setSortBy] = useState("name");
+  const [order, setOrder] = useState("asc");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [form, setForm] = useState(emptyForm);
   const [showAgreement, setShowAgreement] = useState(false);
   const [paBlob, setPaBlob] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [promotionUser, setPromotionUser] = useState(null);
+  const [promotionBlob, setPromotionBlob] = useState(null);
+  const [promotionAccepted, setPromotionAccepted] = useState(false);
+  const [promotionLoading, setPromotionLoading] = useState(false);
+  const [deletionUser, setDeletionUser] = useState(null);
+  const [deletionLoading, setDeletionLoading] = useState(false);
+  const [accessUser, setAccessUser] = useState(null);
+  const [disabledModules, setDisabledModules] = useState([]);
+  const [accessLoading, setAccessLoading] = useState(false);
 
   const token = localStorage.getItem("authToken");
 
@@ -71,7 +80,62 @@ const UserManagement = () => {
     fetchUsers();
   }, []);
 
-  const userRows = useMemo(() => users ?? [], [users]);
+  // Reset page when filtering or sorting
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortBy, order]);
+
+  const filteredAndSortedUsers = useMemo(() => {
+    let result = [...users];
+
+    // Search filtering
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (u) =>
+          u.name?.toLowerCase().includes(q) ||
+          u.email?.toLowerCase().includes(q) ||
+          u.phoneNumber?.includes(q) ||
+          u.city?.toLowerCase().includes(q) ||
+          u.state?.toLowerCase().includes(q) ||
+          u.gstNumber?.toLowerCase().includes(q) ||
+          u.accountType?.toLowerCase().includes(q)
+      );
+    }
+
+    // Sorting
+    if (sortBy === "name") {
+      result.sort((a, b) => {
+        if (order === "asc") {
+          return (a.name || "").trim().localeCompare((b.name || "").trim(), "en", { sensitivity: "base" });
+        } else {
+          return (b.name || "").trim().localeCompare((a.name || "").trim(), "en", { sensitivity: "base" });
+        }
+      });
+    } else if (sortBy === "date") {
+      result.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return order === "asc" ? dateA - dateB : dateB - dateA;
+      });
+    }
+
+    return result;
+  }, [users, searchQuery, sortBy, order]);
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedUsers.length / ITEMS_PER_PAGE));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredAndSortedUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredAndSortedUsers, currentPage]);
 
   const handleChange = (field) => (event) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
@@ -92,7 +156,7 @@ const UserManagement = () => {
       !form.address ||
       !form.phoneNumber
     ) {
-      setError("Fill all required fields before generating the agreement.");
+      setError("Please fill all required company and contact fields before generating agreement.");
       return;
     }
 
@@ -104,15 +168,16 @@ const UserManagement = () => {
     event.preventDefault();
     setFormLoading(true);
     setError("");
+    setSuccessMsg("");
 
     try {
       if (!paBlob) {
-        setError("Generate the partner agreement before creating the user.");
+        setError("Please generate the Partner Agreement before creating the user.");
+        setFormLoading(false);
         return;
       }
 
       const extraNumbers = parseExtraNumbers(form.extraPhoneNumbers);
-
       const formData = new FormData();
       formData.append("name", form.name);
       formData.append("email", form.email);
@@ -122,8 +187,8 @@ const UserManagement = () => {
       formData.append("state", form.state);
       formData.append("address", form.address);
       formData.append("phoneNumber", form.phoneNumber);
-      formData.append('authorizedPerson', form.authorisedPerson);
-      formData.append('authorizedPersonDesignation', form.authorisedPersonDesignation);
+      formData.append("authorizedPerson", form.authorisedPerson);
+      formData.append("authorizedPersonDesignation", form.authorisedPersonDesignation);
 
       extraNumbers.forEach((number) => formData.append("phoneNumbers", number));
       formData.append(
@@ -140,9 +205,11 @@ const UserManagement = () => {
         },
       });
 
+      setSuccessMsg(`User "${form.name}" created and onboarded successfully!`);
       setForm(emptyForm);
       setShowAgreement(false);
       setPaBlob(null);
+      setShowAddForm(false);
       await fetchUsers();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create user");
@@ -151,248 +218,778 @@ const UserManagement = () => {
     }
   };
 
+  const promoteToDealership = async () => {
+    if (!promotionUser || !promotionBlob || !promotionAccepted) return;
+    setPromotionLoading(true);
+    setError("");
+    try {
+      const data = new FormData();
+      data.append("partnerAgreementAccepted", "true");
+      data.append(
+        "paPdf",
+        new File([promotionBlob], "glazia-dealership-agreement.pdf", {
+          type: "application/pdf",
+        })
+      );
+      await api.post(
+        `${BASE_API_URL}/admin/users/${promotionUser._id}/promote-dealership`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      setPromotionUser(null);
+      setPromotionBlob(null);
+      setPromotionAccepted(false);
+      await fetchUsers();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to promote fabricator");
+    } finally {
+      setPromotionLoading(false);
+    }
+  };
+
+  const deleteUser = async () => {
+    if (!deletionUser) return;
+    setDeletionLoading(true);
+    setError("");
+    setSuccessMsg("");
+    try {
+      const response = await api.delete(`${BASE_API_URL}/admin/users/${deletionUser._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDeletionUser(null);
+      setSuccessMsg(response.data?.message || "User and partner agreement deleted successfully.");
+      await fetchUsers();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete user");
+    } finally {
+      setDeletionLoading(false);
+    }
+  };
+
+  const openAccessModal = (user) => {
+    setAccessUser(user);
+    setDisabledModules(user.disabledModules || []);
+  };
+
+  const toggleDisabledModule = (moduleName) => {
+    setDisabledModules((current) => current.includes(moduleName)
+      ? current.filter((value) => value !== moduleName)
+      : [...current, moduleName]);
+  };
+
+  const saveModuleAccess = async () => {
+    if (!accessUser) return;
+    setAccessLoading(true);
+    setError("");
+    setSuccessMsg("");
+    try {
+      const response = await api.patch(
+        `${BASE_API_URL}/admin/users/${accessUser._id}/module-access`,
+        { disabledModules },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setUsers((current) => current.map((user) => user._id === accessUser._id
+        ? { ...user, disabledModules: response.data.user?.disabledModules || disabledModules }
+        : user));
+      setAccessUser(null);
+      setSuccessMsg(response.data?.message || "Module access updated successfully.");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update module access");
+    } finally {
+      setAccessLoading(false);
+    }
+  };
+
   return (
-    <MDBRow className="user-management-wrapper mt-5">
-      <MDBCol md="12">
-        <MDBCard className="mb-4">
-          <MDBCardHeader>
-            <MDBTypography tag="h5" className="mb-0">
-              Add New User
-            </MDBTypography>
-          </MDBCardHeader>
-          <MDBCardBody>
+    <div className="user-mgmt-container">
+      {/* Top Header Card with Quick Action to Add User */}
+      <div className="user-mgmt-card">
+        <div className="user-card-header">
+          <div className="user-header-left">
+            <div className="user-header-icon">
+              <i className="fas fa-users-cog"></i>
+            </div>
+            <div>
+              <h4 className="user-card-title">User & Partner Management</h4>
+              <p className="user-card-subtitle">
+                Onboard authorized partners, manage client credentials and agreements
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="user-toggle-form-btn"
+            onClick={() => setShowAddForm((prev) => !prev)}
+          >
+            <i className={`fas ${showAddForm ? "fa-minus" : "fa-plus"}`}></i>
+            <span>{showAddForm ? "Hide Form" : "Add New User"}</span>
+          </button>
+        </div>
+
+        {/* Collapsible Add New User Form */}
+        {showAddForm && (
+          <div className="user-form-body">
             {error && (
-              <div className="alert alert-danger mb-3" role="alert">
-                {error}
+              <div className="alert alert-danger d-flex align-items-center gap-2 mb-3" role="alert">
+                <i className="fas fa-exclamation-circle"></i>
+                <div>{error}</div>
               </div>
             )}
+            {successMsg && (
+              <div className="alert alert-success d-flex align-items-center gap-2 mb-3" role="alert">
+                <i className="fas fa-check-circle"></i>
+                <div>{successMsg}</div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit}>
-              <MDBRow>
-                <MDBCol md="6" className="mb-3">
-                  <MDBInput
-                    label="Name"
+              <div className="user-form-grid">
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>Company / User Name</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. Acme Windoors Ltd"
                     value={form.name}
                     onChange={handleChange("name")}
                     required
                     disabled={formLoading}
                   />
-                </MDBCol>
-                <MDBCol md="6" className="mb-3">
-                  <MDBInput
-                    label="Email"
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>Official Email</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
                     type="email"
+                    className="user-form-input"
+                    placeholder="e.g. contact@acme.com"
                     value={form.email}
                     onChange={handleChange("email")}
                     required
                     disabled={formLoading}
                   />
-                </MDBCol>
-                <MDBCol md="6" className="mb-3">
-                  <MDBInput
-                    label="GST Number"
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>GST Identification Number</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. 06AAKCG7530J1ZE"
                     value={form.gstNumber}
                     onChange={handleChange("gstNumber")}
                     required
                     disabled={formLoading}
                   />
-                </MDBCol>
-                <MDBCol md="6" className="mb-3">
-                  <MDBInput
-                    label="Phone Number"
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>Primary Phone Number</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. 9876543210"
                     value={form.phoneNumber}
                     onChange={handleChange("phoneNumber")}
                     required
                     disabled={formLoading}
                   />
-                </MDBCol>
-                <MDBCol md="6" className="mb-3">
-                  <MDBInput
-                    label="Additional Phone Numbers (comma separated)"
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>Additional Phone Numbers</span>
+                    <span className="small text-muted font-normal ms-1">(comma separated)</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. 9811002233, 9822334455"
                     value={form.extraPhoneNumbers}
                     onChange={handleChange("extraPhoneNumbers")}
                     disabled={formLoading}
                   />
-                </MDBCol>
-                <MDBCol md="6" className="mb-3">
-                  <MDBInput
-                    label="Pincode"
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>Pincode</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. 122001"
                     value={form.pincode}
                     onChange={handleChange("pincode")}
                     required
                     disabled={formLoading}
                   />
-                </MDBCol>
-                <MDBCol md="6" className="mb-3">
-                  <MDBInput
-                    label="City"
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>City</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. Gurugram"
                     value={form.city}
                     onChange={handleChange("city")}
                     required
                     disabled={formLoading}
                   />
-                </MDBCol>
-                <MDBCol md="6" className="mb-3">
-                  <MDBInput
-                    label="State"
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>State</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. Haryana"
                     value={form.state}
                     onChange={handleChange("state")}
                     required
                     disabled={formLoading}
                   />
-                </MDBCol>
-                <MDBCol md="6" className="mb-3">
-                  <MDBInput
-                    label="Authorised Person"
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>Authorised Person</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="Full legal name"
                     value={form.authorisedPerson}
                     onChange={handleChange("authorisedPerson")}
                     required
                     disabled={formLoading}
                   />
-                </MDBCol>
-                <MDBCol md="6" className="mb-3">
-                  <MDBInput
-                    label="Authorised Person Designation"
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>Authorised Designation</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. Director / Managing Partner"
                     value={form.authorisedPersonDesignation}
                     onChange={handleChange("authorisedPersonDesignation")}
                     required
                     disabled={formLoading}
                   />
-                </MDBCol>
-                <MDBCol md="12" className="mb-3">
-                  <MDBInput
-                    label="Address"
+                </div>
+
+                <div className="user-form-group span-full">
+                  <label className="user-form-label">
+                    <span>Complete Registered Address</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="Street, Industrial Area, Building, Landmark"
                     value={form.address}
                     onChange={handleChange("address")}
                     required
                     disabled={formLoading}
                   />
-                </MDBCol>
-                <MDBCol md="12" className="mb-3">
-                  <div className="d-flex align-items-center gap-3 flex-wrap">
-                    <MDBBtn
-                      color="secondary"
-                      type="button"
-                      disabled={formLoading}
-                      onClick={handleGenerateAgreement}
-                    >
-                      Generate Partner Agreement
-                    </MDBBtn>
-                    {showAgreement && (
-                      <ParterAgreement
-                        userName={form.name}
-                        completeAddress={form.address}
-                        gstNumber={form.gstNumber}
-                        pincode={form.pincode}
-                        city={form.city}
-                        state={form.state}
-                        phoneNumber={form.phoneNumber}
-                        email={form.email}
-                        setBlob={setPaBlob}
-                      />
-                    )}
+                </div>
+
+                {/* Partner Agreement Generator */}
+                <div className="user-form-group span-full">
+                  <div className="user-agreement-box">
+                    <div className="user-agreement-info">
+                      <div className="user-agreement-icon">
+                        <i className="fas fa-file-contract"></i>
+                      </div>
+                      <div>
+                        <div className="fw-bold text-dark" style={{ fontSize: "13.5px" }}>
+                          Partner Agreement PDF
+                        </div>
+                        <div className="small text-muted">
+                          {paBlob
+                            ? "Partner agreement generated and ready for registration submission"
+                            : "Generate customized legal agreement before submitting registration"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-2">
+                      <button
+                        type="button"
+                        className={`user-btn-agreement ${paBlob ? "ready" : ""}`}
+                        disabled={formLoading}
+                        onClick={handleGenerateAgreement}
+                      >
+                        <i className={`fas ${paBlob ? "fa-check" : "fa-gear"}`}></i>
+                        <span>{paBlob ? "Agreement Ready" : "Generate Partner Agreement"}</span>
+                      </button>
+
+                      {showAgreement && (
+                        <ParterAgreement
+                          userName={form.name}
+                          completeAddress={form.address}
+                          gstNumber={form.gstNumber}
+                          pincode={form.pincode}
+                          city={form.city}
+                          state={form.state}
+                          phoneNumber={form.phoneNumber}
+                          email={form.email}
+                          setBlob={setPaBlob}
+                        />
+                      )}
+                    </div>
                   </div>
-                </MDBCol>
-              </MDBRow>
-              <div className="d-flex justify-content-end">
-                <MDBBtn color="primary" type="submit" disabled={formLoading}>
+                </div>
+              </div>
+
+              <div className="user-form-footer">
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  onClick={() => setShowAddForm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="user-btn-submit"
+                  disabled={formLoading}
+                >
                   {formLoading ? (
                     <>
-                      <MDBSpinner size="sm" role="status" className="me-2" />
-                      Saving...
+                      <span className="spinner-border spinner-border-sm" role="status"></span>
+                      <span>Registering User...</span>
                     </>
                   ) : (
-                    "Create User"
+                    <>
+                      <i className="fas fa-user-plus"></i>
+                      <span>Create User</span>
+                    </>
                   )}
-                </MDBBtn>
+                </button>
               </div>
             </form>
-          </MDBCardBody>
-        </MDBCard>
+          </div>
+        )}
+      </div>
 
-        <MDBCard>
-          <MDBCardHeader>
-            <div className="d-flex align-items-center justify-content-between">
-              <MDBTypography tag="h5" className="mb-0">
-                Current Users
-              </MDBTypography>
-              <MDBBtn
-                size="sm"
-                color="light"
-                onClick={fetchUsers}
-                disabled={listLoading}
-              >
-                Refresh
-              </MDBBtn>
+      {/* Registered Users Table Card */}
+      <div className="user-mgmt-card">
+        <div className="user-card-header">
+          <div className="user-header-left">
+            <div className="user-header-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>
+              <i className="fas fa-id-card"></i>
             </div>
-          </MDBCardHeader>
-          <MDBCardBody className="p-0">
-            {listLoading ? (
-              <div className="d-flex justify-content-center py-4">
-                <MDBSpinner role="status" />
-              </div>
-            ) : (
-              <MDBTable responsive hover className="mb-0">
-                <MDBTableHead className="bg-light">
+            <div>
+              <h4 className="user-card-title">Registered Clients & Partners</h4>
+              <p className="user-card-subtitle">
+                {filteredAndSortedUsers.length === 0
+                  ? "0 authorized user accounts in database"
+                  : `Showing ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(
+                      currentPage * ITEMS_PER_PAGE,
+                      filteredAndSortedUsers.length
+                    )} of ${filteredAndSortedUsers.length} authorized user accounts${
+                      filteredAndSortedUsers.length !== users.length
+                        ? ` (filtered from ${users.length})`
+                        : ""
+                    }`}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="user-btn-refresh"
+            onClick={fetchUsers}
+            disabled={listLoading}
+          >
+            <i className={`fas fa-sync-alt ${listLoading ? "fa-spin" : ""}`}></i>
+            <span>Refresh</span>
+          </button>
+        </div>
+
+        {/* Toolbar: Search + Sort controls */}
+        <div className="user-toolbar">
+          <div className="user-search-wrap">
+            <i className="fas fa-search user-search-icon"></i>
+            <input
+              type="text"
+              className="user-search-input"
+              placeholder="Search by company name, email, phone, GST, city or account..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="user-controls-right">
+            <select
+              className="user-select-control"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="name">Sort by Company Name</option>
+              <option value="date">Sort by Registered Date</option>
+            </select>
+
+            <select
+              className="user-select-control"
+              value={order}
+              onChange={(e) => setOrder(e.target.value)}
+            >
+              <option value="asc">Ascending (A-Z / Oldest)</option>
+              <option value="desc">Descending (Z-A / Newest)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* User Table Body */}
+        <div className="user-table-wrapper">
+          {listLoading ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status"></div>
+              <div className="small text-muted mt-2">Loading partner directory...</div>
+            </div>
+          ) : (
+            <table className="user-main-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "4%" }}>#</th>
+                  <th style={{ width: "20%" }}>Company & Name</th>
+                  <th style={{ width: "17%" }}>Email</th>
+                  <th style={{ width: "12%" }}>Phone</th>
+                  <th style={{ width: "11%" }}>GST Number</th>
+                  <th style={{ width: "12%" }}>City / State</th>
+                  <th style={{ width: "10%" }}>Registered Date</th>
+                  <th style={{ width: "7%" }}>Account</th>
+                  <th style={{ width: "13%" }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedUsers.length === 0 ? (
                   <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Additional Phones</th>
-                    <th>GST</th>
-                    <th>City</th>
-                    <th>State</th>
-                    <th>Partner Agreement</th>
+                    <td colSpan="9" className="text-center py-5 text-muted">
+                      <div className="mb-2">
+                        <i className="fas fa-users-slash" style={{ fontSize: "24px", color: "#94a3b8" }}></i>
+                      </div>
+                      <div>No users found matching your search query.</div>
+                    </td>
                   </tr>
-                </MDBTableHead>
-                <MDBTableBody>
-                  {userRows.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" className="text-center py-4 text-muted">
-                        No users available
-                      </td>
-                    </tr>
-                  ) : (
-                    userRows.map((user) => (
-                      <tr key={user._id}>
-                        <td>{user.name}</td>
-                        <td>{user.email}</td>
-                        <td>{user.phoneNumber}</td>
+                ) : (
+                  paginatedUsers.map((user, idx) => {
+                    const globalIdx = (currentPage - 1) * ITEMS_PER_PAGE + idx + 1;
+                    return (
+                      <tr key={user._id || idx}>
                         <td>
-                          {(user.phoneNumbers || [])
-                            .filter((num) => num !== user.phoneNumber)
-                            .join(", ") || "-"}
+                          <span className="text-muted fw-semibold">{globalIdx}</span>
                         </td>
-                        <td>{user.gstNumber || "-"}</td>
-                        <td>{user.city || "-"}</td>
-                        <td>{user.state || "-"}</td>
                         <td>
-                          {user.paUrl ? (
-                            <div className="d-flex gap-2">
-                              <a
-                                href={user.paUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                View
-                              </a>
-                              <a href={user.paUrl} download>
-                                Download
-                              </a>
+                          <div className="user-avatar-cell">
+                            <div className="user-avatar-circle">
+                              {getInitials(user.name)}
                             </div>
-                          ) : (
-                            "-"
+                            <div>
+                              <div className="fw-bold text-dark">{user.name}</div>
+                              {user.authorizedPerson && (
+                                <div className="small text-muted">
+                                  {user.authorizedPerson}
+                                  {user.authorizedPersonDesignation ? ` • ${user.authorizedPersonDesignation}` : ""}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <a href={`mailto:${user.email}`} className="text-dark text-decoration-none hover:text-primary">
+                            {user.email}
+                          </a>
+                        </td>
+                        <td>
+                          <a href={`tel:${user.phoneNumber}`} className="text-muted text-decoration-none">
+                            {user.phoneNumber}
+                          </a>
+                          {user.phoneNumbers?.length > 1 && (
+                            <div className="small text-muted">
+                              +{user.phoneNumbers.length - 1} more
+                            </div>
                           )}
                         </td>
+                        <td>
+                          {user.gstNumber ? (
+                            <span className="user-gst-badge">{user.gstNumber}</span>
+                          ) : (
+                            <span className="text-muted small">-</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="fw-semibold text-dark">{user.city || "-"}</div>
+                          <div className="small text-muted">{user.state || ""}</div>
+                        </td>
+                        <td>
+                          <div className="text-muted small">
+                            {user.createdAt
+                              ? new Date(user.createdAt).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })
+                              : "-"}
+                          </div>
+                        </td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              user.accountType === "DEALERSHIP" ? "bg-success" : "bg-secondary"
+                            }`}
+                          >
+                            {user.accountType || "FABRICATOR"}
+                          </span>
+                          {!!user.disabledModules?.length && (
+                            <div className="user-disabled-summary">
+                              {user.disabledModules.length} module{user.disabledModules.length > 1 ? "s" : ""} disabled
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <div className="user-row-actions">
+                            <button
+                              type="button"
+                              className="btn btn-sm user-delete-action"
+                              onClick={() => setDeletionUser(user)}
+                              title={`Delete ${user.name}`}
+                            >
+                              <i className="far fa-trash-alt" aria-hidden="true"></i>
+                              Delete
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => openAccessModal(user)}
+                              title={`Manage module access for ${user.name}`}
+                            >
+                              <i className="fas fa-user-lock"></i>
+                              Access
+                            </button>
+                          {user.accountType === "FABRICATOR" && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary"
+                              style={{ fontSize: "11.5px", padding: "4px 8px", whiteSpace: "nowrap" }}
+                              onClick={() => {
+                                setPromotionUser(user);
+                                setPromotionBlob(null);
+                                setPromotionAccepted(false);
+                              }}
+                            >
+                              Promote to dealership
+                            </button>
+                          )}
+                          </div>
+                        </td>
                       </tr>
-                    ))
-                  )}
-                </MDBTableBody>
-              </MDBTable>
-            )}
-          </MDBCardBody>
-        </MDBCard>
-      </MDBCol>
-    </MDBRow>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Pagination Bar */}
+        {!listLoading && filteredAndSortedUsers.length > 0 && (
+          <div className="user-pagination-bar">
+            <div className="user-pagination-info">
+              Showing <strong>{(currentPage - 1) * ITEMS_PER_PAGE + 1}</strong> to{" "}
+              <strong>
+                {Math.min(currentPage * ITEMS_PER_PAGE, filteredAndSortedUsers.length)}
+              </strong>{" "}
+              of <strong>{filteredAndSortedUsers.length}</strong> users
+            </div>
+
+            <div className="user-pagination-controls">
+              <button
+                type="button"
+                className="user-page-btn"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                title="Go to previous page"
+              >
+                <i className="fas fa-chevron-left"></i>
+                <span>Previous</span>
+              </button>
+
+              <div className="user-page-indicator">
+                Page <strong>{currentPage}</strong> of <span>{totalPages || 1}</span>
+              </div>
+
+              <button
+                type="button"
+                className="user-page-btn"
+                disabled={currentPage >= totalPages}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                title="Go to next page"
+              >
+                <span>Next</span>
+                <i className="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {promotionUser && (
+        <div className="promotion-backdrop">
+          <div className="promotion-modal" role="dialog" aria-modal="true">
+            <div className="d-flex justify-content-between align-items-start">
+              <div>
+                <h4>Promote to dealership</h4>
+                <p className="text-muted">{promotionUser.name} · {promotionUser.phoneNumber}</p>
+              </div>
+              <button
+                type="button"
+                className="promotion-close"
+                onClick={() => setPromotionUser(null)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="alert alert-warning small">
+              The existing Glazia–Fabricator agreement will be deleted from S3 and replaced by this Glazia–Dealership agreement.
+            </div>
+            <div className="promotion-agreement">
+              <ParterAgreement
+                agreementType="GLAZIA_DEALERSHIP"
+                userName={promotionUser.name}
+                completeAddress={promotionUser.address || ""}
+                gstNumber={promotionUser.gstNumber}
+                pincode={promotionUser.pincode || ""}
+                city={promotionUser.city}
+                state={promotionUser.state}
+                phoneNumber={promotionUser.phoneNumber}
+                email={promotionUser.email}
+                setBlob={setPromotionBlob}
+              />
+            </div>
+            <label className="d-flex align-items-start gap-2 mt-3">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={promotionAccepted}
+                onChange={(event) => setPromotionAccepted(event.target.checked)}
+              />
+              <span>I confirm the dealership has reviewed and accepted the new agreement.</span>
+            </label>
+            <div className="d-flex justify-content-end gap-2 mt-4">
+              <button
+                type="button"
+                className="btn btn-light"
+                onClick={() => setPromotionUser(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!promotionBlob || !promotionAccepted || promotionLoading}
+                onClick={promoteToDealership}
+              >
+                {promotionLoading ? "Promoting…" : "Promote dealership"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deletionUser && (
+        <div className="promotion-backdrop">
+          <div className="promotion-modal user-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-user-title">
+            <div className="user-delete-icon"><i className="far fa-trash-alt"></i></div>
+            <h4 id="delete-user-title">Delete user?</h4>
+            <p className="text-muted">
+              <strong>{deletionUser.name}</strong> will be permanently removed from MongoDB. Their partner agreement PDF will also be permanently deleted from S3.
+            </p>
+            <div className="alert alert-danger small mb-0">
+              This action cannot be undone.
+            </div>
+            <div className="d-flex justify-content-end gap-2 mt-4">
+              <button type="button" className="btn btn-light" onClick={() => setDeletionUser(null)} disabled={deletionLoading}>Cancel</button>
+              <button type="button" className="btn btn-danger" onClick={deleteUser} disabled={deletionLoading}>
+                {deletionLoading ? <><span className="spinner-border spinner-border-sm me-2" role="status"></span>Deleting…</> : <><i className="far fa-trash-alt me-2"></i>Delete user</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {accessUser && (
+        <div className="promotion-backdrop">
+          <div className="promotion-modal user-access-modal" role="dialog" aria-modal="true" aria-labelledby="module-access-title">
+            <div className="d-flex justify-content-between align-items-start gap-3">
+              <div>
+                <h4 id="module-access-title">Manage module access</h4>
+                <p className="text-muted mb-0">{accessUser.name} · {accessUser.phoneNumber}</p>
+              </div>
+              <button type="button" className="promotion-close" onClick={() => setAccessUser(null)} disabled={accessLoading}>×</button>
+            </div>
+            <p className="small text-muted mt-3 mb-2">Select every module this user should be prevented from accessing.</p>
+            <div className="user-module-options">
+              {[
+                { value: "MAIN_SITE", title: "Main Site", description: "Website account, ordering, dealership and stock modules", icon: "fa-globe" },
+                { value: "QUOTATION_ERP", title: "Quotation ERP", description: "Quotation creation, CRM and ERP tools", icon: "fa-file-invoice-dollar" },
+              ].map((moduleOption) => {
+                const disabled = disabledModules.includes(moduleOption.value);
+                return (
+                  <label key={moduleOption.value} className={`user-module-option ${disabled ? "disabled-selected" : ""}`}>
+                    <input type="checkbox" checked={disabled} onChange={() => toggleDisabledModule(moduleOption.value)} />
+                    <span className="user-module-icon"><i className={`fas ${moduleOption.icon}`}></i></span>
+                    <span className="flex-grow-1"><strong>{moduleOption.title}</strong><small>{moduleOption.description}</small></span>
+                    <span className={`user-module-state ${disabled ? "off" : "on"}`}>{disabled ? "Disabled" : "Enabled"}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="d-flex justify-content-end gap-2 mt-4">
+              <button type="button" className="btn btn-light" onClick={() => setAccessUser(null)} disabled={accessLoading}>Cancel</button>
+              <button type="button" className="btn btn-primary" onClick={saveModuleAccess} disabled={accessLoading}>
+                {accessLoading ? <><span className="spinner-border spinner-border-sm me-2" role="status"></span>Saving…</> : "Save access"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

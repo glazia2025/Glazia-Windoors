@@ -11,6 +11,7 @@ const handleOptionSchema = new mongoose.Schema(
       required: true,
       default: () => ({ Black: 0, Silver: 0 }),
     },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 );

@@ -1,7 +1,7 @@
 import React from 'react';
 import html2pdf from "html2pdf.js";
 
-const ParterAgreement = ({userName, completeAddress, gstNumber, pincode, city, state, phoneNumber, email, setBlob}) => {
+const ParterAgreement = ({userName, completeAddress, gstNumber, pincode, city, state, phoneNumber, email, setBlob, agreementType = 'GLAZIA_FABRICATOR'}) => {
 
     const [url, setUrl] = React.useState("");
 
@@ -10,7 +10,7 @@ const ParterAgreement = ({userName, completeAddress, gstNumber, pincode, city, s
         const date = day.getDate();
         const month = day.getMonth();
         const year = day.getFullYear();
-        const htmlStr = `<!DOCTYPE html>
+        let htmlStr = `<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -650,10 +650,25 @@ const ParterAgreement = ({userName, completeAddress, gstNumber, pincode, city, s
 </body>
 
 </html>`
+        if (agreementType === 'GLAZIA_DEALERSHIP') {
+            htmlStr = htmlStr
+                .replace('<h1>AGREEMENT</h1>', '<h1>GLAZIA–DEALERSHIP PARTNER AGREEMENT</h1>')
+                .replaceAll('Fabricator/Dealer', 'Dealership')
+                .replaceAll('Fabricator', 'Dealership')
+                .replaceAll('dealer/Dealership', 'Dealership')
+                .replace(
+                    '<div class="section" style="margin-top: 2em;">',
+                    `<div class="section">
+                        <p><b>PAYMENT COLLECTION, WALLET CREDIT NOTE AND RECONCILIATION</b></p>
+                        <p>Payments received by Glazia against orders placed by Fabricators registered under the Dealership shall be collected by Glazia and recorded as a credit note in the Dealership's wallet. The wallet credit may be applied toward amounts payable by the Dealership for orders that it places with Glazia. The Parties shall reconcile Fabricator collections, credit notes, wallet utilization, invoices, taxes, returns, cancellations and other agreed adjustments at the end of each calendar month or on an interim date mutually selected by the Parties. Following reconciliation, the resulting net balance shall be confirmed and settled between Glazia and the Dealership within the mutually agreed period.</p>
+                    </div>
+                    <div class="section" style="margin-top: 2em;">`
+                );
+        }
 
          const opt = {
             margin:       0.5,
-            filename:     'document.pdf',
+            filename:     agreementType === 'GLAZIA_DEALERSHIP' ? 'glazia-dealership-agreement.pdf' : 'glazia-fabricator-agreement.pdf',
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2 },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }

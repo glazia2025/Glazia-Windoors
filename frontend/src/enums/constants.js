@@ -9,6 +9,7 @@ export const DEFAULT_ORDER_LIST_QUERY_PARAMS = {
 };
 
 export const ORDER_STATUS = {
+  AWAITING_PAYMENT: "awaiting_payment",
   LOADING: "loading",
   FIRST_APPROVAL_PENDING: "first_approval_pending",
   SECOND_PAYMENT_PENDING: "second_payment_pending",
@@ -19,6 +20,7 @@ export const ORDER_STATUS = {
 };
 
 export const ORDER_STATUS_LABELS = {
+  [ORDER_STATUS.AWAITING_PAYMENT]: "Awaiting payment",
   [ORDER_STATUS.LOADING]: "Loading...",
   [ORDER_STATUS.FIRST_APPROVAL_PENDING]: "Proof Submitted",
   [ORDER_STATUS.SECOND_PAYMENT_PENDING]: "Final Payment Pending",
@@ -29,6 +31,7 @@ export const ORDER_STATUS_LABELS = {
 };
 
 export const ORDER_STATUS_LONG_LABELS = {
+  [ORDER_STATUS.AWAITING_PAYMENT]: "Awaiting full payment through Paysharp.",
   [ORDER_STATUS.LOADING]: "Loading...",
   [ORDER_STATUS.FIRST_APPROVAL_PENDING]:
     "Proof submitted. Waiting for approval.",
@@ -42,6 +45,7 @@ export const ORDER_STATUS_LONG_LABELS = {
 };
 
 export const ORDER_STATUS_COLORS = {
+  [ORDER_STATUS.AWAITING_PAYMENT]: "bg-warning text-dark",
   [ORDER_STATUS.LOADING]: "bg-light text-muted",
   [ORDER_STATUS.FIRST_APPROVAL_PENDING]: "bg-warning text-white",
   [ORDER_STATUS.SECOND_PAYMENT_PENDING]: "bg-success text-white",

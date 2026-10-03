@@ -54,6 +54,7 @@ export const checkOrderSecondApprovalPending = (orderDetails) => {
 };
 
 export const checkOrderDispatchPending = (orderDetails) => {
+  if (orderDetails?.paymentProvider === 'PAYSHARP') return orderDetails.paymentStatus === 'PAID' && !orderDetails.isComplete;
   return (
     orderDetails &&
     orderDetails.payments &&
@@ -68,6 +69,7 @@ export const getOrderStatus = (orderDetails) => {
   if (!orderDetails) {
     return ORDER_STATUS.LOADING;
   }
+  if (orderDetails.paymentProvider === 'PAYSHARP') return orderDetails.isComplete ? ORDER_STATUS.COMPLETED : orderDetails.paymentStatus === 'PAID' ? ORDER_STATUS.DISPATCH_PENDING : ORDER_STATUS.AWAITING_PAYMENT;
   if (checkOrderFirstApprovalPending(orderDetails)) {
     return ORDER_STATUS.FIRST_APPROVAL_PENDING;
   }
