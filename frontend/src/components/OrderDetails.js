@@ -432,20 +432,44 @@ const OrderDetails = () => {
     }
 
     try {
+      // const token = localStorage.getItem("authToken");
+      // await api.post(
+      //   `/admin/complete-order`,
+      //   {
+      //     orderId: orderDetails._id,
+      //     driverInfo: data.driverInfo,
+      //     biltyDoc: data.biltyDoc,
+      //     eWayBill: data.eWayBill,
+      //     taxInvoice: data.taxInvoice,
+      //   },
+      //   {
+      //     headers: { Authorization: `Bearer ${token}` },
+      //   }
+      // );
+
       const token = localStorage.getItem("authToken");
-      await api.post(
-        `/admin/complete-order`,
-        {
-          orderId: orderDetails._id,
-          driverInfo: data.driverInfo,
-          biltyDoc: data.biltyDoc,
-          eWayBill: data.eWayBill,
-          taxInvoice: data.taxInvoice,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+
+const formData = new FormData();
+
+formData.append("orderId", orderDetails._id);
+formData.append("driverInfo", JSON.stringify(data.driverInfo));
+formData.append("biltyDoc", data.biltyDoc);
+formData.append("eWayBill", data.eWayBill);
+formData.append("taxInvoice", data.taxInvoice);
+
+data.dispatchProofPhotos.forEach((photo) => {
+  formData.append("dispatchProofPhotos", photo);
+});
+
+await api.post(
+  `/admin/complete-order`,
+  formData,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
       toast.success("Order marked as complete and dispatched!");
       fetchOrderDetails();
       cb && cb();
@@ -1035,6 +1059,63 @@ const OrderDetails = () => {
                 );
               })}
             </div>
+            {orderDetails.dispatchProofPhotos?.length > 0 && (
+  <>
+    <div className="order-section-title" style={{ marginTop: "28px" }}>
+      <span>Dispatch Proof Photos</span>
+      <span className="small text-muted fw-normal">
+        {orderDetails.dispatchProofPhotos.length} photo
+        {orderDetails.dispatchProofPhotos.length > 1 ? "s" : ""}
+      </span>
+    </div>
+
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+        gap: "16px",
+        marginTop: "14px",
+      }}
+    >
+      {orderDetails.dispatchProofPhotos.map((photo, index) => (
+        <div
+          key={index}
+          style={{
+            border: "1px solid #e2e8f0",
+            borderRadius: "10px",
+            padding: "10px",
+            background: "#ffffff",
+          }}
+        >
+          <img
+            src={photo}
+            alt={`Dispatch Proof ${index + 1}`}
+            style={{
+              width: "100%",
+              height: "180px",
+              objectFit: "cover",
+              borderRadius: "8px",
+              display: "block",
+            }}
+          />
+
+          <button
+            type="button"
+            className="order-doc-btn"
+            style={{
+              marginTop: "10px",
+              width: "100%",
+            }}
+            onClick={() => window.open(photo, "_blank")}
+          >
+            <i className="fas fa-external-link-alt"></i>
+            <span>Open Photo {index + 1}</span>
+          </button>
+        </div>
+      ))}
+    </div>
+  </>
+)}
           </div>
         )}
       </div>
