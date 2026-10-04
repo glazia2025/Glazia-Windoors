@@ -56,6 +56,21 @@ const UserManagement = () => {
   const [accessUser, setAccessUser] = useState(null);
   const [disabledModules, setDisabledModules] = useState([]);
   const [accessLoading, setAccessLoading] = useState(false);
+  const [virtualAccountLoading, setVirtualAccountLoading] = useState(false);
+  const [virtualAccountUser, setVirtualAccountUser] = useState(null);
+  const [showVirtualAccountForm, setShowVirtualAccountForm] = useState(false);
+const [virtualAccountFormUser, setVirtualAccountFormUser] = useState(null);
+const [editVirtualAccountUser, setEditVirtualAccountUser] = useState(null);
+const [showEditVirtualAccountForm, setShowEditVirtualAccountForm] = useState(false);
+const [editRemitters, setEditRemitters] = useState([]);
+
+const [remitters, setRemitters] = useState([
+  {
+    accountName: "",
+    accountNo: "",
+    ifscCode: ""
+  }
+]);
 
   const token = localStorage.getItem("authToken");
 
@@ -304,6 +319,85 @@ const UserManagement = () => {
       setAccessLoading(false);
     }
   };
+
+  const createVirtualAccount = async (user, remitters = []) => {
+  if (!user?._id) return;
+
+  setVirtualAccountLoading(true);
+  setError("");
+  setSuccessMsg("");
+
+  try {
+    const response = await api.post(
+      `${BASE_API_URL}/admin/users/${user._id}/virtual-account`,
+      {
+        whitelistedRemitters: remitters
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    setSuccessMsg(
+      response.data?.message || "Virtual account created successfully."
+    );
+
+    setShowVirtualAccountForm(false);
+    setVirtualAccountFormUser(null);
+
+    await fetchUsers();
+  } catch (err) {
+    setError(
+      err.response?.data?.message ||
+      "Failed to create virtual account"
+    );
+  } finally {
+    setVirtualAccountLoading(false);
+  }
+};
+
+const updateVirtualAccountDetails = async () => {
+  if (!editVirtualAccountUser?._id) return;
+
+  setVirtualAccountLoading(true);
+  setError("");
+  setSuccessMsg("");
+
+  try {
+    const response = await api.put(
+      `${BASE_API_URL}/admin/users/${editVirtualAccountUser._id}/virtual-account`,
+      {
+        whitelistedRemitters: editRemitters
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    setSuccessMsg(
+      response.data?.message ||
+        "Virtual account details updated successfully."
+    );
+
+    setShowEditVirtualAccountForm(false);
+    setEditVirtualAccountUser(null);
+    setEditRemitters([]);
+
+    await fetchUsers();
+
+  } catch (err) {
+    setError(
+      err.response?.data?.message ||
+        "Failed to update virtual account details"
+    );
+  } finally {
+    setVirtualAccountLoading(false);
+  }
+};
 
   return (
     <div className="user-mgmt-container">
@@ -800,6 +894,79 @@ const UserManagement = () => {
                               <i className="fas fa-user-lock"></i>
                               Access
                             </button>
+                            {user.virtualAccount?.virtualAccountNo ? (
+                              <>
+  <button
+    type="button"
+    className="btn btn-sm btn-outline-success"
+    style={{
+      fontSize: "11.5px",
+      padding: "4px 8px",
+      whiteSpace: "nowrap"
+    }}
+    onClick={() => setVirtualAccountUser(user)}
+  >
+    <i className="fas fa-university me-1"></i>
+    See Bank Details
+  </button>
+  <button
+  type="button"
+  className="btn btn-sm btn-primary"
+  onClick={() => {
+  setEditVirtualAccountUser(user);
+   setEditRemitters(
+    user.whitelistedRemitters?.length
+      ? user.whitelistedRemitters
+      : [
+          {
+            accountName: "",
+            accountNo: "",
+            ifscCode: ""
+          }
+        ]
+  );
+  setShowEditVirtualAccountForm(true);
+}}
+>
+  EDIT DETAILS
+</button>
+  </>
+  
+) : (
+  <button
+    type="button"
+    className="btn btn-sm btn-outline-primary"
+    style={{
+      fontSize: "11.5px",
+      padding: "4px 8px",
+      whiteSpace: "nowrap"
+    }}
+    onClick={() => {
+  setVirtualAccountFormUser(user);
+  setRemitters([
+    {
+      accountName: "",
+      accountNo: "",
+      ifscCode: ""
+    }
+  ]);
+  setShowVirtualAccountForm(true);
+}}
+    disabled={virtualAccountLoading}
+  >
+    {virtualAccountLoading ? (
+      <>
+        <span className="spinner-border spinner-border-sm me-1"></span>
+        Creating...
+      </>
+    ) : (
+      <>
+        <i className="fas fa-university me-1"></i>
+        Create Virtual Account
+      </>
+    )}
+  </button>
+)}
                           {user.accountType === "FABRICATOR" && (
                             <button
                               type="button"
@@ -989,6 +1156,620 @@ const UserManagement = () => {
           </div>
         </div>
       )}
+      {virtualAccountUser && (
+  <div className="promotion-backdrop">
+    <div
+      className="promotion-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="virtual-account-title"
+    >
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <h4 id="virtual-account-title" className="mb-1">
+            Bank Details
+          </h4>
+
+          <p className="text-muted mb-0">
+            {virtualAccountUser.name} · {virtualAccountUser.phoneNumber}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="promotion-close"
+          onClick={() => setVirtualAccountUser(null)}
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Virtual Account Details */}
+      <div style={{ marginTop: "24px" }}>
+        <h6
+          className="fw-bold"
+          style={{
+            marginBottom: "16px",
+            fontSize: "14px",
+          }}
+        >
+          Virtual Account Details
+        </h6>
+
+        <div
+          className="row"
+          style={{
+            rowGap: "20px",
+          }}
+        >
+          <div className="col-md-6">
+            <label
+              className="small text-muted"
+              style={{
+                display: "block",
+                marginBottom: "5px",
+              }}
+            >
+              Virtual Account Number
+            </label>
+
+            <div className="fw-semibold">
+              {virtualAccountUser.virtualAccount?.virtualAccountNo || "-"}
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <label
+              className="small text-muted"
+              style={{
+                display: "block",
+                marginBottom: "5px",
+              }}
+            >
+              IFSC Code
+            </label>
+
+            <div className="fw-semibold">
+              {virtualAccountUser.virtualAccount?.ifscCode || "-"}
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <label
+              className="small text-muted"
+              style={{
+                display: "block",
+                marginBottom: "5px",
+              }}
+            >
+              Beneficiary Name
+            </label>
+
+            <div className="fw-semibold">
+              {virtualAccountUser.virtualAccount?.beneficiaryName || "-"}
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <label
+              className="small text-muted"
+              style={{
+                display: "block",
+                marginBottom: "5px",
+              }}
+            >
+              Bank Name
+            </label>
+
+            <div className="fw-semibold">
+              {virtualAccountUser.virtualAccount?.bankName || "-"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Whitelisted Remitters */}
+      <div style={{ marginTop: "28px" }}>
+        <h6
+          className="fw-bold"
+          style={{
+            marginBottom: "12px",
+            fontSize: "14px",
+          }}
+        >
+          Whitelisted Remitters
+        </h6>
+
+        {virtualAccountUser.whitelistedRemitters?.length > 0 ? (
+          <div className="table-responsive">
+            <table
+              className="table table-bordered mb-0"
+              style={{
+                marginTop: "4px",
+              }}
+            >
+              <thead>
+                <tr>
+                  <th
+                    style={{
+                      padding: "10px 12px",
+                      fontSize: "12px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Account Name
+                  </th>
+
+                  <th
+                    style={{
+                      padding: "10px 12px",
+                      fontSize: "12px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Account Number
+                  </th>
+
+                  <th
+                    style={{
+                      padding: "10px 12px",
+                      fontSize: "12px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    IFSC Code
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {virtualAccountUser.whitelistedRemitters.map(
+                  (remitter, index) => (
+                    <tr key={remitter._id || index}>
+                      <td style={{ padding: "10px 12px" }}>
+                        {remitter.accountName || "-"}
+                      </td>
+
+                      <td style={{ padding: "10px 12px" }}>
+                        {remitter.accountNo || "-"}
+                      </td>
+
+                      <td style={{ padding: "10px 12px" }}>
+                        {remitter.ifscCode || "-"}
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-muted small">
+            No whitelisted remitters added.
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="d-flex justify-content-end mt-4">
+        <button
+          type="button"
+          className="btn btn-light"
+          onClick={() => setVirtualAccountUser(null)}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{showVirtualAccountForm && virtualAccountFormUser && (
+  <div className="promotion-backdrop">
+    <div
+      className="promotion-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-virtual-account-title"
+    >
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <h4 id="create-virtual-account-title" className="mb-1">
+            Create Virtual Account
+          </h4>
+
+          <p className="text-muted mb-0">
+            {virtualAccountFormUser.name} ·{" "}
+            {virtualAccountFormUser.phoneNumber}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="promotion-close"
+          onClick={() => setShowVirtualAccountForm(false)}
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Remitter Form */}
+      <div style={{ marginTop: "24px" }}>
+        <h6
+          className="fw-bold"
+          style={{
+            marginBottom: "14px",
+            fontSize: "14px",
+          }}
+        >
+          Whitelisted Remitter
+        </h6>
+
+        {remitters.map((remitter, index) => (
+          <div
+            key={index}
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: "8px",
+              padding: "16px",
+              marginBottom: "14px",
+            }}
+          >
+            <div
+              className="d-flex justify-content-between align-items-center"
+              style={{ marginBottom: "14px" }}
+            >
+              <span className="fw-semibold" style={{ fontSize: "13px" }}>
+                Remitter {index + 1}
+              </span>
+
+              {remitters.length > 1 && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-danger"
+                  onClick={() => {
+                    setRemitters((current) =>
+                      current.filter((_, i) => i !== index)
+                    );
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+
+            <div className="row g-3">
+              <div className="col-md-4">
+                <label className="small text-muted d-block mb-1">
+                  Account Name
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Account name"
+                  value={remitter.accountName}
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    setRemitters((current) =>
+                      current.map((item, i) =>
+                        i === index
+                          ? { ...item, accountName: value }
+                          : item
+                      )
+                    );
+                  }}
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label className="small text-muted d-block mb-1">
+                  Account Number
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Account number"
+                  value={remitter.accountNo}
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    setRemitters((current) =>
+                      current.map((item, i) =>
+                        i === index
+                          ? { ...item, accountNo: value }
+                          : item
+                      )
+                    );
+                  }}
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label className="small text-muted d-block mb-1">
+                  IFSC Code
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="IFSC code"
+                  value={remitter.ifscCode}
+                  onChange={(e) => {
+                    const value = e.target.value.toUpperCase();
+
+                    setRemitters((current) =>
+                      current.map((item, i) =>
+                        i === index
+                          ? { ...item, ifscCode: value }
+                          : item
+                      )
+                    );
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Add Remitter */}
+        {remitters.length < 5 && (
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-primary"
+            onClick={() => {
+              setRemitters((current) => [
+                ...current,
+                {
+                  accountName: "",
+                  accountNo: "",
+                  ifscCode: "",
+                },
+              ]);
+            }}
+          >
+            <i className="fas fa-plus me-1"></i>
+            Add Remitter
+          </button>
+        )}
+
+        <div className="small text-muted mt-2">
+          You can add up to 5 whitelisted remitters.
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="d-flex justify-content-end gap-2 mt-4">
+        <button
+          type="button"
+          className="btn btn-light"
+          onClick={() => setShowVirtualAccountForm(false)}
+        >
+          Cancel
+        </button>
+
+       <button
+  type="button"
+  className="btn btn-primary"
+  onClick={() =>
+    createVirtualAccount(
+      virtualAccountFormUser,
+      remitters
+    )
+  }
+  disabled={virtualAccountLoading}
+>
+  {virtualAccountLoading ? (
+    <>
+      <span className="spinner-border spinner-border-sm me-2"></span>
+      Creating...
+    </>
+  ) : (
+    "Create Virtual Account"
+  )}
+</button>
+      </div>
+    </div>
+  </div>
+)}
+
+{showEditVirtualAccountForm && editVirtualAccountUser && (
+  <div className="promotion-backdrop">
+    <div
+      className="promotion-modal"
+      style={{
+        maxWidth: "650px",
+        width: "90%"
+      }}
+    >
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h4 className="mb-1">Edit Details</h4>
+          <p className="text-muted mb-0">
+            Update whitelisted remitter details
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="btn-close"
+          onClick={() => {
+            setShowEditVirtualAccountForm(false);
+            setEditVirtualAccountUser(null);
+          }}
+        ></button>
+      </div>
+
+    <div>
+  <label className="fw-semibold mb-3">
+    Whitelisted Remitters
+  </label>
+
+  {editRemitters.map((remitter, index) => (
+    <div
+      key={index}
+      className="border rounded p-3 mb-3"
+    >
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <span className="fw-semibold">
+          Remitter {index + 1}
+        </span>
+
+        {editRemitters.length > 1 && (
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-danger"
+            onClick={() => {
+              setEditRemitters((current) =>
+                current.filter((_, i) => i !== index)
+              );
+            }}
+          >
+            <i className="fas fa-trash-alt me-1"></i>
+            Remove
+          </button>
+        )}
+      </div>
+
+      <div className="row g-3">
+        {/* Account Name */}
+        <div className="col-md-4">
+          <label className="small text-muted d-block mb-1">
+            Account Name
+          </label>
+
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Account name"
+            value={remitter.accountName}
+            onChange={(e) => {
+              const value = e.target.value;
+
+              setEditRemitters((current) =>
+                current.map((item, i) =>
+                  i === index
+                    ? { ...item, accountName: value }
+                    : item
+                )
+              );
+            }}
+          />
+        </div>
+
+        {/* Account Number */}
+        <div className="col-md-4">
+          <label className="small text-muted d-block mb-1">
+            Account Number
+          </label>
+
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Account number"
+            value={remitter.accountNo}
+            onChange={(e) => {
+              const value = e.target.value;
+
+              setEditRemitters((current) =>
+                current.map((item, i) =>
+                  i === index
+                    ? { ...item, accountNo: value }
+                    : item
+                )
+              );
+            }}
+          />
+        </div>
+
+        {/* IFSC */}
+        <div className="col-md-4">
+          <label className="small text-muted d-block mb-1">
+            IFSC Code
+          </label>
+
+          <input
+            type="text"
+            className="form-control"
+            placeholder="IFSC code"
+            value={remitter.ifscCode}
+            onChange={(e) => {
+              const value = e.target.value.toUpperCase();
+
+              setEditRemitters((current) =>
+                current.map((item, i) =>
+                  i === index
+                    ? { ...item, ifscCode: value }
+                    : item
+                )
+              );
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  ))}
+
+  {/* Add Remitter */}
+  {editRemitters.length < 5 && (
+    <button
+      type="button"
+      className="btn btn-sm btn-outline-primary"
+      onClick={() => {
+        setEditRemitters((current) => [
+          ...current,
+          {
+            accountName: "",
+            accountNo: "",
+            ifscCode: ""
+          }
+        ]);
+      }}
+    >
+      <i className="fas fa-plus me-1"></i>
+      Add Remitter
+    </button>
+  )}
+
+  <div className="small text-muted mt-2">
+    You can add up to 5 whitelisted remitters.
+  </div>
+</div>
+
+      <div className="d-flex justify-content-end gap-2 mt-4">
+        <button
+          type="button"
+          className="btn btn-light"
+          onClick={() => {
+            setShowEditVirtualAccountForm(false);
+            setEditVirtualAccountUser(null);
+          }}
+        >
+          Cancel
+        </button>
+        <button
+  type="button"
+  className="btn btn-primary"
+  onClick={updateVirtualAccountDetails}
+  disabled={virtualAccountLoading}
+>
+  {virtualAccountLoading ? (
+    <>
+      <span className="spinner-border spinner-border-sm me-2"></span>
+      Saving...
+    </>
+  ) : (
+    "Save Changes"
+  )}
+</button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };
