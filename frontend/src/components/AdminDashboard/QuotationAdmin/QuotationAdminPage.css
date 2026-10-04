@@ -665,6 +665,46 @@ td.qa-actions .btn {
   gap: 10px;
   align-items: center;
 }
+ .qa-option-editor-row {
+  position: relative;
+ }
+  .qa-option-drag-handle {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 28px;
+  
+  display:flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+
+  cursor: grab;
+  user-select: none;
+  z-index: 2;
+  }
+
+
+
+  .qa-option-drag-handle:hover {
+    color: #475569;
+  }
+
+  .qa-option-drag-handle:active {
+    cursor: grabbing;
+    color: #0f172a;
+  }
+
+  .qa-option-editor-row > input:first-of-type {
+    padding-left: 36px;
+  }
+  
+
 
 .qa-option-editor-columns.has-color,
 .qa-option-editor-row.has-color {

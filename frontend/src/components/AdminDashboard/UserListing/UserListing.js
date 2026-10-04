@@ -119,83 +119,6 @@ const getInitials = (name = "") => {
   return name.slice(0, 2).toUpperCase() || "CL";
 };
 
-const PricingTable = ({
-  title,
-  rows,
-  onChange,
-  onDeleteRow,
-  loading,
-}) => (
-  <div className="udp-section-card mb-4">
-    <div className="udp-section-header">
-      <div className="udp-section-title-wrapper">
-        <div className="udp-section-icon">
-          <i className="fas fa-cubes"></i>
-        </div>
-        <h5 className="udp-section-title">{title}</h5>
-        <span className="udp-section-badge">{rows.length} items</span>
-      </div>
-    </div>
-
-    <div className="udp-table-responsive">
-      <table className="udp-table">
-        <thead>
-          <tr>
-            <th style={{ width: "8%", textAlign: "center" }}>#</th>
-            <th style={{ width: "47%" }}>Hardware Item</th>
-            <th style={{ width: "30%" }}>Custom Rate</th>
-            <th style={{ width: "15%", textAlign: "center" }}>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={4} className="udp-table-empty">
-                <i className="fas fa-inbox me-2"></i> No hardware dynamic entries configured
-              </td>
-            </tr>
-          ) : (
-            rows.map((row, index) => (
-              <tr key={`${row.key}-${index}`}>
-                <td style={{ textAlign: "center", color: "#94a3b8", fontSize: "12px" }}>
-                  {index + 1}
-                </td>
-                <td>
-                  <strong style={{ color: "#1e293b" }}>{row.key}</strong>
-                </td>
-                <td>
-                  <div className="udp-currency-box">
-                    <span className="udp-currency-prefix">₹</span>
-                    <input
-                      type="number"
-                      className="udp-rate-input"
-                      value={row.value}
-                      onChange={(e) => onChange(index, "value", e.target.value)}
-                      disabled={loading}
-                      placeholder="0.00"
-                    />
-                  </div>
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <button
-                    type="button"
-                    className="udp-btn-trash"
-                    onClick={() => onDeleteRow(index)}
-                    disabled={loading}
-                    title="Remove rate"
-                  >
-                    <i className="far fa-trash-alt"></i>
-                  </button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  </div>
-);
-
 const ProfilePricingTable = ({
   categoryRows,
   subcategoryRows,
@@ -427,7 +350,6 @@ const UserListing = () => {
   } = useSelector((state) => state.adminUsers);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [hardwareRows, setHardwareRows] = useState([]);
   const [profileRows, setProfileRows] = useState([]);
   const [profileSubcategoryRows, setProfileSubcategoryRows] = useState([]);
   const [profileStructure, setProfileStructure] = useState([]);
@@ -441,7 +363,6 @@ const UserListing = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    setHardwareRows(rowsFromRecord(dynamicPricing.hardware));
     const profileRowsAll = mergeProfileStructureRows(
       dynamicPricing.profiles,
       profileStructure
@@ -511,58 +432,30 @@ const UserListing = () => {
 
   const handleSelectUser = (user) => {
     dispatch(setSelectedUser(user));
-    setHardwareRows([]);
     setProfileRows([]);
     setProfileSubcategoryRows([]);
     dispatch(fetchUserDynamicPricing(user._id));
   };
 
   const handleRowChange = (section, index, field, value) => {
-    const isHardware = section === "hardware";
     const isSubcategory = section === "profileSubcategories";
-    const updater = isHardware
-      ? setHardwareRows
-      : isSubcategory
-        ? setProfileSubcategoryRows
-        : setProfileRows;
-    const rows = isHardware
-      ? [...hardwareRows]
-      : isSubcategory
-        ? [...profileSubcategoryRows]
-        : [...profileRows];
+    const updater = isSubcategory ? setProfileSubcategoryRows : setProfileRows;
+    const rows = isSubcategory ? [...profileSubcategoryRows] : [...profileRows];
     rows[index] = { ...rows[index], [field]: value };
     updater(rows);
   };
 
   const handleAddRow = (section) => {
-    const isHardware = section === "hardware";
     const isSubcategory = section === "profileSubcategories";
-    const updater = isHardware
-      ? setHardwareRows
-      : isSubcategory
-        ? setProfileSubcategoryRows
-        : setProfileRows;
-    const rows = isHardware
-      ? [...hardwareRows]
-      : isSubcategory
-        ? [...profileSubcategoryRows]
-        : [...profileRows];
+    const updater = isSubcategory ? setProfileSubcategoryRows : setProfileRows;
+    const rows = isSubcategory ? [...profileSubcategoryRows] : [...profileRows];
     updater([...rows, emptyRow()]);
   };
 
   const handleDeleteRow = (section, index) => {
-    const isHardware = section === "hardware";
     const isSubcategory = section === "profileSubcategories";
-    const updater = isHardware
-      ? setHardwareRows
-      : isSubcategory
-        ? setProfileSubcategoryRows
-        : setProfileRows;
-    const rows = isHardware
-      ? [...hardwareRows]
-      : isSubcategory
-        ? [...profileSubcategoryRows]
-        : [...profileRows];
+    const updater = isSubcategory ? setProfileSubcategoryRows : setProfileRows;
+    const rows = isSubcategory ? [...profileSubcategoryRows] : [...profileRows];
     rows.splice(index, 1);
     updater(rows);
   };
@@ -571,7 +464,6 @@ const UserListing = () => {
     if (!selectedUser) return;
 
     const payload = {
-      hardware: rowsToRecord(hardwareRows),
       profiles: {
         ...rowsToRecord(profileRows),
         ...rowsToRecord(profileSubcategoryRows),
@@ -593,7 +485,7 @@ const UserListing = () => {
             <div>
               <h4 className="udp-card-title">Manage User Dynamic Pricing</h4>
               <p className="udp-card-subtitle">
-                Configure custom hardware & profile pricing rules for specific client accounts
+                Configure profile pricing adjustments for specific client accounts
               </p>
             </div>
           </div>
@@ -735,16 +627,7 @@ const UserListing = () => {
                   </div>
                 </div>
 
-                {/* Section 1: Hardware Pricing */}
-                <PricingTable
-                  title="Hardware Dynamic Pricing"
-                  rows={hardwareRows}
-                  onChange={(index, field, value) =>
-                    handleRowChange("hardware", index, field, value)
-                  }
-                  onDeleteRow={(index) => handleDeleteRow("hardware", index)}
-                  loading={updateLoading}
-                />
+                <p className="text-muted small">User adjustments apply only to profiles. Hardware uses its catalog rate.</p>
 
                 {/* Section 2: Profile Pricing */}
                 <ProfilePricingTable

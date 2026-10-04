@@ -74,7 +74,8 @@ const entriesFromMap = (value) => Object.entries(toPlainObject(value));
 
 const GLOBAL_OPTION_TYPES = ["colorFinish", "meshType", "glassSpec"];
 let optionRowSequence = 0;
-const createOptionRow = (label = "", rate = "", color = "#C0C0C0") => ({
+const createOptionRow = (label = "", rate = "", color = "#C0C0C0", thicknessMm = "") => ({
+  thicknessMm,
   id: `option-row-${optionRowSequence += 1}`,
   label,
   rate,
@@ -777,13 +778,23 @@ const QuotationAdminPage = () => {
 
   const handleOptionSubmit = async (e) => {
     e.preventDefault();
+    if (optionForm.type === "glassSpec" && optionForm.items.some(item => item.label.trim() && item.thicknessMm !== "" && item.thicknessMm !== undefined && (!Number.isFinite(Number(item.thicknessMm)) || Number(item.thicknessMm) <= 0))) {
+      alert("Glass thickness must be a positive number in mm.");
+      return false;
+    }
     const payload = {
+      glassThicknessMm: optionForm.type === "glassSpec"
+        ? Object.fromEntries(optionForm.items.filter(item => item.label.trim() && item.thicknessMm !== "" && item.thicknessMm !== undefined).map(item => [item.label.trim(), Number(item.thicknessMm)]))
+        : {},
       type: optionForm.type,
       values: Object.fromEntries(
         optionForm.items
           .map((item) => [item.label.trim(), Number(item.rate) || 0])
           .filter(([label]) => label)
       ),
+      sortOrder: optionForm.items
+      .map((item)=> item.label.trim())
+      .filter(Boolean),
       colors: optionForm.type === "colorFinish"
         ? Object.fromEntries(
           optionForm.items
@@ -812,21 +823,35 @@ const QuotationAdminPage = () => {
       }
       await fetchOptionSets();
       resetOptionForm();
+      return true;
     } catch (error) {
       console.error("Unable to save option set", error);
+      alert(error.response?.data?.error || "Unable to save option set.");
+      return false;
     }
   };
 
   const handleOptionEdit = (optionSet) => {
     const values = entriesFromMap(optionSet.values);
     const colors = toPlainObject(optionSet.colors);
+    const thicknesses = toPlainObject(optionSet.glassThicknessMm);
+    const orderedValues = optionSet.sortOrder?.length
+  ? optionSet.sortOrder
+      .map((label) => {
+        const value = optionSet.values?.[label];
+        return value !== undefined ? [label, value] : null;
+      })
+      .filter(Boolean)
+  : values;
     setEditingOptionId(optionSet._id);
     setOptionForm({
       type: optionSet.type,
       systemId: optionSet.system?._id || "",
-      items: values.length
-        ? values.map(([label, rate]) => createOptionRow(label, rate, colors[label] || "#C0C0C0"))
-        : [createOptionRow()],
+      items: orderedValues.length
+  ? orderedValues.map(([label, rate]) =>
+      createOptionRow(label, rate, colors[label] || "#C0C0C0", thicknesses[label] ?? "")
+    )
+  : [createOptionRow()],
     });
     setIsOptionModalOpen(true);
   };
@@ -837,6 +862,18 @@ const QuotationAdminPage = () => {
       items: prev.items.map((item) => item.id === id ? { ...item, [field]: value } : item),
     }));
   };
+
+  const moveOptionRow = (fromIndex, toIndex)=> {
+    setOptionForm((prev)=> {
+      const items = [...prev.items];
+      const [movedItem] =items.splice(fromIndex, 1);
+      items.splice(toIndex,0,movedItem);
+      return {
+        ...prev,
+        items,
+      };
+    });
+  }
 
   const removeOptionRow = (id) => {
     setOptionForm((prev) => ({
@@ -2802,6 +2839,9 @@ const QuotationAdminPage = () => {
                             />
                           )}
                           {label}: <strong>{rate}</strong>
+                          {item.type === "glassSpec" && toPlainObject(item.glassThicknessMm)[label] != null && (
+                            <span> · {toPlainObject(item.glassThicknessMm)[label]} mm</span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -2923,16 +2963,47 @@ const QuotationAdminPage = () => {
                     </MDBBtn>
                   </div>
 
-                  <div className={`qa-option-editor-columns ${optionForm.type === "colorFinish" ? "has-color" : ""}`} aria-hidden="true">
+                  <div className={`qa-option-editor-columns ${["colorFinish", "glassSpec"].includes(optionForm.type) ? "has-color" : ""}`} aria-hidden="true">
                     <span>Option name</span>
                     <span>Rate</span>
                     {optionForm.type === "colorFinish" && <span>Frame colour</span>}
+                    {optionForm.type === "glassSpec" && <span>Thickness (mm)</span>}
                     <span />
                   </div>
 
                   <div className="qa-option-editor-rows">
-                    {optionForm.items.map((item) => (
-                      <div className={`qa-option-editor-row ${optionForm.type === "colorFinish" ? "has-color" : ""}`} key={item.id}>
+                      {optionForm.items.map((item, index) => (
+  <div
+    className={`qa-option-editor-row ${
+      ["colorFinish", "glassSpec"].includes(optionForm.type) ? "has-color" : ""
+    }`}
+    key={item.id}
+    draggable
+    onDragStart={(e) => {
+      e.dataTransfer.setData("optionIndex", index.toString());
+    }}
+     onDragOver={(e) => {
+    e.preventDefault();
+  }}
+  onDrop={(e) => {
+    e.preventDefault();
+
+    const fromIndex = Number(
+      e.dataTransfer.getData("optionIndex")
+    );
+
+    if (fromIndex === index) return;
+
+    moveOptionRow(fromIndex, index);
+  }}
+  >
+    <span 
+    className="qa-option-drag-handle"
+    title="Drag to recorder"
+    >
+      ::
+    </span>
+                          
                         <input
                           type="text"
                           aria-label="Option name"
@@ -2947,6 +3018,9 @@ const QuotationAdminPage = () => {
                           value={item.rate}
                           onChange={(e) => updateOptionRow(item.id, "rate", e.target.value)}
                         />
+                        {optionForm.type === "glassSpec" && (
+                          <input type="number" min="0.001" step="any" aria-label={`${item.label || "Glass"} thickness in mm`} placeholder="e.g. 6" value={item.thicknessMm ?? ""} onChange={(e) => updateOptionRow(item.id, "thicknessMm", e.target.value)} />
+                        )}
                         {optionForm.type === "colorFinish" && (
                           <label className="qa-option-color-control">
                             <input
@@ -2974,9 +3048,8 @@ const QuotationAdminPage = () => {
                 color="primary"
                 onClick={async () => {
                   const fakeEvent = { preventDefault: () => { } };
-                  await handleOptionSubmit(fakeEvent);
-                  setIsOptionModalOpen(false);
-                  resetOptionForm();
+                  const saved = await handleOptionSubmit(fakeEvent);
+                  if (saved) setIsOptionModalOpen(false);
                 }}
               >
                 {editingOptionId ? "Update Option Set" : "Add Option Set"}
@@ -3696,7 +3769,7 @@ const QuotationAdminPage = () => {
           <MDBModalHeader><MDBModalTitle>Hardware Config</MDBModalTitle><MDBBtn className="btn-close" color="none" type="button" onClick={() => setIsHardwareLinkingModalOpen(false)} /></MDBModalHeader>
           <MDBModalBody className="qa-hardware-config-body">
             <label className="qa-field">Number of shutters<input type="number" min="1" value={hardwareLinkingForm.shutterCount} onChange={(e) => setHardwareLinkingForm((prev) => ({ ...prev, shutterCount: Math.max(1, Number(e.target.value) || 1) }))} /></label>
-            <p className="qa-hint">Weight = H(m) × W(m) × 2.56 × 1.25. Quantity applies to every shutter.</p>
+            <p className="qa-hint">Weight = H(m) × W(m) × 2.56 × 1.25 × glass thickness (mm). Thickness comes from Quotation Options. Quantity applies to every shutter.</p>
             {hardwareLinkingForm.glassRules.map((rule, glassIndex) => (
               <div className="qa-card mb-3" key={rule.glassSpec}>
                 <div className="qa-card-header"><strong>{rule.glassSpec}</strong>
