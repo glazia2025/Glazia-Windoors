@@ -432,18 +432,28 @@ const OrderDetails = () => {
     }
 
     try {
+
       const token = localStorage.getItem("authToken");
+
+      const formData = new FormData();
+
+      formData.append("orderId", orderDetails._id);
+      formData.append("driverInfo", JSON.stringify(data.driverInfo));
+      formData.append("biltyDoc", data.biltyDoc);
+      formData.append("eWayBill", data.eWayBill);
+      formData.append("taxInvoice", data.taxInvoice);
+
+      data.dispatchProofPhotos.forEach((photo) => {
+        formData.append("dispatchProofPhotos", photo);
+      });
+
       await api.post(
         `/admin/complete-order`,
+        formData,
         {
-          orderId: orderDetails._id,
-          driverInfo: data.driverInfo,
-          biltyDoc: data.biltyDoc,
-          eWayBill: data.eWayBill,
-          taxInvoice: data.taxInvoice,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       toast.success("Order marked as complete and dispatched!");
@@ -469,8 +479,8 @@ const OrderDetails = () => {
       if (win) {
         win.document.write(
           '<iframe src="' +
-            docData +
-            '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>'
+          docData +
+          '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>'
         );
       }
     } else {
@@ -590,7 +600,7 @@ const OrderDetails = () => {
                 <div className="order-metric-value">
                   {formatPrice(
                     orderDetails.totalAmount ||
-                      orderDetails.products?.reduce((acc, p) => acc + p.amount, 0) * 1.18
+                    orderDetails.products?.reduce((acc, p) => acc + p.amount, 0) * 1.18
                   )}
                 </div>
                 <div className="order-metric-sub">Including 18% GST</div>
@@ -607,8 +617,8 @@ const OrderDetails = () => {
                   {orderDetails.deliveryType === "SELF"
                     ? "Self Pickup"
                     : orderDetails.deliveryType === "FULL"
-                    ? "Full Truck Dispatch"
-                    : "Part Truck Dispatch"}
+                      ? "Full Truck Dispatch"
+                      : "Part Truck Dispatch"}
                 </div>
                 <div className="order-metric-sub">
                   {orderDetails.driverInfo?.name
@@ -684,7 +694,7 @@ const OrderDetails = () => {
           >
             <i className={orderDetails?.isComplete ? "fas fa-file-alt" : "fas fa-lock"}></i>
             <span>Documents & Dispatch</span>
-            {orderDetails?.isComplete && <span className="order-tab-badge">3</span>}
+            {orderDetails?.isComplete && <span className="order-tab-badge">4</span>}
           </button>
         </div>
 
@@ -769,7 +779,7 @@ const OrderDetails = () => {
                   <span className="text-primary" style={{ color: "#0f172a" }}>
                     {formatPrice(
                       orderDetails.totalAmount ||
-                        (orderDetails.products?.reduce((acc, p) => acc + p.amount, 0) || 0) * 1.18
+                      (orderDetails.products?.reduce((acc, p) => acc + p.amount, 0) || 0) * 1.18
                     )}
                   </span>
                 </div>
@@ -784,23 +794,21 @@ const OrderDetails = () => {
           <div className="order-details-body">
             {/* Status Highlight Banner */}
             <div
-              className={`order-status-banner ${
-                checkOrderSecondPaymentOverdue()
+              className={`order-status-banner ${checkOrderSecondPaymentOverdue()
                   ? "banner-amber"
                   : checkOrderFirstApprovalPending() || checkOrderSecondApprovalPending()
-                  ? "banner-blue"
-                  : "banner-green"
-              }`}
+                    ? "banner-blue"
+                    : "banner-green"
+                }`}
             >
               <div className="order-status-banner-left">
                 <i
-                  className={`fas order-status-banner-icon ${
-                    checkOrderSecondPaymentOverdue()
+                  className={`fas order-status-banner-icon ${checkOrderSecondPaymentOverdue()
                       ? "fa-triangle-exclamation"
                       : checkOrderFirstApprovalPending() || checkOrderSecondApprovalPending()
-                      ? "fa-hourglass-half"
-                      : "fa-circle-check"
-                  }`}
+                        ? "fa-hourglass-half"
+                        : "fa-circle-check"
+                    }`}
                 ></i>
                 <div className="order-status-banner-text">
                   <h6>{getOrderStatusLongLabel()}</h6>
@@ -808,10 +816,10 @@ const OrderDetails = () => {
                     {checkOrderFirstApprovalPending()
                       ? "User has submitted payment proof for advance installment. Admin review is pending."
                       : checkOrderSecondApprovalPending()
-                      ? "Final installment proof uploaded. Pending admin confirmation to release dispatch."
-                      : checkOrderSecondPaymentOverdue()
-                      ? "Final installment is currently overdue. Please contact customer."
-                      : "Installment payments are up to date."}
+                        ? "Final installment proof uploaded. Pending admin confirmation to release dispatch."
+                        : checkOrderSecondPaymentOverdue()
+                          ? "Final installment is currently overdue. Please contact customer."
+                          : "Installment payments are up to date."}
                   </p>
                 </div>
               </div>
@@ -868,10 +876,10 @@ const OrderDetails = () => {
                           <span>
                             {payment.dueDate
                               ? new Date(payment.dueDate).toLocaleDateString("en-US", {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                })
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })
                               : "Upon dispatch"}
                           </span>
                         </div>
@@ -1035,6 +1043,63 @@ const OrderDetails = () => {
                 );
               })}
             </div>
+            {orderDetails.dispatchProofPhotos?.length > 0 && (
+              <>
+                <div className="order-section-title" style={{ marginTop: "28px" }}>
+                  <span>Dispatch Proof Photos</span>
+                  <span className="small text-muted fw-normal">
+                    {orderDetails.dispatchProofPhotos.length} photo
+                    {orderDetails.dispatchProofPhotos.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                    gap: "16px",
+                    marginTop: "14px",
+                  }}
+                >
+                  {orderDetails.dispatchProofPhotos.map((photo, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "10px",
+                        padding: "10px",
+                        background: "#ffffff",
+                      }}
+                    >
+                      <img
+                        src={photo}
+                        alt={`Dispatch Proof ${index + 1}`}
+                        style={{
+                          width: "100%",
+                          height: "180px",
+                          objectFit: "cover",
+                          borderRadius: "8px",
+                          display: "block",
+                        }}
+                      />
+
+                      <button
+                        type="button"
+                        className="order-doc-btn"
+                        style={{
+                          marginTop: "10px",
+                          width: "100%",
+                        }}
+                        onClick={() => window.open(photo, "_blank")}
+                      >
+                        <i className="fas fa-external-link-alt"></i>
+                        <span>Open Photo {index + 1}</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
