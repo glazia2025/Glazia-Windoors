@@ -124,20 +124,20 @@ const CompleteOrderModal = (props) => {
       hasErrors = true;
     }
     if (dispatchProofPhotos.length < 1) {
-  handleErrors(
-    "dispatch_proof_photos",
-    "At least one dispatch proof photo is required"
-  );
-  hasErrors = true;
-}
+      handleErrors(
+        "dispatch_proof_photos",
+        "At least one dispatch proof photo is required"
+      );
+      hasErrors = true;
+    }
 
-if (dispatchProofPhotos.length > 3) {
-  handleErrors(
-    "dispatch_proof_photos",
-    "Maximum 3 dispatch proof photos are allowed"
-  );
-  hasErrors = true;
-}
+    if (dispatchProofPhotos.length > 3) {
+      handleErrors(
+        "dispatch_proof_photos",
+        "Maximum 3 dispatch proof photos are allowed"
+      );
+      hasErrors = true;
+    }
 
     if (hasErrors) {
       return;
@@ -377,93 +377,93 @@ if (dispatchProofPhotos.length > 3) {
                   </p>
                 )}
 
-             <MDBTypography className="text-dark fw-bold fs-6 mt-5 mb-0">
-  Dispatch Proof Photos
-</MDBTypography>
+                <MDBTypography className="text-dark fw-bold fs-6 mt-5 mb-0">
+                  Dispatch Proof Photos
+                </MDBTypography>
 
-<MDBTypography className="text-muted fw-normal small">
-  Upload 1 to 3 photos as dispatch proof.
-</MDBTypography>
+                <MDBTypography className="text-muted fw-normal small">
+                  Upload 1 to 3 photos as dispatch proof.
+                </MDBTypography>
 
-<MDBFile
-  id="dispatchProofPhotos"
-  multiple
-  accept="image/*"
-  onChange={(e) => {
-    const newFiles = Array.from(e.target.files || []);
+                <MDBFile
+                  id="dispatchProofPhotos"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => {
+                    const newFiles = Array.from(e.target.files || []);
 
-    const combinedFiles = [...dispatchProofPhotos, ...newFiles];
+                    const combinedFiles = [...dispatchProofPhotos, ...newFiles];
 
-    if (combinedFiles.length > 3) {
-      handleErrors(
-        "dispatch_proof_photos",
-        "Maximum 3 dispatch proof photos are allowed"
-      );
-      return;
-    }
+                    if (combinedFiles.length > 3) {
+                      handleErrors(
+                        "dispatch_proof_photos",
+                        "Maximum 3 dispatch proof photos are allowed"
+                      );
+                      return;
+                    }
 
-    setDispatchProofPhotos(combinedFiles);
-    handleErrors("dispatch_proof_photos", null);
+                    setDispatchProofPhotos(combinedFiles);
+                    handleErrors("dispatch_proof_photos", null);
 
-    e.target.value = "";
-  }}
-/>
-{dispatchProofPhotos.length > 0 && (
-  <div className="mt-2">
-    <p className="text-dark fw-bold small mb-1">
-      Selected Photos ({dispatchProofPhotos.length}/3)
-    </p>
+                    e.target.value = "";
+                  }}
+                />
+                {dispatchProofPhotos.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-dark fw-bold small mb-1">
+                      Selected Photos ({dispatchProofPhotos.length}/3)
+                    </p>
 
-    {dispatchProofPhotos.map((photo, index) => (
-      <div
-        key={`${photo.name}-${index}`}
-        className="d-flex align-items-center justify-content-between border rounded px-2 py-1 mb-1"
-      >
-        <span className="small text-muted">
-          {index + 1}. {photo.name}
-        </span>
+                    {dispatchProofPhotos.map((photo, index) => (
+                      <div
+                        key={`${photo.name}-${index}`}
+                        className="d-flex align-items-center justify-content-between border rounded px-2 py-1 mb-1"
+                      >
+                        <span className="small text-muted">
+                          {index + 1}. {photo.name}
+                        </span>
 
-        <button
-          type="button"
-          className="btn btn-sm text-danger"
-          onClick={() => {
-            setDispatchProofPhotos((prev) =>
-              prev.filter((_, i) => i !== index)
-            );
-          }}
-        >
-          Remove
-        </button>
-      </div>
-    ))}
-  </div>
-)}
+                        <button
+                          type="button"
+                          className="btn btn-sm text-danger"
+                          onClick={() => {
+                            setDispatchProofPhotos((prev) =>
+                              prev.filter((_, i) => i !== index)
+                            );
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-{errors.dispatch_proof_photos && (
-  <p className="text-danger small fst-italic mt-1">
-    {errors.dispatch_proof_photos}
-  </p>
-)}   
+                {errors.dispatch_proof_photos && (
+                  <p className="text-danger small fst-italic mt-1">
+                    {errors.dispatch_proof_photos}
+                  </p>
+                )}
 
-<label className="form-label text-dark fw-bold fs-6 mt-5">
-                        Check the box below to confirm you're sure that you want
-                        to complete this order.
-                      </label>
-                      <MDBCheckbox
-                        id="confirmCheckbox"
-                        label="Confirm"
-                        checked={isConfirmed}
-                        onChange={(e) => {
-                          setIsConfirmed(e.target.checked);
-                          handleErrors("confirm_action", null);
-                        }}
-                      />
+                <label className="form-label text-dark fw-bold fs-6 mt-5">
+                  Check the box below to confirm you're sure that you want
+                  to complete this order.
+                </label>
+                <MDBCheckbox
+                  id="confirmCheckbox"
+                  label="Confirm"
+                  checked={isConfirmed}
+                  onChange={(e) => {
+                    setIsConfirmed(e.target.checked);
+                    handleErrors("confirm_action", null);
+                  }}
+                />
 
-                      {errors.confirm_action && (
-                        <p className="text-danger small fst-italic mt-2">
-                          {errors.confirm_action}
-                        </p>
-                      )}
+                {errors.confirm_action && (
+                  <p className="text-danger small fst-italic mt-2">
+                    {errors.confirm_action}
+                  </p>
+                )}
               </>
             </div>
           </MDBModalBody>
