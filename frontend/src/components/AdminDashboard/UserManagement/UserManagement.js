@@ -12,17 +12,8 @@ const emptyForm = {
   state: "",
   address: "",
   phoneNumber: "",
-  extraPhoneNumbers: "",
   authorisedPerson: "",
   authorisedPersonDesignation: "",
-};
-
-const parseExtraNumbers = (raw) => {
-  if (!raw) return [];
-  return raw
-    .split(",")
-    .map((value) => value.trim())
-    .filter((value) => value.length > 0);
 };
 
 const getInitials = (name = "") => {
@@ -192,7 +183,6 @@ const [remitters, setRemitters] = useState([
         return;
       }
 
-      const extraNumbers = parseExtraNumbers(form.extraPhoneNumbers);
       const formData = new FormData();
       formData.append("name", form.name);
       formData.append("email", form.email);
@@ -205,7 +195,6 @@ const [remitters, setRemitters] = useState([
       formData.append("authorizedPerson", form.authorisedPerson);
       formData.append("authorizedPersonDesignation", form.authorisedPersonDesignation);
 
-      extraNumbers.forEach((number) => formData.append("phoneNumbers", number));
       formData.append(
         "paPdf",
         new File([paBlob], "partner-agreement.pdf", {
@@ -508,20 +497,7 @@ const updateVirtualAccountDetails = async () => {
                   />
                 </div>
 
-                <div className="user-form-group">
-                  <label className="user-form-label">
-                    <span>Additional Phone Numbers</span>
-                    <span className="small text-muted font-normal ms-1">(comma separated)</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="user-form-input"
-                    placeholder="e.g. 9811002233, 9822334455"
-                    value={form.extraPhoneNumbers}
-                    onChange={handleChange("extraPhoneNumbers")}
-                    disabled={formLoading}
-                  />
-                </div>
+
 
                 <div className="user-form-group">
                   <label className="user-form-label">
@@ -832,11 +808,6 @@ const updateVirtualAccountDetails = async () => {
                           <a href={`tel:${user.phoneNumber}`} className="text-muted text-decoration-none">
                             {user.phoneNumber}
                           </a>
-                          {user.phoneNumbers?.length > 1 && (
-                            <div className="small text-muted">
-                              +{user.phoneNumbers.length - 1} more
-                            </div>
-                          )}
                         </td>
                         <td>
                           {user.gstNumber ? (
