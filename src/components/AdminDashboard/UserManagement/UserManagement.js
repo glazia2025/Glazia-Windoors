@@ -1,0 +1,1748 @@
+import React, { useEffect, useMemo, useState } from "react";
+import api, { BASE_API_URL } from "../../../utils/api";
+import ParterAgreement from "../../UserDetailsForm/PartnerAgreement/PartnerAgreement";
+import "./UserManagement.css";
+
+const emptyForm = {
+  name: "",
+  email: "",
+  gstNumber: "",
+  pincode: "",
+  city: "",
+  state: "",
+  address: "",
+  phoneNumber: "",
+  authorisedPerson: "",
+  authorisedPersonDesignation: "",
+};
+
+const getInitials = (name = "") => {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase() || "US";
+};
+
+const ITEMS_PER_PAGE = 10;
+
+const UserManagement = () => {
+  const [users, setUsers] = useState([]);
+  const [listLoading, setListLoading] = useState(false);
+  const [sortBy, setSortBy] = useState("name");
+  const [order, setOrder] = useState("asc");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [formLoading, setFormLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [form, setForm] = useState(emptyForm);
+  const [showAgreement, setShowAgreement] = useState(false);
+  const [paBlob, setPaBlob] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [promotionUser, setPromotionUser] = useState(null);
+  const [promotionBlob, setPromotionBlob] = useState(null);
+  const [promotionAccepted, setPromotionAccepted] = useState(false);
+  const [promotionLoading, setPromotionLoading] = useState(false);
+  const [deletionUser, setDeletionUser] = useState(null);
+  const [deletionLoading, setDeletionLoading] = useState(false);
+  const [accessUser, setAccessUser] = useState(null);
+  const [disabledModules, setDisabledModules] = useState([]);
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [virtualAccountLoading, setVirtualAccountLoading] = useState(false);
+  const [virtualAccountUser, setVirtualAccountUser] = useState(null);
+  const [showVirtualAccountForm, setShowVirtualAccountForm] = useState(false);
+const [virtualAccountFormUser, setVirtualAccountFormUser] = useState(null);
+const [editVirtualAccountUser, setEditVirtualAccountUser] = useState(null);
+const [showEditVirtualAccountForm, setShowEditVirtualAccountForm] = useState(false);
+const [editRemitters, setEditRemitters] = useState([]);
+
+const [remitters, setRemitters] = useState([
+  {
+    accountName: "",
+    accountNo: "",
+    ifscCode: ""
+  }
+]);
+
+  const token = localStorage.getItem("authToken");
+
+  const fetchUsers = async () => {
+    setListLoading(true);
+    setError("");
+    try {
+      const response = await api.get(`${BASE_API_URL}/admin/users`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setUsers(response.data.users || []);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to load users");
+    } finally {
+      setListLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  // Reset page when filtering or sorting
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortBy, order]);
+
+  const filteredAndSortedUsers = useMemo(() => {
+    let result = [...users];
+
+    // Search filtering
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (u) =>
+          u.name?.toLowerCase().includes(q) ||
+          u.email?.toLowerCase().includes(q) ||
+          u.phoneNumber?.includes(q) ||
+          u.city?.toLowerCase().includes(q) ||
+          u.state?.toLowerCase().includes(q) ||
+          u.gstNumber?.toLowerCase().includes(q) ||
+          u.accountType?.toLowerCase().includes(q)
+      );
+    }
+
+    // Sorting
+    if (sortBy === "name") {
+      result.sort((a, b) => {
+        if (order === "asc") {
+          return (a.name || "").trim().localeCompare((b.name || "").trim(), "en", { sensitivity: "base" });
+        } else {
+          return (b.name || "").trim().localeCompare((a.name || "").trim(), "en", { sensitivity: "base" });
+        }
+      });
+    } else if (sortBy === "date") {
+      result.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return order === "asc" ? dateA - dateB : dateB - dateA;
+      });
+    }
+
+    return result;
+  }, [users, searchQuery, sortBy, order]);
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedUsers.length / ITEMS_PER_PAGE));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredAndSortedUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredAndSortedUsers, currentPage]);
+
+  const handleChange = (field) => (event) => {
+    setForm((prev) => ({ ...prev, [field]: event.target.value }));
+    if (showAgreement || paBlob) {
+      setShowAgreement(false);
+      setPaBlob(null);
+    }
+  };
+
+  const handleGenerateAgreement = () => {
+    if (
+      !form.name ||
+      !form.email ||
+      !form.gstNumber ||
+      !form.pincode ||
+      !form.city ||
+      !form.state ||
+      !form.address ||
+      !form.phoneNumber
+    ) {
+      setError("Please fill all required company and contact fields before generating agreement.");
+      return;
+    }
+
+    setError("");
+    setShowAgreement(true);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setFormLoading(true);
+    setError("");
+    setSuccessMsg("");
+
+    try {
+      if (!paBlob) {
+        setError("Please generate the Partner Agreement before creating the user.");
+        setFormLoading(false);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("name", form.name);
+      formData.append("email", form.email);
+      formData.append("gstNumber", form.gstNumber);
+      formData.append("pincode", form.pincode);
+      formData.append("city", form.city);
+      formData.append("state", form.state);
+      formData.append("address", form.address);
+      formData.append("phoneNumber", form.phoneNumber);
+      formData.append("authorizedPerson", form.authorisedPerson);
+      formData.append("authorizedPersonDesignation", form.authorisedPersonDesignation);
+
+      formData.append(
+        "paPdf",
+        new File([paBlob], "partner-agreement.pdf", {
+          type: "application/pdf",
+        })
+      );
+
+      await api.post(`${BASE_API_URL}/user/register`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      setSuccessMsg(`User "${form.name}" created and onboarded successfully!`);
+      setForm(emptyForm);
+      setShowAgreement(false);
+      setPaBlob(null);
+      setShowAddForm(false);
+      await fetchUsers();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to create user");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const promoteToDealership = async () => {
+    if (!promotionUser || !promotionBlob || !promotionAccepted) return;
+    setPromotionLoading(true);
+    setError("");
+    try {
+      const data = new FormData();
+      data.append("partnerAgreementAccepted", "true");
+      data.append(
+        "paPdf",
+        new File([promotionBlob], "glazia-dealership-agreement.pdf", {
+          type: "application/pdf",
+        })
+      );
+      await api.post(
+        `${BASE_API_URL}/admin/users/${promotionUser._id}/promote-dealership`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      setPromotionUser(null);
+      setPromotionBlob(null);
+      setPromotionAccepted(false);
+      await fetchUsers();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to promote fabricator");
+    } finally {
+      setPromotionLoading(false);
+    }
+  };
+
+  const deleteUser = async () => {
+    if (!deletionUser) return;
+    setDeletionLoading(true);
+    setError("");
+    setSuccessMsg("");
+    try {
+      const response = await api.delete(`${BASE_API_URL}/admin/users/${deletionUser._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDeletionUser(null);
+      setSuccessMsg(response.data?.message || "User and partner agreement deleted successfully.");
+      await fetchUsers();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete user");
+    } finally {
+      setDeletionLoading(false);
+    }
+  };
+
+  const openAccessModal = (user) => {
+    setAccessUser(user);
+    setDisabledModules(user.disabledModules || []);
+  };
+
+  const toggleDisabledModule = (moduleName) => {
+    setDisabledModules((current) => current.includes(moduleName)
+      ? current.filter((value) => value !== moduleName)
+      : [...current, moduleName]);
+  };
+
+  const saveModuleAccess = async () => {
+    if (!accessUser) return;
+    setAccessLoading(true);
+    setError("");
+    setSuccessMsg("");
+    try {
+      const response = await api.patch(
+        `${BASE_API_URL}/admin/users/${accessUser._id}/module-access`,
+        { disabledModules },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setUsers((current) => current.map((user) => user._id === accessUser._id
+        ? { ...user, disabledModules: response.data.user?.disabledModules || disabledModules }
+        : user));
+      setAccessUser(null);
+      setSuccessMsg(response.data?.message || "Module access updated successfully.");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update module access");
+    } finally {
+      setAccessLoading(false);
+    }
+  };
+
+  const createVirtualAccount = async (user, remitters = []) => {
+  if (!user?._id) return;
+
+  setVirtualAccountLoading(true);
+  setError("");
+  setSuccessMsg("");
+
+  try {
+    const response = await api.post(
+      `${BASE_API_URL}/admin/users/${user._id}/virtual-account`,
+      {
+        whitelistedRemitters: remitters
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    setSuccessMsg(
+      response.data?.message || "Virtual account created successfully."
+    );
+
+    setShowVirtualAccountForm(false);
+    setVirtualAccountFormUser(null);
+
+    await fetchUsers();
+  } catch (err) {
+    setError(
+      err.response?.data?.message ||
+      "Failed to create virtual account"
+    );
+  } finally {
+    setVirtualAccountLoading(false);
+  }
+};
+
+const updateVirtualAccountDetails = async () => {
+  if (!editVirtualAccountUser?._id) return;
+
+  setVirtualAccountLoading(true);
+  setError("");
+  setSuccessMsg("");
+
+  try {
+    const response = await api.put(
+      `${BASE_API_URL}/admin/users/${editVirtualAccountUser._id}/virtual-account`,
+      {
+        whitelistedRemitters: editRemitters
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    setSuccessMsg(
+      response.data?.message ||
+        "Virtual account details updated successfully."
+    );
+
+    setShowEditVirtualAccountForm(false);
+    setEditVirtualAccountUser(null);
+    setEditRemitters([]);
+
+    await fetchUsers();
+
+  } catch (err) {
+    setError(
+      err.response?.data?.message ||
+        "Failed to update virtual account details"
+    );
+  } finally {
+    setVirtualAccountLoading(false);
+  }
+};
+
+  return (
+    <div className="user-mgmt-container">
+      {/* Top Header Card with Quick Action to Add User */}
+      <div className="user-mgmt-card">
+        <div className="user-card-header">
+          <div className="user-header-left">
+            <div className="user-header-icon">
+              <i className="fas fa-users-cog"></i>
+            </div>
+            <div>
+              <h4 className="user-card-title">User & Partner Management</h4>
+              <p className="user-card-subtitle">
+                Onboard authorized partners, manage client credentials and agreements
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="user-toggle-form-btn"
+            onClick={() => setShowAddForm((prev) => !prev)}
+          >
+            <i className={`fas ${showAddForm ? "fa-minus" : "fa-plus"}`}></i>
+            <span>{showAddForm ? "Hide Form" : "Add New User"}</span>
+          </button>
+        </div>
+
+        {/* Collapsible Add New User Form */}
+        {showAddForm && (
+          <div className="user-form-body">
+            {error && (
+              <div className="alert alert-danger d-flex align-items-center gap-2 mb-3" role="alert">
+                <i className="fas fa-exclamation-circle"></i>
+                <div>{error}</div>
+              </div>
+            )}
+            {successMsg && (
+              <div className="alert alert-success d-flex align-items-center gap-2 mb-3" role="alert">
+                <i className="fas fa-check-circle"></i>
+                <div>{successMsg}</div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit}>
+              <div className="user-form-grid">
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>Company / User Name</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. Acme Windoors Ltd"
+                    value={form.name}
+                    onChange={handleChange("name")}
+                    required
+                    disabled={formLoading}
+                  />
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>Official Email</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    className="user-form-input"
+                    placeholder="e.g. contact@acme.com"
+                    value={form.email}
+                    onChange={handleChange("email")}
+                    required
+                    disabled={formLoading}
+                  />
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>GST Identification Number</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. 06AAKCG7530J1ZE"
+                    value={form.gstNumber}
+                    onChange={handleChange("gstNumber")}
+                    required
+                    disabled={formLoading}
+                  />
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>Primary Phone Number</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. 9876543210"
+                    value={form.phoneNumber}
+                    onChange={handleChange("phoneNumber")}
+                    required
+                    disabled={formLoading}
+                  />
+                </div>
+
+
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>Pincode</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. 122001"
+                    value={form.pincode}
+                    onChange={handleChange("pincode")}
+                    required
+                    disabled={formLoading}
+                  />
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>City</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. Gurugram"
+                    value={form.city}
+                    onChange={handleChange("city")}
+                    required
+                    disabled={formLoading}
+                  />
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>State</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. Haryana"
+                    value={form.state}
+                    onChange={handleChange("state")}
+                    required
+                    disabled={formLoading}
+                  />
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>Authorised Person</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="Full legal name"
+                    value={form.authorisedPerson}
+                    onChange={handleChange("authorisedPerson")}
+                    required
+                    disabled={formLoading}
+                  />
+                </div>
+
+                <div className="user-form-group">
+                  <label className="user-form-label">
+                    <span>Authorised Designation</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="e.g. Director / Managing Partner"
+                    value={form.authorisedPersonDesignation}
+                    onChange={handleChange("authorisedPersonDesignation")}
+                    required
+                    disabled={formLoading}
+                  />
+                </div>
+
+                <div className="user-form-group span-full">
+                  <label className="user-form-label">
+                    <span>Complete Registered Address</span>
+                    <span className="required-star">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="user-form-input"
+                    placeholder="Street, Industrial Area, Building, Landmark"
+                    value={form.address}
+                    onChange={handleChange("address")}
+                    required
+                    disabled={formLoading}
+                  />
+                </div>
+
+                {/* Partner Agreement Generator */}
+                <div className="user-form-group span-full">
+                  <div className="user-agreement-box">
+                    <div className="user-agreement-info">
+                      <div className="user-agreement-icon">
+                        <i className="fas fa-file-contract"></i>
+                      </div>
+                      <div>
+                        <div className="fw-bold text-dark" style={{ fontSize: "13.5px" }}>
+                          Partner Agreement PDF
+                        </div>
+                        <div className="small text-muted">
+                          {paBlob
+                            ? "Partner agreement generated and ready for registration submission"
+                            : "Generate customized legal agreement before submitting registration"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-2">
+                      <button
+                        type="button"
+                        className={`user-btn-agreement ${paBlob ? "ready" : ""}`}
+                        disabled={formLoading}
+                        onClick={handleGenerateAgreement}
+                      >
+                        <i className={`fas ${paBlob ? "fa-check" : "fa-gear"}`}></i>
+                        <span>{paBlob ? "Agreement Ready" : "Generate Partner Agreement"}</span>
+                      </button>
+
+                      {showAgreement && (
+                        <ParterAgreement
+                          userName={form.name}
+                          completeAddress={form.address}
+                          gstNumber={form.gstNumber}
+                          pincode={form.pincode}
+                          city={form.city}
+                          state={form.state}
+                          phoneNumber={form.phoneNumber}
+                          email={form.email}
+                          setBlob={setPaBlob}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="user-form-footer">
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  onClick={() => setShowAddForm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="user-btn-submit"
+                  disabled={formLoading}
+                >
+                  {formLoading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm" role="status"></span>
+                      <span>Registering User...</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-user-plus"></i>
+                      <span>Create User</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
+
+      {/* Registered Users Table Card */}
+      <div className="user-mgmt-card">
+        <div className="user-card-header">
+          <div className="user-header-left">
+            <div className="user-header-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>
+              <i className="fas fa-id-card"></i>
+            </div>
+            <div>
+              <h4 className="user-card-title">Registered Clients & Partners</h4>
+              <p className="user-card-subtitle">
+                {filteredAndSortedUsers.length === 0
+                  ? "0 authorized user accounts in database"
+                  : `Showing ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(
+                      currentPage * ITEMS_PER_PAGE,
+                      filteredAndSortedUsers.length
+                    )} of ${filteredAndSortedUsers.length} authorized user accounts${
+                      filteredAndSortedUsers.length !== users.length
+                        ? ` (filtered from ${users.length})`
+                        : ""
+                    }`}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="user-btn-refresh"
+            onClick={fetchUsers}
+            disabled={listLoading}
+          >
+            <i className={`fas fa-sync-alt ${listLoading ? "fa-spin" : ""}`}></i>
+            <span>Refresh</span>
+          </button>
+        </div>
+
+        {/* Toolbar: Search + Sort controls */}
+        <div className="user-toolbar">
+          <div className="user-search-wrap">
+            <i className="fas fa-search user-search-icon"></i>
+            <input
+              type="text"
+              className="user-search-input"
+              placeholder="Search by company name, email, phone, GST, city or account..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="user-controls-right">
+            <select
+              className="user-select-control"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="name">Sort by Company Name</option>
+              <option value="date">Sort by Registered Date</option>
+            </select>
+
+            <select
+              className="user-select-control"
+              value={order}
+              onChange={(e) => setOrder(e.target.value)}
+            >
+              <option value="asc">Ascending (A-Z / Oldest)</option>
+              <option value="desc">Descending (Z-A / Newest)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* User Table Body */}
+        <div className="user-table-wrapper">
+          {listLoading ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status"></div>
+              <div className="small text-muted mt-2">Loading partner directory...</div>
+            </div>
+          ) : (
+            <table className="user-main-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "4%" }}>#</th>
+                  <th style={{ width: "20%" }}>Company & Name</th>
+                  <th style={{ width: "17%" }}>Email</th>
+                  <th style={{ width: "12%" }}>Phone</th>
+                  <th style={{ width: "11%" }}>GST Number</th>
+                  <th style={{ width: "12%" }}>City / State</th>
+                  <th style={{ width: "10%" }}>Registered Date</th>
+                  <th style={{ width: "7%" }}>Account</th>
+                  <th style={{ width: "13%" }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan="9" className="text-center py-5 text-muted">
+                      <div className="mb-2">
+                        <i className="fas fa-users-slash" style={{ fontSize: "24px", color: "#94a3b8" }}></i>
+                      </div>
+                      <div>No users found matching your search query.</div>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedUsers.map((user, idx) => {
+                    const globalIdx = (currentPage - 1) * ITEMS_PER_PAGE + idx + 1;
+                    return (
+                      <tr key={user._id || idx}>
+                        <td>
+                          <span className="text-muted fw-semibold">{globalIdx}</span>
+                        </td>
+                        <td>
+                          <div className="user-avatar-cell">
+                            <div className="user-avatar-circle">
+                              {getInitials(user.name)}
+                            </div>
+                            <div>
+                              <div className="fw-bold text-dark">{user.name}</div>
+                              {user.authorizedPerson && (
+                                <div className="small text-muted">
+                                  {user.authorizedPerson}
+                                  {user.authorizedPersonDesignation ? ` • ${user.authorizedPersonDesignation}` : ""}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <a href={`mailto:${user.email}`} className="text-dark text-decoration-none hover:text-primary">
+                            {user.email}
+                          </a>
+                        </td>
+                        <td>
+                          <a href={`tel:${user.phoneNumber}`} className="text-muted text-decoration-none">
+                            {user.phoneNumber}
+                          </a>
+                        </td>
+                        <td>
+                          {user.gstNumber ? (
+                            <span className="user-gst-badge">{user.gstNumber}</span>
+                          ) : (
+                            <span className="text-muted small">-</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="fw-semibold text-dark">{user.city || "-"}</div>
+                          <div className="small text-muted">{user.state || ""}</div>
+                        </td>
+                        <td>
+                          <div className="text-muted small">
+                            {user.createdAt
+                              ? new Date(user.createdAt).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })
+                              : "-"}
+                          </div>
+                        </td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              user.accountType === "DEALERSHIP" ? "bg-success" : "bg-secondary"
+                            }`}
+                          >
+                            {user.accountType || "FABRICATOR"}
+                          </span>
+                          {!!user.disabledModules?.length && (
+                            <div className="user-disabled-summary">
+                              {user.disabledModules.length} module{user.disabledModules.length > 1 ? "s" : ""} disabled
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <div className="user-row-actions">
+                            <button
+                              type="button"
+                              className="btn btn-sm user-delete-action"
+                              onClick={() => setDeletionUser(user)}
+                              title={`Delete ${user.name}`}
+                            >
+                              <i className="far fa-trash-alt" aria-hidden="true"></i>
+                              Delete
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => openAccessModal(user)}
+                              title={`Manage module access for ${user.name}`}
+                            >
+                              <i className="fas fa-user-lock"></i>
+                              Access
+                            </button>
+                            {user.virtualAccount?.virtualAccountNo ? (
+                              <>
+  <button
+    type="button"
+    className="btn btn-sm btn-outline-success"
+    style={{
+      fontSize: "11.5px",
+      padding: "4px 8px",
+      whiteSpace: "nowrap"
+    }}
+    onClick={() => setVirtualAccountUser(user)}
+  >
+    <i className="fas fa-university me-1"></i>
+    See Bank Details
+  </button>
+  <button
+  type="button"
+  className="btn btn-sm btn-primary"
+  onClick={() => {
+  setEditVirtualAccountUser(user);
+   setEditRemitters(
+    user.whitelistedRemitters?.length
+      ? user.whitelistedRemitters
+      : [
+          {
+            accountName: "",
+            accountNo: "",
+            ifscCode: ""
+          }
+        ]
+  );
+  setShowEditVirtualAccountForm(true);
+}}
+>
+  EDIT DETAILS
+</button>
+  </>
+  
+) : (
+  <button
+    type="button"
+    className="btn btn-sm btn-outline-primary"
+    style={{
+      fontSize: "11.5px",
+      padding: "4px 8px",
+      whiteSpace: "nowrap"
+    }}
+    onClick={() => {
+  setVirtualAccountFormUser(user);
+  setRemitters([
+    {
+      accountName: "",
+      accountNo: "",
+      ifscCode: ""
+    }
+  ]);
+  setShowVirtualAccountForm(true);
+}}
+    disabled={virtualAccountLoading}
+  >
+    {virtualAccountLoading ? (
+      <>
+        <span className="spinner-border spinner-border-sm me-1"></span>
+        Creating...
+      </>
+    ) : (
+      <>
+        <i className="fas fa-university me-1"></i>
+        Create Virtual Account
+      </>
+    )}
+  </button>
+)}
+                          {user.accountType === "FABRICATOR" && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary"
+                              style={{ fontSize: "11.5px", padding: "4px 8px", whiteSpace: "nowrap" }}
+                              onClick={() => {
+                                setPromotionUser(user);
+                                setPromotionBlob(null);
+                                setPromotionAccepted(false);
+                              }}
+                            >
+                              Promote to dealership
+                            </button>
+                          )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Pagination Bar */}
+        {!listLoading && filteredAndSortedUsers.length > 0 && (
+          <div className="user-pagination-bar">
+            <div className="user-pagination-info">
+              Showing <strong>{(currentPage - 1) * ITEMS_PER_PAGE + 1}</strong> to{" "}
+              <strong>
+                {Math.min(currentPage * ITEMS_PER_PAGE, filteredAndSortedUsers.length)}
+              </strong>{" "}
+              of <strong>{filteredAndSortedUsers.length}</strong> users
+            </div>
+
+            <div className="user-pagination-controls">
+              <button
+                type="button"
+                className="user-page-btn"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                title="Go to previous page"
+              >
+                <i className="fas fa-chevron-left"></i>
+                <span>Previous</span>
+              </button>
+
+              <div className="user-page-indicator">
+                Page <strong>{currentPage}</strong> of <span>{totalPages || 1}</span>
+              </div>
+
+              <button
+                type="button"
+                className="user-page-btn"
+                disabled={currentPage >= totalPages}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                title="Go to next page"
+              >
+                <span>Next</span>
+                <i className="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {promotionUser && (
+        <div className="promotion-backdrop">
+          <div className="promotion-modal" role="dialog" aria-modal="true">
+            <div className="d-flex justify-content-between align-items-start">
+              <div>
+                <h4>Promote to dealership</h4>
+                <p className="text-muted">{promotionUser.name} · {promotionUser.phoneNumber}</p>
+              </div>
+              <button
+                type="button"
+                className="promotion-close"
+                onClick={() => setPromotionUser(null)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="alert alert-warning small">
+              The existing Glazia–Fabricator agreement will be deleted from S3 and replaced by this Glazia–Dealership agreement.
+            </div>
+            <div className="promotion-agreement">
+              <ParterAgreement
+                agreementType="GLAZIA_DEALERSHIP"
+                userName={promotionUser.name}
+                completeAddress={promotionUser.address || ""}
+                gstNumber={promotionUser.gstNumber}
+                pincode={promotionUser.pincode || ""}
+                city={promotionUser.city}
+                state={promotionUser.state}
+                phoneNumber={promotionUser.phoneNumber}
+                email={promotionUser.email}
+                setBlob={setPromotionBlob}
+              />
+            </div>
+            <label className="d-flex align-items-start gap-2 mt-3">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={promotionAccepted}
+                onChange={(event) => setPromotionAccepted(event.target.checked)}
+              />
+              <span>I confirm the dealership has reviewed and accepted the new agreement.</span>
+            </label>
+            <div className="d-flex justify-content-end gap-2 mt-4">
+              <button
+                type="button"
+                className="btn btn-light"
+                onClick={() => setPromotionUser(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!promotionBlob || !promotionAccepted || promotionLoading}
+                onClick={promoteToDealership}
+              >
+                {promotionLoading ? "Promoting…" : "Promote dealership"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deletionUser && (
+        <div className="promotion-backdrop">
+          <div className="promotion-modal user-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-user-title">
+            <div className="user-delete-icon"><i className="far fa-trash-alt"></i></div>
+            <h4 id="delete-user-title">Delete user?</h4>
+            <p className="text-muted">
+              <strong>{deletionUser.name}</strong> will be permanently removed from MongoDB. Their partner agreement PDF will also be permanently deleted from S3.
+            </p>
+            <div className="alert alert-danger small mb-0">
+              This action cannot be undone.
+            </div>
+            <div className="d-flex justify-content-end gap-2 mt-4">
+              <button type="button" className="btn btn-light" onClick={() => setDeletionUser(null)} disabled={deletionLoading}>Cancel</button>
+              <button type="button" className="btn btn-danger" onClick={deleteUser} disabled={deletionLoading}>
+                {deletionLoading ? <><span className="spinner-border spinner-border-sm me-2" role="status"></span>Deleting…</> : <><i className="far fa-trash-alt me-2"></i>Delete user</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {accessUser && (
+        <div className="promotion-backdrop">
+          <div className="promotion-modal user-access-modal" role="dialog" aria-modal="true" aria-labelledby="module-access-title">
+            <div className="d-flex justify-content-between align-items-start gap-3">
+              <div>
+                <h4 id="module-access-title">Manage module access</h4>
+                <p className="text-muted mb-0">{accessUser.name} · {accessUser.phoneNumber}</p>
+              </div>
+              <button type="button" className="promotion-close" onClick={() => setAccessUser(null)} disabled={accessLoading}>×</button>
+            </div>
+            <p className="small text-muted mt-3 mb-2">Select every module this user should be prevented from accessing.</p>
+            <div className="user-module-options">
+              {[
+                { value: "MAIN_SITE", title: "Main Site", description: "Website account, ordering, dealership and stock modules", icon: "fa-globe" },
+                { value: "QUOTATION_ERP", title: "Quotation ERP", description: "Quotation creation, CRM and ERP tools", icon: "fa-file-invoice-dollar" },
+              ].map((moduleOption) => {
+                const disabled = disabledModules.includes(moduleOption.value);
+                return (
+                  <label key={moduleOption.value} className={`user-module-option ${disabled ? "disabled-selected" : ""}`}>
+                    <input type="checkbox" checked={disabled} onChange={() => toggleDisabledModule(moduleOption.value)} />
+                    <span className="user-module-icon"><i className={`fas ${moduleOption.icon}`}></i></span>
+                    <span className="flex-grow-1"><strong>{moduleOption.title}</strong><small>{moduleOption.description}</small></span>
+                    <span className={`user-module-state ${disabled ? "off" : "on"}`}>{disabled ? "Disabled" : "Enabled"}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="d-flex justify-content-end gap-2 mt-4">
+              <button type="button" className="btn btn-light" onClick={() => setAccessUser(null)} disabled={accessLoading}>Cancel</button>
+              <button type="button" className="btn btn-primary" onClick={saveModuleAccess} disabled={accessLoading}>
+                {accessLoading ? <><span className="spinner-border spinner-border-sm me-2" role="status"></span>Saving…</> : "Save access"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {virtualAccountUser && (
+  <div className="promotion-backdrop">
+    <div
+      className="promotion-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="virtual-account-title"
+    >
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <h4 id="virtual-account-title" className="mb-1">
+            Bank Details
+          </h4>
+
+          <p className="text-muted mb-0">
+            {virtualAccountUser.name} · {virtualAccountUser.phoneNumber}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="promotion-close"
+          onClick={() => setVirtualAccountUser(null)}
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Virtual Account Details */}
+      <div style={{ marginTop: "24px" }}>
+        <h6
+          className="fw-bold"
+          style={{
+            marginBottom: "16px",
+            fontSize: "14px",
+          }}
+        >
+          Virtual Account Details
+        </h6>
+
+        <div
+          className="row"
+          style={{
+            rowGap: "20px",
+          }}
+        >
+          <div className="col-md-6">
+            <label
+              className="small text-muted"
+              style={{
+                display: "block",
+                marginBottom: "5px",
+              }}
+            >
+              Virtual Account Number
+            </label>
+
+            <div className="fw-semibold">
+              {virtualAccountUser.virtualAccount?.virtualAccountNo || "-"}
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <label
+              className="small text-muted"
+              style={{
+                display: "block",
+                marginBottom: "5px",
+              }}
+            >
+              IFSC Code
+            </label>
+
+            <div className="fw-semibold">
+              {virtualAccountUser.virtualAccount?.ifscCode || "-"}
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <label
+              className="small text-muted"
+              style={{
+                display: "block",
+                marginBottom: "5px",
+              }}
+            >
+              Beneficiary Name
+            </label>
+
+            <div className="fw-semibold">
+              {virtualAccountUser.virtualAccount?.beneficiaryName || "-"}
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <label
+              className="small text-muted"
+              style={{
+                display: "block",
+                marginBottom: "5px",
+              }}
+            >
+              Bank Name
+            </label>
+
+            <div className="fw-semibold">
+              {virtualAccountUser.virtualAccount?.bankName || "-"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Whitelisted Remitters */}
+      <div style={{ marginTop: "28px" }}>
+        <h6
+          className="fw-bold"
+          style={{
+            marginBottom: "12px",
+            fontSize: "14px",
+          }}
+        >
+          Whitelisted Remitters
+        </h6>
+
+        {virtualAccountUser.whitelistedRemitters?.length > 0 ? (
+          <div className="table-responsive">
+            <table
+              className="table table-bordered mb-0"
+              style={{
+                marginTop: "4px",
+              }}
+            >
+              <thead>
+                <tr>
+                  <th
+                    style={{
+                      padding: "10px 12px",
+                      fontSize: "12px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Account Name
+                  </th>
+
+                  <th
+                    style={{
+                      padding: "10px 12px",
+                      fontSize: "12px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Account Number
+                  </th>
+
+                  <th
+                    style={{
+                      padding: "10px 12px",
+                      fontSize: "12px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    IFSC Code
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {virtualAccountUser.whitelistedRemitters.map(
+                  (remitter, index) => (
+                    <tr key={remitter._id || index}>
+                      <td style={{ padding: "10px 12px" }}>
+                        {remitter.accountName || "-"}
+                      </td>
+
+                      <td style={{ padding: "10px 12px" }}>
+                        {remitter.accountNo || "-"}
+                      </td>
+
+                      <td style={{ padding: "10px 12px" }}>
+                        {remitter.ifscCode || "-"}
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-muted small">
+            No whitelisted remitters added.
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="d-flex justify-content-end mt-4">
+        <button
+          type="button"
+          className="btn btn-light"
+          onClick={() => setVirtualAccountUser(null)}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{showVirtualAccountForm && virtualAccountFormUser && (
+  <div className="promotion-backdrop">
+    <div
+      className="promotion-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-virtual-account-title"
+    >
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <h4 id="create-virtual-account-title" className="mb-1">
+            Create Virtual Account
+          </h4>
+
+          <p className="text-muted mb-0">
+            {virtualAccountFormUser.name} ·{" "}
+            {virtualAccountFormUser.phoneNumber}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="promotion-close"
+          onClick={() => setShowVirtualAccountForm(false)}
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Remitter Form */}
+      <div style={{ marginTop: "24px" }}>
+        <h6
+          className="fw-bold"
+          style={{
+            marginBottom: "14px",
+            fontSize: "14px",
+          }}
+        >
+          Whitelisted Remitter
+        </h6>
+
+        {remitters.map((remitter, index) => (
+          <div
+            key={index}
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: "8px",
+              padding: "16px",
+              marginBottom: "14px",
+            }}
+          >
+            <div
+              className="d-flex justify-content-between align-items-center"
+              style={{ marginBottom: "14px" }}
+            >
+              <span className="fw-semibold" style={{ fontSize: "13px" }}>
+                Remitter {index + 1}
+              </span>
+
+              {remitters.length > 1 && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-danger"
+                  onClick={() => {
+                    setRemitters((current) =>
+                      current.filter((_, i) => i !== index)
+                    );
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+
+            <div className="row g-3">
+              <div className="col-md-4">
+                <label className="small text-muted d-block mb-1">
+                  Account Name
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Account name"
+                  value={remitter.accountName}
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    setRemitters((current) =>
+                      current.map((item, i) =>
+                        i === index
+                          ? { ...item, accountName: value }
+                          : item
+                      )
+                    );
+                  }}
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label className="small text-muted d-block mb-1">
+                  Account Number
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Account number"
+                  value={remitter.accountNo}
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    setRemitters((current) =>
+                      current.map((item, i) =>
+                        i === index
+                          ? { ...item, accountNo: value }
+                          : item
+                      )
+                    );
+                  }}
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label className="small text-muted d-block mb-1">
+                  IFSC Code
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="IFSC code"
+                  value={remitter.ifscCode}
+                  onChange={(e) => {
+                    const value = e.target.value.toUpperCase();
+
+                    setRemitters((current) =>
+                      current.map((item, i) =>
+                        i === index
+                          ? { ...item, ifscCode: value }
+                          : item
+                      )
+                    );
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Add Remitter */}
+        {remitters.length < 5 && (
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-primary"
+            onClick={() => {
+              setRemitters((current) => [
+                ...current,
+                {
+                  accountName: "",
+                  accountNo: "",
+                  ifscCode: "",
+                },
+              ]);
+            }}
+          >
+            <i className="fas fa-plus me-1"></i>
+            Add Remitter
+          </button>
+        )}
+
+        <div className="small text-muted mt-2">
+          You can add up to 5 whitelisted remitters.
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="d-flex justify-content-end gap-2 mt-4">
+        <button
+          type="button"
+          className="btn btn-light"
+          onClick={() => setShowVirtualAccountForm(false)}
+        >
+          Cancel
+        </button>
+
+       <button
+  type="button"
+  className="btn btn-primary"
+  onClick={() =>
+    createVirtualAccount(
+      virtualAccountFormUser,
+      remitters
+    )
+  }
+  disabled={virtualAccountLoading}
+>
+  {virtualAccountLoading ? (
+    <>
+      <span className="spinner-border spinner-border-sm me-2"></span>
+      Creating...
+    </>
+  ) : (
+    "Create Virtual Account"
+  )}
+</button>
+      </div>
+    </div>
+  </div>
+)}
+
+{showEditVirtualAccountForm && editVirtualAccountUser && (
+  <div className="promotion-backdrop">
+    <div
+      className="promotion-modal"
+      style={{
+        maxWidth: "650px",
+        width: "90%"
+      }}
+    >
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h4 className="mb-1">Edit Details</h4>
+          <p className="text-muted mb-0">
+            Update whitelisted remitter details
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="btn-close"
+          onClick={() => {
+            setShowEditVirtualAccountForm(false);
+            setEditVirtualAccountUser(null);
+          }}
+        ></button>
+      </div>
+
+    <div>
+  <label className="fw-semibold mb-3">
+    Whitelisted Remitters
+  </label>
+
+  {editRemitters.map((remitter, index) => (
+    <div
+      key={index}
+      className="border rounded p-3 mb-3"
+    >
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <span className="fw-semibold">
+          Remitter {index + 1}
+        </span>
+
+        {editRemitters.length > 1 && (
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-danger"
+            onClick={() => {
+              setEditRemitters((current) =>
+                current.filter((_, i) => i !== index)
+              );
+            }}
+          >
+            <i className="fas fa-trash-alt me-1"></i>
+            Remove
+          </button>
+        )}
+      </div>
+
+      <div className="row g-3">
+        {/* Account Name */}
+        <div className="col-md-4">
+          <label className="small text-muted d-block mb-1">
+            Account Name
+          </label>
+
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Account name"
+            value={remitter.accountName}
+            onChange={(e) => {
+              const value = e.target.value;
+
+              setEditRemitters((current) =>
+                current.map((item, i) =>
+                  i === index
+                    ? { ...item, accountName: value }
+                    : item
+                )
+              );
+            }}
+          />
+        </div>
+
+        {/* Account Number */}
+        <div className="col-md-4">
+          <label className="small text-muted d-block mb-1">
+            Account Number
+          </label>
+
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Account number"
+            value={remitter.accountNo}
+            onChange={(e) => {
+              const value = e.target.value;
+
+              setEditRemitters((current) =>
+                current.map((item, i) =>
+                  i === index
+                    ? { ...item, accountNo: value }
+                    : item
+                )
+              );
+            }}
+          />
+        </div>
+
+        {/* IFSC */}
+        <div className="col-md-4">
+          <label className="small text-muted d-block mb-1">
+            IFSC Code
+          </label>
+
+          <input
+            type="text"
+            className="form-control"
+            placeholder="IFSC code"
+            value={remitter.ifscCode}
+            onChange={(e) => {
+              const value = e.target.value.toUpperCase();
+
+              setEditRemitters((current) =>
+                current.map((item, i) =>
+                  i === index
+                    ? { ...item, ifscCode: value }
+                    : item
+                )
+              );
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  ))}
+
+  {/* Add Remitter */}
+  {editRemitters.length < 5 && (
+    <button
+      type="button"
+      className="btn btn-sm btn-outline-primary"
+      onClick={() => {
+        setEditRemitters((current) => [
+          ...current,
+          {
+            accountName: "",
+            accountNo: "",
+            ifscCode: ""
+          }
+        ]);
+      }}
+    >
+      <i className="fas fa-plus me-1"></i>
+      Add Remitter
+    </button>
+  )}
+
+  <div className="small text-muted mt-2">
+    You can add up to 5 whitelisted remitters.
+  </div>
+</div>
+
+      <div className="d-flex justify-content-end gap-2 mt-4">
+        <button
+          type="button"
+          className="btn btn-light"
+          onClick={() => {
+            setShowEditVirtualAccountForm(false);
+            setEditVirtualAccountUser(null);
+          }}
+        >
+          Cancel
+        </button>
+        <button
+  type="button"
+  className="btn btn-primary"
+  onClick={updateVirtualAccountDetails}
+  disabled={virtualAccountLoading}
+>
+  {virtualAccountLoading ? (
+    <>
+      <span className="spinner-border spinner-border-sm me-2"></span>
+      Saving...
+    </>
+  ) : (
+    "Save Changes"
+  )}
+</button>
+      </div>
+    </div>
+  </div>
+)}
+    </div>
+  );
+};
+
+export default UserManagement;

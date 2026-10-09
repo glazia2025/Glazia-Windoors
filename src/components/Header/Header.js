@@ -1,0 +1,271 @@
+import React, { useEffect, useState } from "react";
+import {
+  MDBContainer,
+  MDBNavbar,
+  MDBNavbarBrand,
+  MDBNavbarToggler,
+  MDBIcon,
+  MDBNavbarNav,
+  MDBNavbarItem,
+  MDBNavbarLink,
+  MDBDropdown,
+  MDBDropdownToggle,
+  MDBDropdownMenu,
+  MDBDropdownItem,
+  MDBCollapse,
+} from "mdb-react-ui-kit";
+import "./Header.css";
+import { useNavigate } from "react-router-dom";
+import logo from "../../logo/logo-final.png";
+import { useDispatch, useSelector } from "react-redux";
+import api, { BASE_API_URL } from "../../utils/api";
+import {
+  setHardwareHeirarchy,
+  setProfileHeirarchy,
+} from "../../redux/heirarchySlice";
+import {
+  setActiveOption,
+  setActiveProfile,
+  setSelectedOption,
+} from "../../redux/selectionSlice";
+import { firstAllowedAdminPath, hasAdminAccess } from "../../utils/adminAccess";
+
+const Header = ({ isLoggedIn, onLogout, isSliderOpen, setIsSliderOpen }) => {
+  const { user } = useSelector((state) => state.user);
+  const [openBasic, setOpenBasic] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const { hardwareHeirarchy } = useSelector((state) => state.heirarchy);
+  const { profileHeirarchy } = useSelector((state) => state.heirarchy);
+
+  const { selectedOption, productsByOption } = useSelector(
+    (state) => state.selection
+  );
+
+  // const selectedProducts = Object.values(productsByOption).flat();
+
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const fetchProfileAndHardwareData = async () => {
+    const token = localStorage.getItem("authToken");
+    try {
+      const [profileResponse, hardwareResponse] = await Promise.all([
+        api.get(`${BASE_API_URL}/${window.location.pathname.includes('admin') ? 'admin' : 'user'}/get-profile-heirarchy`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        api.get(`${BASE_API_URL}/user/get-hardware-heirarchy`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+      ]);
+      dispatch(setProfileHeirarchy(profileResponse.data.products));
+      dispatch(setHardwareHeirarchy(hardwareResponse.data.products));
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const setActiveState = (mainOption, option, profile) => {
+    dispatch(setActiveProfile(profile));
+    dispatch(setActiveOption(option));
+    dispatch(setSelectedOption(mainOption));
+    if (mainOption === "profile") {
+      navigate("/dashboard/profile");
+    } else if (mainOption === "hardware") {
+      navigate("/dashboard/hardware");
+    } else {
+      navigate("/dashboard");
+    }
+  };
+
+  useEffect(() => {
+    const role = localStorage.getItem("userRole");
+    setUserRole(role);
+    if (isLoggedIn && hasAdminAccess("PRODUCTS")) {
+      fetchProfileAndHardwareData();
+    }
+  }, []);
+
+  const goToOrderPage = (status) => {
+    navigate(`/dashboard/orders?status=${status}`);
+  };
+
+  return (
+    <MDBNavbar fixed="top" expand="lg" light bgColor="white">
+      <MDBContainer>
+        <MDBNavbarBrand
+          className="cursor-pointer"
+          onClick={() =>
+            navigate(firstAllowedAdminPath())
+          }
+        >
+          <img className="logo" src={logo} />
+        </MDBNavbarBrand>
+        <div className="mobile-connect-wrapper d-flex">
+          <MDBNavbarToggler
+            aria-controls="navbarSupportedContent"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+            onClick={() => setOpenBasic(!openBasic)}
+          >
+            <MDBIcon icon="bars" fas />
+          </MDBNavbarToggler>
+        </div>
+
+        <MDBCollapse navbar open={openBasic}>
+          <MDBNavbarNav className="mr-auto mb-2 mb-lg-0 gap-3">
+            {isLoggedIn && (
+              <>
+                {hasAdminAccess("DASHBOARD") && <MDBNavbarItem>
+                  <MDBNavbarLink onClick={() => navigate("/dashboard")}>
+                    Dashboard
+                  </MDBNavbarLink>
+                </MDBNavbarItem>}
+                {hasAdminAccess("PRODUCTS") && <MDBNavbarItem>
+                  <MDBNavbarLink
+                    onClick={() => navigate("/dashboard/profile")}
+                    className="fw-semibold text-dark cursor-pointer"
+                  >
+                    Profile
+                  </MDBNavbarLink>
+                </MDBNavbarItem>}
+                {hasAdminAccess("PRODUCTS") && <MDBNavbarItem>
+                  <MDBNavbarLink
+                    onClick={() => navigate("/dashboard/hardware")}
+                    className="fw-semibold text-dark cursor-pointer"
+                  >
+                    Hardware
+                  </MDBNavbarLink>
+                </MDBNavbarItem>}
+
+                {hasAdminAccess("ORDERS") && <MDBNavbarItem>
+                  <MDBDropdown>
+                    <MDBDropdownToggle
+                      tag="a"
+                      className="nav-link cursor-pointer fw-semibold text-dark"
+                    >
+                      Orders
+                    </MDBDropdownToggle>
+                    <MDBDropdownMenu>
+                      <MDBDropdownItem>
+                        <MDBNavbarLink
+                          className="dropdown-item"
+                          onClick={() => goToOrderPage("ongoing")}
+                        >
+                          Ongoing Orders
+                        </MDBNavbarLink>
+                      </MDBDropdownItem>
+
+                      <MDBDropdownItem>
+                        <MDBNavbarLink
+                          className="dropdown-item"
+                          onClick={() => goToOrderPage("completed")}
+                        >
+                          Completed Orders
+                        </MDBNavbarLink>
+                      </MDBDropdownItem>
+                    </MDBDropdownMenu>
+                  </MDBDropdown>
+                </MDBNavbarItem>}
+
+                <MDBNavbarItem>
+                  {userRole === "admin" && hasAdminAccess("STOCK_APPROVALS") && (
+                    <MDBNavbarLink onClick={() => navigate("/dashboard/stock-approvals")} className="fw-semibold text-dark">
+                      Stock Approvals
+                    </MDBNavbarLink>
+                  )}
+                </MDBNavbarItem>
+                <MDBNavbarItem>
+                  {userRole === "admin" && hasAdminAccess("INVENTORY") && (
+                    <MDBNavbarLink onClick={() => navigate("/dashboard/inventory")} className="fw-semibold text-dark">
+                      Inventory
+                    </MDBNavbarLink>
+                  )}
+                </MDBNavbarItem>
+                <MDBNavbarItem>
+                  {userRole === "admin" && hasAdminAccess("QUOTATIONS") && (
+                    <MDBNavbarLink
+                      onClick={() => navigate("/dashboard/quotations")}
+                      className="fw-semibold text-dark"
+                    >
+                      Quotations
+                    </MDBNavbarLink>
+                  )}
+                </MDBNavbarItem>
+
+                <MDBNavbarItem>
+                  {userRole === "admin" && hasAdminAccess("USERS") && (
+                    <MDBNavbarLink
+                      onClick={() => navigate("/dashboard/users")}
+                      className="fw-semibold text-dark"
+                    >
+                      Users
+                    </MDBNavbarLink>
+                  )}
+                </MDBNavbarItem>
+
+
+                <MDBNavbarItem>
+                  {userRole === "admin" && hasAdminAccess("BLOGS") && (
+                    <MDBNavbarLink
+                      onClick={() => navigate("/dashboard/blogs")}
+                      className="fw-semibold text-dark"
+                    >
+                      Add Blogs
+                    </MDBNavbarLink>
+                  )}
+                </MDBNavbarItem>
+                <MDBNavbarItem>
+                  {userRole === "admin" && hasAdminAccess("ADMIN_ACCOUNTS") && (
+                    <MDBNavbarLink onClick={() => navigate("/dashboard/admin-accounts")} className="fw-semibold text-dark">
+                      Admin Accounts
+                    </MDBNavbarLink>
+                  )}
+                </MDBNavbarItem>
+              </>
+            )}
+          </MDBNavbarNav>
+
+          {isLoggedIn && (
+            <div className="d-flex align-items-center" style={{ gap: '24px' }}>
+              {/* User Profile Dropdown */}
+              {isLoggedIn && (
+                <div className="d-flex align-items-center">
+                  <MDBDropdown>
+                    <MDBDropdownToggle
+                      tag="a"
+                      className="nav-link d-flex align-items-center"
+                      style={{ cursor: "pointer" }}
+                    >
+                      <img
+                        src="../../../Assets/Icons/user.png"
+                        className="rounded-circle"
+                        height="40"
+                        alt="User Avatar"
+                        loading="lazy"
+                      />
+                    </MDBDropdownToggle>
+                    {userRole && userRole === "admin" && (
+                      <MDBDropdownMenu className="fs-6">
+                        <MDBDropdownItem link onClick={onLogout}>
+                          <MDBIcon fas icon="sign-out-alt" /> &nbsp; Logout
+                        </MDBDropdownItem>
+                      </MDBDropdownMenu>
+                    )}
+                  </MDBDropdown>
+                </div>
+              )}
+            </div>
+          )}
+        </MDBCollapse>
+      </MDBContainer>
+    </MDBNavbar>
+  );
+};
+
+export default Header;
+
+// mongodb+srv://glaziain:Glazia@123@glazia.elx92.mongodb.net/?retryWrites=true&w=majority&appName=glazia
